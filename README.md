@@ -34,17 +34,19 @@ Interface **names** carry no `openbindings.` prefix: an interface's identity is 
 - `source-inspector/0.1.json` — source inspector contract. Defines `listFormats` and `inspectSource` for components that inspect binding artifacts and return bindable targets before an OBI is created. (New for spec 0.2.0; first contract version 0.1.0.)
 - `kv-store/0.1.json` — generic key-value store (`get`/`set`/`delete` over an opaque key and opaque value). Generic capability; the runtime uses one to hold binding context, but the store knows nothing about context. (Replaces the spec-0.1.0 `context-store`, which baked the context meaning into the store.)
 
-### Prior versions (preserved)
+### Prior versions
 
-The contracts published against spec **0.1.0** are kept unchanged so existing consumers keep resolving (these declare `"openbindings": "0.1.0"`). Using them is not recommended for new work; they are retained only so prior consumers do not break.
+Contracts published against spec **0.1.0** are **not carried in this repository.** They were published from `openbindings/spec` and remain immutably resolvable at that repository's `v0.1.0` tag, which is their published identity:
 
-These keep their original `openbindings.`-prefixed directory paths, which were their published identity and are immutable.
+    https://raw.githubusercontent.com/openbindings/spec/v0.1.0/interfaces/openbindings.<name>/0.1.json
 
-- `openbindings.binding-executor/0.1.json` — the spec-0.1.0 binding invoker, superseded by `binding-invoker` (a new, differently-shaped contract for spec 0.2.0).
-- `openbindings.host/0.1.json` — the spec-0.1.0 host contract, withdrawn for spec 0.2.0 (its concerns moved into binding-invoker and the kv-store-backed context loop).
-- `openbindings.context-store/0.1.json` — the spec-0.1.0 context store, replaced by the generic `kv-store` (which no longer bakes the context meaning into the store).
-- `openbindings.http-client/0.1.json` — the spec-0.1.0 HTTP client, withdrawn for spec 0.2.0 (a generic HTTP capability with no consumer; the SDK's injectable `fetch` covers the browser case).
-- `openbindings.interface-creator/0.1.json`, `openbindings.software-descriptor/0.1.json` — the spec-0.1.0 shapes, superseded by the `0.2.json` files above (these two kept their names, so their contract version advanced 0.1.0 → 0.2.0).
+(for example `…/openbindings.context-store/0.1.json`). Copying them here would mint a second, never-published URL for a withdrawn contract, so it is deliberately not done. All six are superseded or withdrawn in spec 0.2.0; their lineage:
+
+- `openbindings.binding-executor` → superseded by `binding-invoker` (a new, differently-shaped contract).
+- `openbindings.context-store` → replaced by the generic `kv-store`.
+- `openbindings.host` → withdrawn; its concerns moved into binding-invoker and the kv-store-backed context loop.
+- `openbindings.http-client` → withdrawn (a generic HTTP capability with no consumer; the SDK's injectable `fetch` covers the browser case).
+- `openbindings.interface-creator`, `openbindings.software-descriptor` → continued as the `0.2` files in the cohort above (same names, contract version advanced 0.1 → 0.2).
 
 ## How these interfaces relate
 

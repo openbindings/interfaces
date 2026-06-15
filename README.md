@@ -6,7 +6,7 @@ This repository is **not the specification**. The normative format definition an
 
 - **Non-normative** — not required by the core spec. A tool conforms to OpenBindings without supporting any of them.
 - **Shared contracts** — published so independent implementations can recognize the same capability by a common name.
-- **Unbound** — they define operation contracts without bindings. An implementation imports one and adds its own bindings to make it actionable.
+- **Unbound** — they define operation contracts (operation shapes), not bindings, so they aren't invoked directly. Each is a **compatibility target**: a service satisfies one by carrying the contract's operation names on its own, independently bound interface, and a tool checks the two for compatibility. One interface can satisfy several contracts at once.
 
 The project publishes these under its own `openbindings.*` operation namespace exactly as any third party would publish theirs under its own; the spec privileges none of them.
 

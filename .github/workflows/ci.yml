@@ -21,17 +21,18 @@ jobs:
         run: npm install -g ajv-cli ajv-formats
 
       - name: Validate interfaces against the OBI schema
-        # vendor/openbindings.schema.json is a vendored copy of the spec's
-        # meta-schema; refresh it when the spec schema changes.
+        # .github/scripts/openbindings.schema.json is a vendored copy of the
+        # spec's meta-schema; refresh it when the spec schema changes.
         run: |
           for f in */[0-9]*.json; do
             echo "validating $f"
-            ajv validate -s vendor/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
+            ajv validate -s .github/scripts/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
           done
 
       - name: Check canonical field ordering
-        # The checker skips frozen prior-spec snapshots by their openbindings version.
-        run: node scripts/check-canonical-order.mjs */[0-9]*.json
+        # The checker skips any document written against an older openbindings
+        # version than the newest among the inputs (none at present).
+        run: node .github/scripts/check-canonical-order.mjs */[0-9]*.json
 
       - name: Enforce immutability of published version files
         if: github.event_name == 'pull_request'

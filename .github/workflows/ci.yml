@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed for the append-only diff against the PR base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli ajv-formats
+
+      - name: Validate interfaces against the OBI schema
+        # vendor/openbindings.schema.json is a vendored copy of the spec's
+        # meta-schema; refresh it when the spec schema changes.
+        run: |
+          for f in */[0-9]*.json; do
+            echo "validating $f"
+            ajv validate -s vendor/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
+          done
+
+      - name: Check canonical field ordering
+        # The checker skips frozen prior-spec snapshots by their openbindings version.
+        run: node scripts/check-canonical-order.mjs */[0-9]*.json
+
+      - name: Enforce immutability of published version files
+        if: github.event_name == 'pull_request'
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          modified=$(git diff --diff-filter=M --name-only "$base"...HEAD | grep -E '^[^/]+/[0-9][^/]*\.json$' || true)
+          if [ -n "$modified" ]; then
+            echo "::error::Published interface version files are immutable; these were modified:"
+            echo "$modified"
+            echo "Ship a new <name>/<version>.json instead of editing a released file."
+            exit 1
+          fi
+          echo "no published version files modified"

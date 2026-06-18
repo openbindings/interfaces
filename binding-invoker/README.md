@@ -4,6 +4,12 @@ A binding invoker knows how to invoke bindings in a specific format. Given a sou
 
 This is the core capability that makes OpenBindings protocol-agnostic. The developer calls a typed operation. The SDK finds the binding. The invoker handles the protocol. The developer never writes protocol-specific code.
 
+## Why it's called a *binding* invoker
+
+A binding invoker takes a `(source, ref)` directly — not an OBI document, and not a binding key. It invokes **by value**: you hand it the entire realization, and it needs no interface document to act. So, strictly, it isn't handed "a binding" in the document sense; it's handed a binding's invocable essence (the operation label and key that an OBI binding entry adds are discovery metadata the wire never needs).
+
+The name still fits, and is the clearest available, for one reason: the `(format, ref)` pattern only exists *because* OpenBindings defines sources and bindings. Outside the OpenBindings model you would not address a call as "a ref into a declared source," so naming it for that model is exactly right. Its peer — the one that takes an interface and a *key*, resolving an operation or a binding **by reference** — is the [operation invoker](../operation-invoker/).
+
 ## What an invoker does
 
 When a binding invoker receives a `BindingInvocationInput`, it follows this lifecycle:

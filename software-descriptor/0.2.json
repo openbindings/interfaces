@@ -2,9 +2,9 @@
     "openbindings": "0.2.0",
     "name": "OpenBindings Software Descriptor",
     "version": "0.2.0",
-    "description": "Generic identity contract any software MAY implement. Defines the getInfo operation for self-identification — name, version, description, homepage, repository, maintainer. Implementations MAY return additional fields beyond the minimum.",
+    "description": "Generic identity contract any software MAY implement. Defines the describe operation for self-identification \u2014 name, version, description, homepage, repository, maintainer. Implementations MAY return additional fields beyond the minimum.",
     "schemas": {
-        "SoftwareInfo": {
+        "SoftwareIdentity": {
             "type": "object",
             "description": "Identity and metadata for a piece of software. Implementations may include additional fields.",
             "properties": {
@@ -39,11 +39,11 @@
         }
     },
     "operations": {
-        "openbindings.software-descriptor.getInfo": {
+        "openbindings.software-descriptor.describe": {
             "description": "Return identity and metadata about this software.",
             "idempotent": true,
             "output": {
-                "$ref": "#/schemas/SoftwareInfo"
+                "$ref": "#/schemas/SoftwareIdentity"
             }
         }
     }

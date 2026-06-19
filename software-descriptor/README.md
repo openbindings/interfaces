@@ -1,6 +1,6 @@
 # Software Descriptor
 
-A generic identity contract any piece of software MAY implement. Defines `getInfo` for self-identification: name, version, description, homepage, repository, maintainer.
+A generic identity contract any piece of software MAY implement. Defines `describe` for self-identification: name, version, description, homepage, repository, maintainer.
 
 This interface exists so that tooling, registries, and clients have a uniform way to ask "what is this thing?" regardless of what else the software does. Any implementation that satisfies a domain interface (binding invoker, interface creator, source inspector, anything else) can also satisfy this one to advertise its identity.
 
@@ -27,4 +27,4 @@ Implementations MAY return additional fields beyond these. Consumers that do not
 
 ## Idempotency
 
-`getInfo` is declared idempotent. The output MAY change across releases of the software, but for a given build it MUST be stable.
+`describe` is declared idempotent. The output MAY change across releases of the software, but for a given build it MUST be stable.

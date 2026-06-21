@@ -30,7 +30,7 @@ Interface **names** carry no `openbindings.` prefix: the `name` field is a label
 
 - `software-descriptor/0.2.json` — base software descriptor contract. Defines the canonical `describe` operation and `SoftwareIdentity` schema for self-identifying software. Generic capability.
 - `binding-invoker/0.1.json` — binding invoker contract. Defines `listFormats`, `invokeBinding`, and the `prepareBinding` preflight for components that invoke bindings in specific formats (OpenAPI, AsyncAPI, gRPC, MCP, etc.). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
-- `interface-creator/0.2.json` — interface creator contract. Defines `listFormats` and `createInterface` for components that produce OBIs from existing binding artifacts.
+- `interface-synthesizer/0.2.json` — interface creator contract. Defines `listFormats` and `synthesizeInterface` for components that produce OBIs from existing binding artifacts.
 - `source-inspector/0.1.json` — source inspector contract. Defines `listFormats` and `inspectSource` for components that inspect binding artifacts and return bindable targets before an OBI is created. (New for spec 0.2.0; first contract version 0.1.0.)
 - `kv-store/0.1.json` — generic key-value store (`get`/`set`/`delete` over an opaque key and opaque value). Generic capability; the runtime uses one to hold binding context, but the store knows nothing about context. (Replaces the spec-0.1.0 `context-store`, which baked the context meaning into the store.)
 
@@ -46,17 +46,17 @@ Contracts published against spec **0.1.0** are **not carried in this repository.
 - `openbindings.context-store` → replaced by the generic `kv-store`.
 - `openbindings.host` → withdrawn; its concerns moved into binding-invoker and the kv-store-backed context loop.
 - `openbindings.http-client` → withdrawn (a generic HTTP capability with no consumer; the SDK's injectable `fetch` covers the browser case).
-- `openbindings.interface-creator`, `openbindings.software-descriptor` → continued as the `0.2` files in the cohort above (same names, contract version advanced 0.1 → 0.2).
+- `openbindings.interface-synthesizer`, `openbindings.software-descriptor` → continued as the `0.2` files in the cohort above (same names, contract version advanced 0.1 → 0.2).
 
 ## How these interfaces relate
 
 They compose rather than overlap:
 
-- **source-inspector** and **interface-creator** sit at authoring time: an inspector reports the bindable targets in a raw artifact, and a creator turns an artifact into an OBI.
+- **source-inspector** and **interface-synthesizer** sit at authoring time: an inspector reports the bindable targets in a raw artifact, and a creator turns an artifact into an OBI.
 - **binding-invoker** is the runtime workhorse that invokes an operation's binding. When a binding needs something the caller has not supplied (credentials, a session, configuration), the invoker raises a `CONTEXT_REQUIRED` challenge reporting its target; the runtime resolves it, persists durable results in a store (a **kv-store**), and retries. Authentication lives entirely in this loop, never in the OBI document. The store is generic; the context meaning lives in this contract.
 - **software-descriptor** is a universal add-on any of the above MAY also implement, so tooling can ask "what is this?" uniformly.
 
-A service signals that it satisfies one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can satisfy several of these interfaces at once without the adopted names colliding — a service that lists formats for binding invocation, interface creation, and source inspection carries all three of `openbindings.binding-invoker.listFormats`, `openbindings.interface-creator.listFormats`, and `openbindings.source-inspector.listFormats` on its one local operation. The name is author-asserted; the spec attaches no verification or trust semantics to it.
+A service signals that it satisfies one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can satisfy several of these interfaces at once without the adopted names colliding — a service that lists formats for binding invocation, interface creation, and source inspection carries all three of `openbindings.binding-invoker.listFormats`, `openbindings.interface-synthesizer.listFormats`, and `openbindings.source-inspector.listFormats` on its one local operation. The name is author-asserted; the spec attaches no verification or trust semantics to it.
 
 ## Authoring conventions
 
@@ -76,7 +76,7 @@ Some interfaces that mirror externally-defined schemas (e.g., OIDC) may use stri
 
 ### Schemas are intentionally self-contained per interface
 
-Each interface in this directory is a self-contained document. Schemas are defined locally in each file rather than referenced across files via `$ref`, even when sibling interfaces use the same shape (e.g., `FormatInfo` appears in both `binding-invoker/0.1.json` and `interface-creator/0.2.json`).
+Each interface in this directory is a self-contained document. Schemas are defined locally in each file rather than referenced across files via `$ref`, even when sibling interfaces use the same shape (e.g., `FormatInfo` appears in both `binding-invoker/0.1.json` and `interface-synthesizer/0.2.json`).
 
 The OpenBindings spec does not normatively define cross-document `$ref` resolution between these interface files. Self-containment means a tool can read and validate any one interface file without resolving external references.
 

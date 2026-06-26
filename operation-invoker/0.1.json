@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "OpenBindings Operation Invoker",
     "version": "0.1.0",
-    "description": "Interface for invoking operations described by an OpenBindings interface document. The operation invoker is the by-reference execution layer: the caller hands it an interface and a key \u2014 an operation key (the invoker selects a binding) or a specific binding key \u2014 and the invoker dereferences that key against the document, selects a binding, validates against the operation's schemas, applies its transforms, and drives the underlying binding-invoker. It is the peer of binding-invoker, which invokes by value (a self-contained source + ref, no document). Both share one frame protocol and bottom out in the same wire engine; they differ only in how the call is addressed. Context is not owned here: the operation layer forwards the caller's context down to the selected binding, where target-keyed resolution and the CONTEXT_REQUIRED challenge live. Binding selection is implementation policy (deterministic, preferring highest priority among supported formats), not a spec mandate, consistent with the spec not privileging any implementation.",
+    "description": "Interface for invoking operations described by an OpenBindings interface document. The operation invoker is the by-reference execution layer: the caller hands it an interface and a key \u2014 an operation key (the invoker selects a binding) or a specific binding key \u2014 and the invoker dereferences that key against the document, selects a binding, validates against the operation's schemas, applies its transforms, and drives the underlying binding-invoker. It is the peer of binding-invoker, which invokes by value (a self-contained source + ref, no document). Both share one frame protocol and bottom out in the same wire engine; they differ only in how the call is addressed. Context is not owned here: the operation layer forwards to the selected binding only the context that binding's challenge requires, never broader caller context, where target-keyed resolution and the CONTEXT_REQUIRED challenge live. Binding selection is implementation policy (deterministic, preferring highest priority among supported formats), not a spec mandate, consistent with the spec not privileging any implementation.",
     "schemas": {
         "OpenBindingsInterface": {
             "type": "object",
@@ -38,7 +38,7 @@
         },
         "ContextRequiredDetails": {
             "type": "object",
-            "description": "The `details` payload of an InvocationError whose `code` is CONTEXT_REQUIRED, and the return shape of prepareBinding. Enumerates the runtime context the invoker needs before it can proceed. `alternatives` are disjunctive: satisfying ANY one suffices. The `requirements` within a single alternative are conjunctive: ALL must be satisfied. This OR-of-AND shape captures real authentication semantics such as 'OAuth2 OR (apiKey AND clientCert)', which a flat list cannot.",
+            "description": "The `details` payload of an InvocationError whose `code` is CONTEXT_REQUIRED, and the return shape of prepareBinding. Enumerates the runtime context the invoker needs before it can proceed. `alternatives` are disjunctive: satisfying ANY one suffices. The `requirements` within a single alternative are conjunctive: ALL must be satisfied. This OR-of-AND shape captures real authentication semantics such as 'OAuth2 OR (apiKey AND clientCert)', which a flat list cannot. A challenge is a SCOPE, not a hint: it bounds the context the invoker may receive. A runtime MUST provision only the context that satisfies the one selected alternative (the credentials it names plus non-secret configuration) and MUST NOT hand the invoker other stored credentials; an invoker MUST NOT receive raw context-store access (enumeration or arbitrary reads), only this scoped resolution.",
             "properties": {
                 "target": {
                     "type": "string",
@@ -47,7 +47,7 @@
                 "alternatives": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Disjunctive set of ways to satisfy the requirement. The runtime selects one alternative whose every requirement it can resolve.",
+                    "description": "Disjunctive set of ways to satisfy the requirement. The runtime selects one alternative whose every requirement it can resolve, and provisions only that alternative's context, never the union of all alternatives and never unrelated stored credentials.",
                     "items": {
                         "type": "object",
                         "properties": {

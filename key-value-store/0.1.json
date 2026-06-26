@@ -9,7 +9,7 @@
         }
     },
     "operations": {
-        "openbindings.kv-store.get": {
+        "openbindings.key-value-store.get": {
             "description": "Retrieve the value stored under a key. Returns null when no entry exists for the key.",
             "idempotent": true,
             "input": {
@@ -29,7 +29,7 @@
                 "description": "The stored value, or null when no entry exists for the key."
             }
         },
-        "openbindings.kv-store.set": {
+        "openbindings.key-value-store.set": {
             "description": "Store a value under a key, replacing any existing value for that key in full.",
             "input": {
                 "type": "object",
@@ -52,7 +52,7 @@
                 "type": "null"
             }
         },
-        "openbindings.kv-store.delete": {
+        "openbindings.key-value-store.delete": {
             "description": "Remove the entry stored under a key. Idempotent: deleting a key with no entry succeeds.",
             "idempotent": true,
             "input": {

@@ -6,9 +6,9 @@ This interface deliberately knows nothing about *what* it stores or *how keys ar
 
 ## Operations
 
-- `openbindings.kv-store.get` — retrieve the value for a key; returns `null` if there is no entry.
-- `openbindings.kv-store.set` — store a value for a key, replacing any existing value in full.
-- `openbindings.kv-store.delete` — remove the entry for a key; idempotent (deleting a missing key succeeds).
+- `openbindings.key-value-store.get` — retrieve the value for a key; returns `null` if there is no entry.
+- `openbindings.key-value-store.set` — store a value for a key, replacing any existing value in full.
+- `openbindings.key-value-store.delete` — remove the entry for a key; idempotent (deleting a missing key succeeds).
 
 ## Where the meaning lives
 

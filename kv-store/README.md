@@ -16,6 +16,8 @@ A key-value store is generic infrastructure, not an OpenBindings concept. The Op
 
 Everything domain-specific about that — what a context value contains (the `bearerToken`/`apiKey`/… field conventions), and how a storage key is derived from a target (e.g. normalizing to `host[:port]` so formats sharing a host share context) — belongs to the [`binding-invoker`](../binding-invoker/) contract and the runtime that resolves its challenges, **not** to this store. This store only sees an opaque key and an opaque value.
 
+Confidentiality is likewise a **deployment-boundary** concern, not a property of this contract: whether values are encrypted, access-controlled, or redacted on read depends on where the store runs and who can reach it. By contract, `get` returns what `set` stored.
+
 ## Not prescribed
 
 Listing keys, inspection, rotation, auditing, TTL/expiry, and scoping are all outside this contract. An implementation that wants a richer credential-manager surface exposes those as its own additional operations; a binding invoker's runtime needs only `get`/`set`/`delete`.

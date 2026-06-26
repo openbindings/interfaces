@@ -101,6 +101,12 @@ On `CONTEXT_REQUIRED`, the runtime:
 
 The runtime SHOULD bound retries and MUST NOT loop: an invoker should not re-challenge for context it was just supplied. If supplied context proves insufficient, it returns a different error so the loop terminates.
 
+### Least privilege
+
+A `CONTEXT_REQUIRED` challenge is a **scope, not a hint**. It bounds what the invoker may receive: the runtime provisions only the context that satisfies the **one selected alternative** (the credentials it names plus non-secret configuration like headers, cookies, and env), and never other stored credentials. The invoker never gets raw access to the `ContextStore` (no enumeration, no arbitrary reads); it sees only this scoped resolution.
+
+This matters most when the invoker is a **separate or third-party service**, such as a delegate or a hosted invoker: it receives only the context its own challenge requires, never the caller's full stored profile. A misbehaving invoker is then bounded by construction, not by good manners.
+
 ### Requirement types
 
 `auth.*` is the first standard family and resolves into the well-known credential context fields:
@@ -157,6 +163,7 @@ These codes are SDK conventions, not spec requirements. Third-party binding invo
 - **Manage application state.** The invoker does not accumulate state that affects the semantics of subsequent calls. Transport-level state (document caches, connection pools, session caches) is acceptable as internal optimization, but the caller should get the same result whether the invoker reuses a connection or opens a fresh one. Application-level state (credentials, preferences) lives in the `ContextStore`.
 - **Handle transforms.** Input and output transforms are applied by the operation invoker, not the binding invoker.
 - **Mutate the caller's input.** Context merging and enrichment MUST operate on a copy.
+- **Over-reach for context.** It receives only the context the challenge scoped and applies only what the operation requires (e.g. the security scheme the call declares). It does not read the `ContextStore` directly, accumulate other targets' credentials, or forward more than a delegate's own challenge requires.
 
 ## Cardinality reach depends on the binding format
 

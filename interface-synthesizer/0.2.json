@@ -21,7 +21,7 @@
                 "token"
             ]
         },
-        "CreateInterfaceSource": {
+        "SynthesizeInterfaceSource": {
             "type": "object",
             "description": "A binding source to synthesize an interface from.",
             "properties": {
@@ -70,7 +70,7 @@
             ],
             "additionalProperties": false
         },
-        "CreateInterfaceInput": {
+        "SynthesizeInterfaceInput": {
             "type": "object",
             "properties": {
                 "openbindingsVersion": {
@@ -80,7 +80,7 @@
                 "sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/schemas/CreateInterfaceSource"
+                        "$ref": "#/schemas/SynthesizeInterfaceSource"
                     },
                     "description": "Binding sources to synthesize from."
                 },
@@ -120,7 +120,7 @@
             "description": "Synthesize an OpenBindings interface, optionally from binding source artifacts.",
             "idempotent": true,
             "input": {
-                "$ref": "#/schemas/CreateInterfaceInput"
+                "$ref": "#/schemas/SynthesizeInterfaceInput"
             },
             "output": {
                 "$ref": "#/schemas/OpenBindingsInterface"

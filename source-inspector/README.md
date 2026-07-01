@@ -8,15 +8,15 @@ This powers tooling that helps users select which operations to include when aut
 
 Source inspection is the right primitive when a user is *authoring* an OBI from an existing artifact and wants to choose which targets to bind. Typical surfaces:
 
-- An interactive CLI flow (`ob create --interactive`) that shows the user a checklist of targets.
+- An interactive CLI authoring flow that shows the user a checklist of targets to bind.
 - A web tool that lets a user pick endpoints from an uploaded OpenAPI spec.
 - A code-generation step that needs to enumerate available bindings.
 
-For non-interactive synthesis ("give me an OBI for everything in this spec"), use the [interface creator](../openbindings.interface-creator/) directly. Inspection is the discovery step that precedes a targeted creation.
+For non-interactive synthesis ("give me an OBI for everything in this spec"), use the [interface synthesizer](../interface-synthesizer/) directly. Inspection is the discovery step that precedes a targeted synthesis.
 
 ## Why this is a separate interface
 
-Source inspection could conceptually be folded into the interface creator as an extra operation. It is a separate interface because the capabilities are independently useful: a source inspector does not need to generate full OBIs, and an interface creator does not need to surface targets to users. Splitting them lets a tool depend on exactly the capability it needs, and lets a service author publish an inspector without committing to full OBI generation.
+Source inspection could conceptually be folded into the interface synthesizer as an extra operation. It is a separate interface because the capabilities are independently useful: a source inspector does not need to generate full OBIs, and an interface synthesizer does not need to surface targets to users. Splitting them lets a tool depend on exactly the capability it needs, and lets a service author publish an inspector without committing to full OBI generation.
 
 ## The `exhaustive` flag
 

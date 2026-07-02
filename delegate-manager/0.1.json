@@ -25,7 +25,7 @@
                 },
                 "contentHash": {
                     "type": "string",
-                    "description": "A digest of the delegate's interface document as last resolved — for example over its RFC 8785 canonical form. Pins the snapshot: a later resolution that hashes differently means the document at the location changed since it was registered and trusted."
+                    "description": "A digest of the delegate's interface document as last resolved. Pins the snapshot: a later resolution that hashes differently means the document at the location changed since it was registered and trusted. Opaque to callers — compare it for equality across summaries; do not recompute it. The algorithm is the manager's choice (hashing the document's RFC 8785 canonical form pins content rather than serialization accidents; an algorithm prefix such as 'sha256:' aids tooling that wants to verify independently)."
                 },
                 "preference": {
                     "type": "number",
@@ -47,7 +47,7 @@
     },
     "operations": {
         "openbindings.delegate-manager.registerDelegate": {
-            "description": "Register a delegate — a referenceable OpenBindings interface the manager may route operations to. The manager resolves the location to the delegate's interface document and records a snapshot of the operation identifiers it carries. Registration fails when the location cannot be resolved to an interface. Re-registering a location re-resolves and replaces its snapshot — this is also how a changed delegate is refreshed; whether a manager additionally refreshes on its own schedule is its own policy. The snapshot SHOULD pin the resolved document with a content digest (see contentHash), so a later change at the location is detected rather than silently trusted.",
+            "description": "Register a delegate — a referenceable OpenBindings interface the manager may route operations to. The manager resolves the location to the delegate's interface document and records a snapshot of the operation identifiers it carries. Registration fails when the location cannot be resolved to an interface. Re-registering a location re-resolves and replaces its snapshot — this is also how a changed delegate is refreshed; whether a manager additionally refreshes on its own schedule is its own policy. A refresh replaces only what was resolved (name, operations, contentHash); the registrar's preferences persist unless the re-registration supplies a new one — the snapshot is the delegate's data, the preferences are the registrar's. The snapshot SHOULD pin the resolved document — by retaining it, or by recording a content digest (contentHash) that later resolutions are verified against — so a change at the location is detected rather than silently trusted.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -146,7 +146,7 @@
             }
         },
         "openbindings.delegate-manager.setDelegatePreference": {
-            "description": "Set a delegate's selection preference (higher = more preferred; negatives rank below the unset baseline). Without an operation, this sets the delegate-level default; with one, it sets that operation's entry in the delegate's preference index, overriding the default when resolving that operation. Returns the updated summary.",
+            "description": "Set or clear a delegate's preference (higher = more preferred; negatives rank below the unset baseline; null clears). Without an operation, this sets the delegate-level default; with one, it sets that operation's entry in the delegate's preference index, overriding the default when resolving that operation. Preference governs only the order resolveDelegate returns candidates in — which candidate the selecting application uses is its own decision. Returns the updated summary.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -155,8 +155,11 @@
                         "description": "The reference the delegate is registered under."
                     },
                     "preference": {
-                        "type": "number",
-                        "description": "The new preference value."
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "The new preference value. Null clears: with an operation, it removes that operation's override; without one, it resets the delegate-level preference to the unset baseline. (Clearing an override is not the same as copying the current default into it — a copy silently diverges when the default later changes.)"
                     },
                     "operation": {
                         "type": "string",

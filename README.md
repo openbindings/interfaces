@@ -22,6 +22,8 @@ for example `https://openbindings.com/interfaces/key-value-store/0.1.json`. That
 
 A published version file is **append-only**: once `<name>/<version>.json` is released it is never edited. A breaking change ships as a new version file beside the old one (`0.1.json` → `0.2.json`), never as an edit to a released file. CI enforces this on pull requests.
 
+> **Pre-launch status:** the project has not yet cut its first release, so the current version files are still working drafts and may be amended in place. The append-only rule (and its CI enforcement) arms at launch.
+
 ## Interfaces
 
 Each interface lives in its own directory, with one file per version. The major.minor segment of the filename is the interface's **own contract version** (its `version` field), which is independent of the `openbindings` spec version the file targets: a brand-new contract starts at `0.1.json` even though it is written against spec 0.2.0, while a previously-published contract that takes a breaking change advances to `0.2.json` (see Immutability above).

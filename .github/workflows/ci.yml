@@ -20,9 +20,13 @@ jobs:
       - name: Install ajv-cli
         run: npm install -g ajv-cli ajv-formats
 
-      - name: Validate interfaces against the OBI schema
+      - name: Check vendored schema freshness
         # .github/scripts/openbindings.schema.json is a vendored copy of the
-        # spec's meta-schema; refresh it when the spec schema changes.
+        # spec's meta-schema; sync-schema.sh refreshes it (and --check fails
+        # CI when it drifts from the spec repo).
+        run: bash .github/scripts/sync-schema.sh --check
+
+      - name: Validate interfaces against the OBI schema
         run: |
           for f in */[0-9]*.json; do
             echo "validating $f"
@@ -35,7 +39,10 @@ jobs:
         run: node .github/scripts/check-canonical-order.mjs */[0-9]*.json
 
       - name: Enforce immutability of published version files
-        if: github.event_name == 'pull_request'
+        # Dormant pre-launch: version files are working drafts amendable in
+        # place until the first real release (surface-alignment loop, D2).
+        # Create .github/LAUNCHED to arm this check at launch.
+        if: github.event_name == 'pull_request' && hashFiles('.github/LAUNCHED') != ''
         run: |
           base="${{ github.event.pull_request.base.sha }}"
           modified=$(git diff --diff-filter=M --name-only "$base"...HEAD | grep -E '^[^/]+/[0-9][^/]*\.json$' || true)

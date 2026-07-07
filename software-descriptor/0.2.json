@@ -1,6 +1,6 @@
 {
     "openbindings": "0.2.0",
-    "name": "OpenBindings Software Descriptor",
+    "name": "Software Descriptor",
     "version": "0.2.0",
     "description": "Generic identity contract any software MAY implement. Defines the describe operation for self-identification \u2014 name, version, description, homepage, repository, maintainer. Implementations MAY return additional fields beyond the minimum.",
     "schemas": {

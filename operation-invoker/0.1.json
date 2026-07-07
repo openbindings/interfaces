@@ -1,6 +1,6 @@
 {
     "openbindings": "0.2.0",
-    "name": "OpenBindings Operation Invoker",
+    "name": "Operation Invoker",
     "version": "0.1.0",
     "description": "Interface for invoking operations described by an OpenBindings interface document. The operation invoker is the by-reference invocation layer: the caller hands it an interface and a key \u2014 an operation key (the invoker selects a binding) or a specific binding key \u2014 and the invoker dereferences that key against the document, selects a binding, validates against the operation's schemas, applies its transforms, and drives the underlying binding-invoker. It is the peer of binding-invoker, which invokes by value (a self-contained source + ref, no document). Both share one frame protocol and bottom out in the same wire engine; they differ only in how the call is addressed. Context is not owned here: the operation layer forwards to the selected binding only the context that binding's challenge requires, never broader caller context, where target-keyed resolution and the CONTEXT_REQUIRED challenge live. Binding selection is implementation policy (deterministic, preferring highest preference among supported formats), not a spec mandate, consistent with the spec not privileging any implementation.",
     "schemas": {

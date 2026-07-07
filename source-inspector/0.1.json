@@ -1,6 +1,6 @@
 {
     "openbindings": "0.2.0",
-    "name": "OpenBindings Source Inspector",
+    "name": "Source Inspector",
     "version": "0.1.0",
     "description": "Interface for inspecting binding source artifacts before an OpenBindings interface exists. A source inspector reports supported source formats and discovers bindable targets that tooling can offer to users.",
     "schemas": {

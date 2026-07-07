@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "OpenBindings Interface Synthesizer",
     "version": "0.2.0",
-    "description": "Interface for creating OpenBindings interfaces from binding artifacts. Given a binding specification (e.g., an OpenAPI spec), an interface synthesizer extracts operations, schemas, sources, and bindings into an OBI document.",
+    "description": "Interface for synthesizing OpenBindings interfaces from binding artifacts. Given a binding specification (e.g., an OpenAPI spec), an interface synthesizer extracts operations, schemas, sources, and bindings into an OBI document.",
     "schemas": {
         "FormatInfo": {
             "type": "object",

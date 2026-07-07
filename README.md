@@ -64,6 +64,8 @@ They compose rather than overlap:
 
 A service signals that it satisfies one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can satisfy several of these interfaces at once without the adopted names colliding — a service that lists formats for binding invocation, interface synthesis, and source inspection carries all three of `openbindings.binding-invoker.listFormats`, `openbindings.interface-synthesizer.listFormats`, and `openbindings.source-inspector.listFormats` on its one local operation. The name is author-asserted; the spec attaches no verification or trust semantics to it.
 
+Satisfaction is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.key-value-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
+
 ## Authoring conventions
 
 These conventions apply to the interfaces published in this directory and are recommended (but not required) for any third party publishing shared interfaces.

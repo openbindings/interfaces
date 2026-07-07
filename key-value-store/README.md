@@ -20,4 +20,4 @@ Confidentiality is likewise a **deployment-boundary** concern, not a property of
 
 ## Not prescribed
 
-Listing keys, inspection, rotation, auditing, TTL/expiry, and scoping are all outside this contract. An implementation that wants a richer credential-manager surface exposes those as its own additional operations; a binding invoker's runtime needs only `get`/`set`/`delete`.
+Listing keys, inspection, rotation, auditing, TTL/expiry, and scoping are all outside this contract. An implementation that wants a richer management surface exposes those as its own additional operations; a binding invoker's runtime needs only `get`/`set`/`delete`.

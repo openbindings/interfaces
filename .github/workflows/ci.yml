@@ -38,6 +38,11 @@ jobs:
         # version than the newest among the inputs (none at present).
         run: node .github/scripts/check-canonical-order.mjs */[0-9]*.json
 
+      - name: Check shared schemas stay identical
+        # Same-named schemas are duplicated by hand across contracts
+        # (self-containment convention); this keeps the copies identical.
+        run: node .github/scripts/check-shared-schemas.mjs */[0-9]*.json
+
       - name: Enforce immutability of published version files
         # Dormant pre-launch: version files are working drafts amendable in
         # place until the first real release (surface-alignment loop, D2).

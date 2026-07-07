@@ -70,7 +70,7 @@ When stored context is insufficient and the invoker needs interactive resolution
 | `confirmation` | Display a message, wait for yes/no | Terms of service, consent screens |
 | `fileSelect` | Let the user pick a file | Client certificates, key files |
 
-SDKs SHOULD ship pre-built callback bundles for common platforms (e.g., `browserCallbacks()`, `cliCallbacks()`). If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; headless environments rely on pre-configured stored context.
+The SDKs define this callback seam; hosts supply their own functions (pre-built bundles for common platforms are a planned SDK affordance, not yet shipped). If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; headless environments rely on pre-configured stored context.
 
 Wire-form implementations cannot receive callbacks across the wire. They either drive auth flows server-side themselves, or expect callers to pre-resolve credentials before invoking.
 

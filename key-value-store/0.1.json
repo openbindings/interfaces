@@ -31,6 +31,7 @@
         },
         "openbindings.key-value-store.set": {
             "description": "Store a value under a key, replacing any existing value for that key in full.",
+            "idempotent": true,
             "input": {
                 "type": "object",
                 "properties": {

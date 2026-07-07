@@ -147,6 +147,7 @@
         },
         "openbindings.delegate-manager.setDelegatePreference": {
             "description": "Set or clear a delegate's preference (higher = more preferred; negatives rank below the unset baseline; null clears). Without an operation, this sets the delegate-level default; with one, it sets that operation's entry in the delegate's preference index, overriding the default when resolving that operation. Preference governs only the order resolveDelegate returns candidates in — which candidate the selecting application uses is its own decision. Returns the updated summary.",
+            "idempotent": true,
             "input": {
                 "type": "object",
                 "properties": {

@@ -23,7 +23,7 @@
         },
         "Source": {
             "type": "object",
-            "description": "Binding source artifact to inspect.",
+            "description": "A binding source (format token plus location or content), as an OpenBindings document carries it. Open to extension fields so a document's source entry forwards verbatim.",
             "properties": {
                 "format": {
                     "type": "string",
@@ -39,6 +39,10 @@
                 "description": {
                     "type": "string",
                     "description": "Human-readable description for this source."
+                },
+                "preference": {
+                    "type": "number",
+                    "description": "Default preference for all bindings referencing this source. Higher values are more preferred; absent is treated as 0."
                 }
             },
             "required": [
@@ -56,7 +60,7 @@
                     ]
                 }
             ],
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "Operation": {
             "type": "object",

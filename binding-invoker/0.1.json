@@ -21,20 +21,28 @@
                 "token"
             ]
         },
-        "InvokeSource": {
+        "Source": {
             "type": "object",
-            "description": "Binding source for invocation.",
+            "description": "A binding source (format token plus location or content), as an OpenBindings document carries it. Open to extension fields so a document's source entry forwards verbatim.",
             "properties": {
                 "format": {
                     "type": "string",
-                    "description": "Format token."
+                    "description": "Format token for this source."
                 },
                 "location": {
                     "type": "string",
-                    "description": "Location of the binding source (path or URL)."
+                    "description": "Location to fetch content from (path or URL)."
                 },
                 "content": {
-                    "description": "Binding source content directly."
+                    "description": "Content provided directly."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description for this source."
+                },
+                "preference": {
+                    "type": "number",
+                    "description": "Default preference for all bindings referencing this source. Higher values are more preferred; absent is treated as 0."
                 }
             },
             "required": [
@@ -52,7 +60,7 @@
                     ]
                 }
             ],
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "BindingContext": {
             "type": "object",
@@ -142,7 +150,7 @@
             "description": "Initial payload carried by the `open` input frame: identifies the binding to invoke and provides context.",
             "properties": {
                 "source": {
-                    "$ref": "#/schemas/InvokeSource"
+                    "$ref": "#/schemas/Source"
                 },
                 "ref": {
                     "type": "string",

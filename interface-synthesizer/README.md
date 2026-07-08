@@ -10,6 +10,16 @@ An OBI document carries no authentication or `security` section, so a synthesize
 
 A format's security metadata (for example OpenAPI's `securitySchemes`) is therefore not mapped into the document. At most it can inform what the invoker asks for at invocation time; it is never baked into the static OBI.
 
+## Multi-source composition is implementation-defined
+
+The input's `sources` is an array, but how many sources one call composes
+into the resulting OBI is the implementer's capability decision — a
+service-level synthesizer may merge many artifacts; a format-level one
+legitimately handles a single artifact. What no implementation may do is
+answer for a subset silently: an implementation that does not compose
+SHOULD refuse a multi-source input loudly rather than synthesize from the
+first source and drop the rest.
+
 ## Other extraction conventions
 
 - **Operations.** Each callable target in the source becomes one operation. The operation key SHOULD be stable across regenerations: derive it from a source-level identifier (OpenAPI `operationId`, gRPC method name, GraphQL field name) rather than from positional ordering.

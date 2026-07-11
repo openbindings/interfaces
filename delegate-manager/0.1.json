@@ -97,7 +97,7 @@
                 "properties": {
                     "delegates": {
                         "type": "array",
-                        "description": "The registered delegates.",
+                        "description": "The registered delegates. Empty when none are registered.",
                         "items": {
                             "$ref": "#/schemas/DelegateSummary"
                         }

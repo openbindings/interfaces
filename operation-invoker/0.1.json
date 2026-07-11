@@ -101,7 +101,7 @@
                 },
                 "operation": {
                     "type": "string",
-                    "description": "Operation key to invoke. A binding is selected automatically."
+                    "description": "Operation name to invoke, resolved against the interface's flat identifier namespace — an operation key or any of its aliases, equally (OBI-T-12). A binding is selected automatically."
                 },
                 "binding": {
                     "type": "string",

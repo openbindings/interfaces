@@ -64,16 +64,20 @@
         },
         "BindingContext": {
             "type": "object",
-            "description": "Opaque runtime context for binding invocation, typically supplied by the runtime from its store. Well-known credential fields: 'bearerToken' (string), 'apiKey' (string), 'basic' (object with 'username' and 'password'), 'accessToken' / 'refreshToken' / 'expiresAt' for OAuth. Well-known transport fields: 'headers' / 'cookies' / 'environment' (objects with string values) and 'metadata' (object with arbitrary values). Implementations and callers MAY add additional fields for session state, consent flags, or any other invoker-managed runtime data; drivers SHOULD ignore fields they don't recognize.",
+            "description": "Opaque runtime context for binding invocation, typically supplied by the runtime from its store. Well-known credential fields: 'bearerToken' (string), 'apiKey' (string), 'apiKeys' (object mapping a requirement's 'name' to its key — the scheme-scoped form for the alternative that carries several API keys at once; a scheme looks up its named entry first and falls back to the single 'apiKey' convenience), 'basic' (object with 'username' and 'password'), 'accessToken' / 'refreshToken' / 'expiresAt' for OAuth. Well-known transport fields: 'headers' / 'cookies' / 'environment' (objects with string values) and 'metadata' (object with arbitrary values). Implementations and callers MAY add additional fields for session state, consent flags, or any other invoker-managed runtime data; drivers SHOULD ignore fields they don't recognize.",
             "additionalProperties": true
         },
         "ContextRequirement": {
             "type": "object",
-            "description": "One prerequisite that must be satisfied before a binding can be invoked, resolved into context. `type` names the requirement family; the remaining fields are type-specific. The well-known `auth.*` family resolves into BindingContext credential fields: `auth.bearer` produces 'bearerToken', `auth.apiKey` produces 'apiKey', `auth.basic` produces 'basic', and `auth.oauth2` produces 'accessToken' (carrying flow fields such as 'authorizeUrl', 'tokenUrl', and 'scopes'). Other families (e.g. 'approval.user', 'config.value', 'account.link') resolve into their own context fields. A runtime dispatches each requirement to a resolver registered for its `type`.",
+            "description": "One prerequisite that must be satisfied before a binding can be invoked, resolved into context. `type` names the requirement family; the remaining fields are type-specific. The well-known `auth.*` family resolves into BindingContext credential fields: `auth.bearer` produces 'bearerToken', `auth.apiKey` produces 'apiKey' (or a scheme-keyed entry in 'apiKeys' when the requirement carries a `name`), `auth.basic` produces 'basic', and `auth.oauth2` produces 'accessToken' (carrying flow fields such as 'grantType', 'authorizeUrl', 'tokenUrl', and 'scopes'). Other families (e.g. 'approval.user', 'config.value', 'account.link') resolve into their own context fields. A runtime dispatches each requirement to a resolver registered for its `type`.",
             "properties": {
                 "type": {
                     "type": "string",
-                    "description": "Requirement type identifier, e.g. 'auth.bearer', 'auth.oauth2', 'auth.basic', 'auth.apiKey', 'approval.user', 'config.value'. Resolvers register against these; an unrecognized type is unsatisfiable by a runtime that has no resolver for it."
+                    "description": "Requirement type identifier, e.g. 'auth.bearer', 'auth.oauth2', 'auth.basic', 'auth.apiKey', 'approval.user', 'config.value'. Resolvers register against these; an unrecognized type is unsatisfiable by a runtime that has no resolver for it. An invoker whose source artifact declares a scheme it cannot itself apply still surfaces the requirement with a type derived from the artifact's scheme (e.g. 'auth.http.digest'), so the alternative stays discoverable rather than silently dropped."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The scheme name as the source artifact declares it (e.g. an OpenAPI securitySchemes key). Distinguishes two requirements of the same type within one alternative — two ANDed API keys are otherwise indistinguishable — and keys scheme-scoped credential lookup (see BindingContext's 'apiKeys')."
                 },
                 "description": {
                     "type": "string",

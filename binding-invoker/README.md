@@ -49,7 +49,8 @@ Context is an opaque object, but for cross-invoker interoperability invokers SHO
 | Field | Type | Purpose |
 |---|---|---|
 | `bearerToken` | `string` | Bearer token (OAuth2, JWT, etc.) |
-| `apiKey` | `string` | API key |
+| `apiKey` | `string` | API key (the single-key convenience) |
+| `apiKeys` | `{ [name]: string }` | Scheme-scoped API keys, keyed by the requirement's `name` (the artifact's scheme name) — for the alternative that ANDs several API keys; a scheme looks up its named entry first, then falls back to `apiKey` |
 | `basic` | `{ username, password }` | HTTP Basic credentials |
 | `accessToken` / `refreshToken` / `expiresAt` | `string` | OAuth lifecycle |
 | `headers` | `{ [k]: string }` | HTTP headers (per-target) |
@@ -114,11 +115,13 @@ This matters most when the invoker is a **separate or third-party service**, suc
 | Requirement type | Resolves to | Typical flow |
 |---|---|---|
 | `auth.bearer` | `bearerToken` | Prompt for a token. |
-| `auth.oauth2` | `accessToken` | Drive the PKCE flow from `authorizeUrl` / `tokenUrl` / `scopes`. |
+| `auth.oauth2` | `accessToken` | Drive the flow named by `grantType` (`authorization_code`, `implicit`, `password`, `client_credentials`) from `authorizeUrl` / `tokenUrl` / `scopes`. |
 | `auth.basic` | `basic` (`{ username, password }`) | Prompt for username and password. |
-| `auth.apiKey` | `apiKey` | Prompt for a key. |
+| `auth.apiKey` | `apiKey`, or `apiKeys[name]` when the requirement carries a `name` | Prompt for a key. |
 
-Runtimes MAY define further families (`approval.user`, `config.value`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime with no resolver for it; that alternative cannot be selected. SDKs provide a resolver registry so applications register `(type -> resolver)` and the retry loop dispatches by `type`.
+A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
+
+Runtimes MAY define further families (`approval.user`, `config.value`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime with no resolver for it; that alternative cannot be selected. The same holds in the other direction: an invoker whose artifact declares a scheme it cannot itself apply still SURFACES the requirement, with a type derived from the artifact's scheme (e.g. `auth.http.digest`) — the alternative stays discoverable (a runtime with a resolver for that family could satisfy it), and a document whose every alternative is unmappable produces a readable challenge instead of an unauthenticated dispatch and a blind 401. SDKs provide a resolver registry so applications register `(type -> resolver)` and the retry loop dispatches by `type`.
 
 ### prepareBinding (preflight)
 

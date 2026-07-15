@@ -15,7 +15,7 @@ The name still fits, and is the clearest available, for one reason: the `(format
 When a binding invoker receives a `BindingInvocationInput`, it follows this lifecycle:
 
 1. **Document loading.** Loads and caches the binding spec from the source's `location` or `content`.
-2. **Context resolution.** Reads stored context from the runtime's `ContextStore`, merges with per-call context. Per-call values take precedence. The invoker MUST operate on a copy; it MUST NOT mutate the caller's input.
+2. **Context resolution.** Reads stored context from the runtime's store, merges with per-call context. Per-call values take precedence. The invoker MUST operate on a copy; it MUST NOT mutate the caller's input.
 3. **Context application.** Applies credentials, headers, cookies, and other context to the protocol (HTTP headers, gRPC metadata, etc.) according to the binding spec's configuration.
 4. **Invocation.** Interprets the ref within the binding spec, maps writes to protocol parameters, makes the call, emits outputs back through the `Invocation` handle.
 5. **Context negotiation.** If the binding cannot proceed because required context is missing, it fails with `CONTEXT_REQUIRED` enumerating what to satisfy; the runtime resolves the requirements into context, stores durable results, and retries.
@@ -32,7 +32,7 @@ Context divides by lifecycle, not by content:
 |---|---|---|
 | **Lifecycle** | Persistent across calls | Single invocation |
 | **Origin** | Resolved by the invoker (auth flows, manual configuration) | Supplied by the caller at invocation time |
-| **Held by** | The `ContextStore` | The caller's `invokeBinding` input |
+| **Held by** | The runtime's store | The caller's `invokeBinding` input |
 
 Both have the same shape. At invocation time the invoker loads stored context for the target, then layers per-call context on top.
 
@@ -40,7 +40,7 @@ Both have the same shape. At invocation time the invoker loads stored context fo
 
 The invoker does not key or store context. It reports the **target** it is addressing (in the `CONTEXT_REQUIRED` challenge's `target`); the runtime derives a storage key from that target and reads/writes context under it. The runtime's convention is to **normalize to the API's host** (so `https://api.example.com` and `wss://api.example.com` resolve to `api.example.com`), which gives **cross-invoker sharing**: an OpenAPI invoker and an AsyncAPI invoker addressing the same service produce targets the runtime keys identically, so credentials resolved through one are available to the other. That keying is the runtime's policy, not the invoker's and not the store's.
 
-The store itself is a generic [`kv-store`](../kv-store/) — `get` / `set` / `delete` over an opaque key and opaque value. Its backend (in-memory, on-disk, OS keychain, hosted vault) and any management surface (listing, inspection, rotation, audit) are implementation-defined and outside that contract.
+The store itself is a generic [`key-value-store`](../key-value-store/) — `get` / `set` / `delete` over an opaque key and opaque value. Its backend (in-memory, on-disk, OS keychain, hosted vault) and any management surface (listing, inspection, rotation, audit) are implementation-defined and outside that contract.
 
 ### Well-known context fields
 
@@ -49,7 +49,8 @@ Context is an opaque object, but for cross-invoker interoperability invokers SHO
 | Field | Type | Purpose |
 |---|---|---|
 | `bearerToken` | `string` | Bearer token (OAuth2, JWT, etc.) |
-| `apiKey` | `string` | API key |
+| `apiKey` | `string` | API key (the single-key convenience) |
+| `apiKeys` | `{ [name]: string }` | Scheme-scoped API keys, keyed by the requirement's `name` (the artifact's scheme name) — for the alternative that ANDs several API keys; a scheme looks up its named entry first, then falls back to `apiKey` |
 | `basic` | `{ username, password }` | HTTP Basic credentials |
 | `accessToken` / `refreshToken` / `expiresAt` | `string` | OAuth lifecycle |
 | `headers` | `{ [k]: string }` | HTTP headers (per-target) |
@@ -70,7 +71,7 @@ When stored context is insufficient and the invoker needs interactive resolution
 | `confirmation` | Display a message, wait for yes/no | Terms of service, consent screens |
 | `fileSelect` | Let the user pick a file | Client certificates, key files |
 
-SDKs SHOULD ship pre-built callback bundles for common platforms (e.g., `browserCallbacks()`, `cliCallbacks()`). If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; headless environments rely on pre-configured stored context.
+The SDKs define this callback seam; hosts supply their own functions (pre-built bundles for common platforms are a planned SDK affordance, not yet shipped). If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; headless environments rely on pre-configured stored context.
 
 Wire-form implementations cannot receive callbacks across the wire. They either drive auth flows server-side themselves, or expect callers to pre-resolve credentials before invoking.
 
@@ -82,13 +83,13 @@ When a binding cannot proceed because required context is missing, `invokeBindin
 
 `ContextRequiredDetails` carries:
 
-- `key`: the `ContextStore` key the resolved context is stored under and reused from (the same per-target key described above; normalize to the API host so invokers share resolved context). The invoker reads context for this same key at invocation time.
+- `target`: the target the binding addresses — typically its endpoint URL or host. The runtime derives a storage key from it (the host-normalized convention described above) to locate and store resolved context; the invoker reports the target and neither keys nor stores.
 - `alternatives`: an **OR** of ways to satisfy the requirement. Each alternative carries `requirements`, an **AND** of `ContextRequirement`s. This OR-of-AND shape expresses real auth semantics a flat preference list cannot, e.g. "OAuth2 **OR** (apiKey **AND** clientCert)".
 
 A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
 
-- `durable: true` (default): resolved context MAY be cached under `key` and reused for later invocations. Credentials are durable.
-- `durable: false`: must be satisfied fresh for every invocation and MUST NOT be cached. A one-shot user approval is not durable.
+- `durable: true` (default): resolved context MAY be persisted, keyed from `target`, and reused for later invocations. Credentials are durable.
+- `durable: false`: must be satisfied fresh for every invocation and MUST NOT be persisted. A one-shot user approval is not durable.
 
 ### Resolve and retry
 
@@ -96,10 +97,16 @@ On `CONTEXT_REQUIRED`, the runtime:
 
 1. Picks one `alternative` whose every `requirement` it has a resolver for.
 2. Resolves each requirement into context (prompt, browser flow, approval UI, config lookup, etc.).
-3. Persists durable results under `key` via the `ContextStore`; never persists non-durable ones.
+3. Persists durable results in its store, under a key derived from `target`; never persists non-durable ones.
 4. Retries `invokeBinding` with the augmented context.
 
 The runtime SHOULD bound retries and MUST NOT loop: an invoker should not re-challenge for context it was just supplied. If supplied context proves insufficient, it returns a different error so the loop terminates.
+
+### Least privilege
+
+A `CONTEXT_REQUIRED` challenge is a **scope, not a hint**. It bounds what the invoker may receive: the runtime provisions only the context that satisfies the **one selected alternative** (the credentials it names plus non-secret configuration like headers, cookies, and env), and never other stored credentials. The invoker never gets raw access to the store (no enumeration, no arbitrary reads); it sees only this scoped resolution.
+
+This matters most when the invoker is a **separate or third-party service**, such as a delegate or a hosted invoker: it receives only the context its own challenge requires, never the caller's full stored profile. A misbehaving invoker is then bounded by construction, not by good manners.
 
 ### Requirement types
 
@@ -108,15 +115,17 @@ The runtime SHOULD bound retries and MUST NOT loop: an invoker should not re-cha
 | Requirement type | Resolves to | Typical flow |
 |---|---|---|
 | `auth.bearer` | `bearerToken` | Prompt for a token. |
-| `auth.oauth2` | `accessToken` | Drive the PKCE flow from `authorizeUrl` / `tokenUrl` / `scopes`. |
+| `auth.oauth2` | `accessToken` | Drive the flow named by `grantType` (`authorization_code`, `implicit`, `password`, `client_credentials`) from `authorizeUrl` / `tokenUrl` / `scopes`. |
 | `auth.basic` | `basic` (`{ username, password }`) | Prompt for username and password. |
-| `auth.apiKey` | `apiKey` | Prompt for a key. |
+| `auth.apiKey` | `apiKey`, or `apiKeys[name]` when the requirement carries a `name` | Prompt for a key. |
 
-Runtimes MAY define further families (`approval.user`, `config.value`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime with no resolver for it; that alternative cannot be selected. SDKs provide a resolver registry so applications register `(type -> resolver)` and the retry loop dispatches by `type`.
+A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
+
+Runtimes MAY define further families (`approval.user`, `config.value`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime with no resolver for it; that alternative cannot be selected. The same holds in the other direction: an invoker whose artifact declares a scheme it cannot itself apply still SURFACES the requirement, with a type derived from the artifact's scheme (e.g. `auth.http.digest`) — the alternative stays discoverable (a runtime with a resolver for that family could satisfy it), and a document whose every alternative is unmappable produces a readable challenge instead of an unauthenticated dispatch and a blind 401. SDKs provide a resolver registry so applications register `(type -> resolver)` and the retry loop dispatches by `type`.
 
 ### prepareBinding (preflight)
 
-`prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). Every service implementation provides it; returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so the operation is always satisfiable. It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
+`prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). The operation is always implementable — returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so no capability prevents a service from carrying it (satisfaction remains per-operation, as for every contract operation). It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
 
 ## Standard error codes
 
@@ -154,9 +163,10 @@ These codes are SDK conventions, not spec requirements. Third-party binding invo
 
 - **Understand operations.** It does not know what `getMenu` means. It invokes a binding ref within a source.
 - **Select bindings.** That is the operation invoker's job. The binding invoker invokes what it is given.
-- **Manage application state.** The invoker does not accumulate state that affects the semantics of subsequent calls. Transport-level state (document caches, connection pools, session caches) is acceptable as internal optimization, but the caller should get the same result whether the invoker reuses a connection or opens a fresh one. Application-level state (credentials, preferences) lives in the `ContextStore`.
+- **Manage application state.** The invoker does not accumulate state that affects the semantics of subsequent calls. Transport-level state (document caches, connection pools, session caches) is acceptable as internal optimization, but the caller should get the same result whether the invoker reuses a connection or opens a fresh one. Application-level state (credentials, preferences) lives in the runtime's store.
 - **Handle transforms.** Input and output transforms are applied by the operation invoker, not the binding invoker.
 - **Mutate the caller's input.** Context merging and enrichment MUST operate on a copy.
+- **Over-reach for context.** It receives only the context the challenge scoped and applies only what the operation requires (e.g. the security scheme the call declares). It does not read the runtime's store directly, accumulate other targets' credentials, or forward more than a delegate's own challenge requires.
 
 ## Cardinality reach depends on the binding format
 
@@ -187,7 +197,7 @@ A central design question is whether operations should be modeled as request-res
 
 **2. Single-value return for unary, stream for streaming.** Different return types per operation. Rejected: creates two code paths and the caller must know which to use. Same leak as (1).
 
-**3. Single input + output stream.** Earlier OpenBindings SDKs shipped this: `invokeBinding(input) -> stream of outputs`. It covers unary and server-streaming cleanly. But client-streaming (caller sends N messages) and bidirectional (interleaved sends and receives) cannot be expressed. The earlier SDK acknowledged this gap and skipped gRPC client-streaming / bidi during interface creation.
+**3. Single input + output stream.** Earlier OpenBindings SDKs shipped this: `invokeBinding(input) -> stream of outputs`. It covers unary and server-streaming cleanly. But client-streaming (caller sends N messages) and bidirectional (interleaved sends and receives) cannot be expressed. The earlier SDK acknowledged this gap and skipped gRPC client-streaming / bidi during interface synthesis.
 
 **4. Handle with write + outputs + lifecycle (chosen).** `invokeBinding(input) -> Invocation<I, O>`. The handle exposes:
 

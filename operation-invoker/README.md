@@ -18,12 +18,16 @@ This axis, not "binding vs operation," is the real distinction between the two i
 
 "Invoke a binding by key" lives here, not in the binding invoker, because **keys need the document**, and the document is this interface's whole premise.
 
+"By reference" names how the call is addressed — a key, resolved against a document — not how the document travels. The `interface` in the open frame is the document itself, carried inline, never a pointer into a store or registry. An interface that is stored nowhere (synthesized mid-pipeline, held only in memory) invokes exactly like a published one.
+
+Because the document is a value, the caller also decides how much of it to send. Nothing requires the full document: a slice that keeps the top-level fields, the operation being invoked, and everything it transitively references — its bindings, their sources, the reachable schemas and transforms — is itself a valid OpenBindings interface, and the key resolves against it to the same binding, the same schemas, the same transforms. A caller invoking one operation of a large document may slice before sending; the invoker has no way to know a fuller document existed. When the invoker is remote, the slice is also a boundary: the far side sees the operation it is performing, not the caller's whole interface.
+
 ## What an operation invoker does
 
 When it receives an `OperationInvocationInput` (carried by the `open` frame), it:
 
 1. **Resolves the key.** An `operation` key resolves to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it.
-2. **Selects a binding** (operation-key case). Selection is implementation policy: the invoker MUST select deterministically and SHOULD prefer the operation's highest-priority binding *among the formats it can actually invoke* (natively or via a delegate). A binding whose format it cannot invoke is not selectable. This is consistent with the spec not privileging any implementation: the contract does not mandate *which* binding, only that selection is deterministic and a supported binding is chosen when one exists.
+2. **Selects a binding** (operation-key case). Selection is implementation policy: the invoker MUST select deterministically and SHOULD prefer the operation's highest-preference binding *among the formats it can actually invoke* (natively or via a delegate). A binding whose format it cannot invoke is not selectable. This is consistent with the spec not privileging any implementation: the contract does not mandate *which* binding, only that selection is deterministic and a supported binding is chosen when one exists.
 3. **Validates and transforms.** Input values are validated against the operation's input schema, outputs against its output schema (where declared), and the binding's input/output transforms are applied. This is the layer the binding invoker lacks.
 4. **Drives the binding invocation,** forwarding caller context down, and relays its frames back to the caller unchanged.
 
@@ -41,7 +45,7 @@ The operation invoker does **not** resolve context. This is deliberate and, in f
 - So context resolution necessarily lives at or below the binding boundary. The operation invoker selects a binding, forwards the caller-supplied `context` (a pass-through override) into the binding invocation, and the **binding layer** performs the target-keyed store lookup and stored-under-caller merge.
 - A `CONTEXT_REQUIRED` error originating at the binding layer propagates up this operation's output stream **unchanged**. The runtime resolves it and retries against the operation, the same resolve-and-retry contract described in [binding-invoker](../binding-invoker/) — the caller never has to learn which binding was selected.
 
-There is no operation-scoped context. Context shared across an operation's bindings is simply context stored at a common target prefix (the store matches targets hierarchically), inherited by every binding whose target falls under it. The operation layer's only context responsibility is pass-through and caller-precedence.
+There is no operation-scoped context. Context shared across an operation's bindings is simply context stored at a common target prefix (the runtime matches targets hierarchically; the store itself stays opaque), inherited by every binding whose target falls under it. The operation layer's only context responsibility is pass-through and caller-precedence.
 
 ### prepareOperation (preflight)
 
@@ -56,4 +60,4 @@ There is no operation-scoped context. Context shared across an operation's bindi
 
 ## Relationship to the binding invoker
 
-The operation invoker is layered strictly on top of the binding invoker. After it resolves a key to a `(source, ref)` and forwards context, the remaining flow *is* the binding invoker's flow, on the same wire engine. Publishing them as two interfaces reflects two genuinely different ways to address a call — by value and by reference — not two different execution mechanisms.
+The operation invoker is layered strictly on top of the binding invoker. After it resolves a key to a `(source, ref)` and forwards context, the remaining flow *is* the binding invoker's flow, on the same wire engine. Publishing them as two interfaces reflects two genuinely different ways to address a call — by value and by reference — not two different invocation mechanisms.

@@ -1,0 +1,181 @@
+{
+    "openbindings": "0.2.0",
+    "name": "Delegate Manager",
+    "version": "0.1.0",
+    "description": "A registry of delegates — referenceable OpenBindings interfaces a delegating application may route operations to. Register a delegate by location; the manager resolves it, snapshots the operations its interface carries, and can later resolve an operation the caller needs to the registered delegates that carry it, ordered by preference. This contract standardizes only delegate management and resolution. A delegate is any referenceable OBI — it need satisfy no particular interface; matching is by operation-key correspondence (key or alias); and what an application does with the resolved candidates — invoke one, aggregate many, narrow them further — is the application's own policy, outside this contract.",
+    "schemas": {
+        "DelegateSummary": {
+            "type": "object",
+            "description": "A registered delegate: its identity, the operations its interface carried when last resolved, and its selection preferences.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "A display name for the delegate — typically the delegate interface's own name, else derived from its location."
+                },
+                "location": {
+                    "type": "string",
+                    "description": "The reference the delegate is registered under — an opaque locator the manager resolves to the delegate's OpenBindings interface document. It is also the delegate's registration identity: registering, preferring, and unregistering all key on it."
+                },
+                "operations": {
+                    "type": "array",
+                    "description": "Every operation identifier the delegate answers to — the keys and aliases of the operations its interface declared when last resolved. This is the set a caller's needs are matched against. It is a snapshot: re-registering the location refreshes it.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "contentHash": {
+                    "type": "string",
+                    "description": "A digest of the delegate's interface document as last resolved. Pins the snapshot: a later resolution that hashes differently means the document at the location changed since it was registered and trusted. Opaque to callers — compare it for equality across summaries; do not recompute it. The algorithm is the manager's choice (hashing the document's RFC 8785 canonical form pins content rather than serialization accidents; an algorithm prefix such as 'sha256:' aids tooling that wants to verify independently)."
+                },
+                "preference": {
+                    "type": "number",
+                    "description": "The delegate-level selection preference — the default for every operation the delegate carries. Higher is more preferred; an absent value is the neutral baseline; negatives rank below it."
+                },
+                "operationPreferences": {
+                    "type": "object",
+                    "description": "Per-operation preference overrides, keyed by operation identifier. When resolving that operation, the override replaces the delegate-level preference.",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                }
+            },
+            "required": [
+                "location",
+                "operations"
+            ]
+        }
+    },
+    "operations": {
+        "openbindings.delegate-manager.registerDelegate": {
+            "description": "Register a delegate — a referenceable OpenBindings interface the manager may route operations to. The manager resolves the location to the delegate's interface document and records a snapshot of the operation identifiers it carries. Registration fails when the location cannot be resolved to an interface. Re-registering a location re-resolves and replaces its snapshot — this is also how a changed delegate is refreshed; whether a manager additionally refreshes on its own schedule is its own policy. That re-resolve-on-repeat is also why this operation deliberately carries no idempotent flag: two identical calls straddling a change at the location observe different snapshots. A refresh replaces only what was resolved (name, operations, contentHash); the registrar's preferences persist unless the re-registration supplies a new one — the snapshot is the delegate's data, the preferences are the registrar's. The snapshot SHOULD pin the resolved document — by retaining it, or by recording a content digest (contentHash) that later resolutions are verified against — so a change at the location is detected rather than silently trusted. How a failed registration surfaces is the invocation runtime's error model; this contract prescribes no error shape.",
+            "input": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "An opaque reference the manager resolves to the delegate's OpenBindings interface document. Also the delegate's registration identity."
+                    },
+                    "preference": {
+                        "type": "number",
+                        "description": "An initial delegate-level selection preference (higher = more preferred). May be changed later with setDelegatePreference."
+                    }
+                },
+                "required": [
+                    "location"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "$ref": "#/schemas/DelegateSummary"
+            }
+        },
+        "openbindings.delegate-manager.unregisterDelegate": {
+            "description": "Remove a registered delegate by its location. Idempotent: unregistering a location that is not registered succeeds.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The reference the delegate is registered under."
+                    }
+                },
+                "required": [
+                    "location"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "type": "null"
+            }
+        },
+        "openbindings.delegate-manager.listDelegates": {
+            "description": "List every registered delegate, the operations each carried when last resolved, and its selection preferences.",
+            "idempotent": true,
+            "output": {
+                "type": "object",
+                "properties": {
+                    "delegates": {
+                        "type": "array",
+                        "description": "The registered delegates. Empty when none are registered.",
+                        "items": {
+                            "$ref": "#/schemas/DelegateSummary"
+                        }
+                    }
+                },
+                "required": [
+                    "delegates"
+                ]
+            }
+        },
+        "openbindings.delegate-manager.resolveDelegate": {
+            "description": "Resolve an operation the caller needs to the registered delegates that carry it — those whose interface answers to the operation's key or an alias. Candidates are ordered by effective preference — the delegate's per-operation override for this operation when set, else its delegate-level preference, else the neutral baseline; higher first, ties broken by the manager's policy. This is the bridge from 'I need operation X' to a concrete delegate to invoke; it does not invoke anything, and callers are free to narrow the candidates further by criteria of their own.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "description": "The operation identifier the caller needs a delegate for."
+                    }
+                },
+                "required": [
+                    "operation"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "description": "The requested operation identifier, echoed back."
+                    },
+                    "candidates": {
+                        "type": "array",
+                        "description": "Registered delegates that carry the operation, ordered by effective preference, best first. Empty when none carry it.",
+                        "items": {
+                            "$ref": "#/schemas/DelegateSummary"
+                        }
+                    }
+                },
+                "required": [
+                    "operation",
+                    "candidates"
+                ]
+            }
+        },
+        "openbindings.delegate-manager.setDelegatePreference": {
+            "description": "Set or clear a delegate's preference (higher = more preferred; negatives rank below the unset baseline; null clears). Without an operation, this sets the delegate-level default; with one, it sets that operation's entry in the delegate's preference index, overriding the default when resolving that operation. Preference governs only the order resolveDelegate returns candidates in — which candidate the selecting application uses is its own decision. Returns the updated summary. Setting a preference for a location that is not registered fails, exactly as registering an unresolvable location does: the registry is the source of truth, and a preference never precedes its delegate's registration.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The reference the delegate is registered under."
+                    },
+                    "preference": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "The new preference value. Null clears: with an operation, it removes that operation's override; without one, it resets the delegate-level preference to the unset baseline. (Clearing an override is not the same as copying the current default into it — a copy silently diverges when the default later changes.)"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "description": "When present, the preference applies only to resolving this operation; otherwise it is the delegate-level default."
+                    }
+                },
+                "required": [
+                    "location",
+                    "preference"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "$ref": "#/schemas/DelegateSummary"
+            }
+        }
+    }
+}

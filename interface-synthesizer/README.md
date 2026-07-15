@@ -2,13 +2,23 @@
 
 An interface synthesizer produces an OBI from a binding artifact in a specific format. Given a source artifact (an OpenAPI spec, an AsyncAPI document, a protobuf file, or any other supported format), it extracts operations, schemas, sources, and bindings into an OpenBindings interface document.
 
-This is what powers `ob synthesize`, on-the-fly OBI synthesis when a consumer is handed a raw binding artifact, and any tool that needs to bootstrap OBI adoption from existing specs.
+This is what powers OBI synthesis from a raw binding artifact — `ob`'s source-driven authoring (`ob source add`, then `ob source pull` to derive operations and bindings), on-the-fly synthesis when a consumer is handed a spec it has no OBI for, and any tool that needs to bootstrap OBI adoption from existing specs.
 
 ## Authentication is not extracted
 
 An OBI document carries no authentication or `security` section, so a synthesizer does not extract credentials, security schemes, or auth requirements into the OBI. Authentication is a runtime prerequisite, not interface metadata: the binding invoker negotiates it at call time via a `CONTEXT_REQUIRED` challenge, resolved into the runtime's store (see the [`binding-invoker`](../binding-invoker/) interface).
 
 A format's security metadata (for example OpenAPI's `securitySchemes`) is therefore not mapped into the document. At most it can inform what the invoker asks for at invocation time; it is never baked into the static OBI.
+
+## Multi-source composition is implementation-defined
+
+The input's `sources` is an array, but how many sources one call composes
+into the resulting OBI is the implementer's capability decision — a
+service-level synthesizer may merge many artifacts; a format-level one
+legitimately handles a single artifact. What no implementation may do is
+answer for a subset silently: an implementation that does not compose
+SHOULD refuse a multi-source input loudly rather than synthesize from the
+first source and drop the rest.
 
 ## Other extraction conventions
 

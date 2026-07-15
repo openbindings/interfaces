@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "Delegate Manager",
     "version": "0.1.0",
-    "description": "A registry of delegates — referenceable OpenBindings interfaces a delegating application may route operations to. Register a delegate by location; the manager resolves it, snapshots the operations its interface carries, and can later resolve an operation the caller needs to the registered delegates that carry it, ordered by preference. This contract standardizes only delegate management and resolution. A delegate is any referenceable OBI — it need satisfy no particular interface; matching is by operation-key correspondence (key or alias); and what an application does with the resolved candidates — invoke one, aggregate many, narrow them further — is the application's own policy, outside this contract.",
+    "description": "A registry of delegates — referenceable OpenBindings interfaces a delegating application may route operations to. Register a delegate by location; the manager resolves it, snapshots the operations its interface carries, and can later resolve an operation the caller needs to the registered delegates that carry it, ordered by preference. This contract standardizes only delegate management and resolution. A delegate is any referenceable OBI — it need correspond to no particular interface; matching is by operation-key correspondence (key or alias); and what an application does with the resolved candidates — invoke one, aggregate many, narrow them further — is the application's own policy, outside this contract.",
     "schemas": {
         "DelegateSummary": {
             "type": "object",

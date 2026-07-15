@@ -25,7 +25,7 @@ Source inspection could conceptually be folded into the interface synthesizer as
 - `exhaustive: true` means the inspector has reported every target that could be bound. A "select all" action in the UI is safe.
 - `exhaustive: false` means the inspector returned a meaningful subset (for instance because the source is huge, lazily-loaded, or because some targets were filtered for relevance). The UI should make clear that more may exist.
 
-Inspectors SHOULD prefer `exhaustive: true` whenever the source format permits enumerating all targets up-front. Set `exhaustive: false` only when enumeration is genuinely partial, not as a defensive default.
+Inspectors SHOULD prefer `exhaustive: true` whenever the binding specification's artifact permits enumerating all targets up-front. Set `exhaustive: false` only when enumeration is genuinely partial, not as a defensive default.
 
 ## Operation framing is optional
 

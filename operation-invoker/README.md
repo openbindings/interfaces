@@ -53,7 +53,7 @@ One well-known context field rides for this layer and below: **`configuration`**
 
 ### prepareOperation (preflight)
 
-`prepareOperation` is the by-reference counterpart to `prepareBinding`: it reports the context invoking an operation would require, without invoking it or causing side effects. It resolves the named `operation` (or `binding`) to a concrete binding and returns that binding's `ContextRequiredDetails`, or `null` when requirements cannot be determined without invoking. Returning `null` is always conformant, so the operation is always satisfiable. Like `prepareBinding` it is advisory — the reactive `CONTEXT_REQUIRED` from `invokeOperation` is authoritative — and supplying `context` narrows the result to what is still unsatisfied.
+`prepareOperation` is the by-reference counterpart to `prepareBinding`: it reports the context invoking an operation would require, without invoking it or causing side effects. It resolves the named `operation` (or `binding`) to a concrete binding and returns that binding's `ContextRequiredDetails`, or `null` when requirements cannot be determined without invoking. Returning `null` is always conformant, so the operation is always implementable. Like `prepareBinding` it is advisory — the reactive `CONTEXT_REQUIRED` from `invokeOperation` is authoritative — and supplying `context` narrows the result to what is still unsatisfied.
 
 ## What an operation invoker must NOT do
 

@@ -9,8 +9,7 @@
 # otherwise the file is fetched from GitHub. CI runs --check.
 set -euo pipefail
 
-# Flip to main once the 0.2.0 draft lands there.
-SPEC_REF="docs/spec-0.2.0-draft"
+SPEC_REF="main"
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 vendored="$repo_root/.github/scripts/openbindings.schema.json"

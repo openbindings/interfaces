@@ -2,7 +2,7 @@
 
 A generic identity contract any piece of software MAY implement. Defines `describe` for self-identification: name, version, description, homepage, repository, maintainer.
 
-This interface exists so that tooling, registries, and clients have a uniform way to ask "what is this thing?" regardless of what else the software does. Any implementation that satisfies a domain interface (binding invoker, interface synthesizer, source inspector, anything else) can also satisfy this one to advertise its identity.
+This interface exists so that tooling, registries, and clients have a uniform way to ask "what is this thing?" regardless of what else the software does. Any implementation that corresponds to a domain interface (binding invoker, interface synthesizer, source inspector, anything else) can also correspond to this one to advertise its identity.
 
 ## When to add it
 

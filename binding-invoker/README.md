@@ -1,6 +1,6 @@
 # Binding Invoker
 
-A binding invoker knows how to invoke bindings in a specific format. Given a source (format + location/content), a ref within that source, and a way to receive input, it makes the protocol-specific call and exposes a typed I/O channel for the caller to write inputs and read outputs.
+A binding invoker knows how to invoke bindings governed by specific binding specifications. Given a source (bindingSpec + location/content), a ref within that source, and a way to receive input, it makes the protocol-specific call — as the source's governing binding specification defines it — and exposes a typed I/O channel for the caller to write inputs and read outputs.
 
 This is the core capability that makes OpenBindings protocol-agnostic. The developer calls a typed operation. The SDK finds the binding. The invoker handles the protocol. The developer never writes protocol-specific code.
 
@@ -8,16 +8,16 @@ This is the core capability that makes OpenBindings protocol-agnostic. The devel
 
 A binding invoker takes a `(source, ref)` directly — not an OBI document, and not a binding key. It invokes **by value**: you hand it the entire realization, and it needs no interface document to act. So, strictly, it isn't handed "a binding" in the document sense; it's handed a binding's invocable essence (the operation label and key that an OBI binding entry adds are discovery metadata the wire never needs).
 
-The name still fits, and is the clearest available, for one reason: the `(format, ref)` pattern only exists *because* OpenBindings defines sources and bindings. Outside the OpenBindings model you would not address a call as "a ref into a declared source," so naming it for that model is exactly right. Its peer — the one that takes an interface and a *key*, resolving an operation or a binding **by reference** — is the [operation invoker](../operation-invoker/).
+The name still fits, and is the clearest available, for one reason: the `(bindingSpec, ref)` pattern only exists *because* OpenBindings defines sources and bindings. Outside the OpenBindings model you would not address a call as "a ref into a declared source," so naming it for that model is exactly right. Its peer — the one that takes an interface and a *key*, resolving an operation or a binding **by reference** — is the [operation invoker](../operation-invoker/).
 
 ## What an invoker does
 
 When a binding invoker receives a `BindingInvocationInput`, it follows this lifecycle:
 
-1. **Document loading.** Loads and caches the binding spec from the source's `location` or `content`.
+1. **Artifact loading.** Loads and caches the source artifact from the source's `location` or `content`, per its governing binding specification's carriage rules.
 2. **Context resolution.** Reads stored context from the runtime's store, merges with per-call context. Per-call values take precedence. The invoker MUST operate on a copy; it MUST NOT mutate the caller's input.
-3. **Context application.** Applies credentials, headers, cookies, and other context to the protocol (HTTP headers, gRPC metadata, etc.) according to the binding spec's configuration.
-4. **Invocation.** Interprets the ref within the binding spec, maps writes to protocol parameters, makes the call, emits outputs back through the `Invocation` handle.
+3. **Context application.** Applies credentials, headers, cookies, and other context to the wire per the governing binding specification's published wire-application rules (each family's credentials section pins where each scheme's credential rides).
+4. **Invocation.** Interprets the ref within the source artifact per the binding specification, maps writes to the interaction, makes the call, emits outputs back through the `Invocation` handle.
 5. **Context negotiation.** If the binding cannot proceed because required context is missing, it fails with `CONTEXT_REQUIRED` enumerating what to satisfy; the runtime resolves the requirements into context, stores durable results, and retries.
 
 ## Context
@@ -77,7 +77,7 @@ Wire-form implementations cannot receive callbacks across the wire. They either 
 
 ## Context negotiation (CONTEXT_REQUIRED)
 
-A binding often needs context the caller has not supplied: credentials, an approval, a configuration value. The OBI document does not declare these. Instead the invoker discovers them at call time and asks for them, so the same mechanism works for every binding format and for prerequisites beyond auth.
+A binding often needs context the caller has not supplied: credentials, an approval, a configuration value. The OBI document does not declare these. Instead the invoker discovers them at call time and asks for them, so the same mechanism works for every binding family and for prerequisites beyond auth.
 
 When a binding cannot proceed because required context is missing, `invokeBinding` emits a terminal `error` frame with code `CONTEXT_REQUIRED` and a `ContextRequiredDetails` payload, **before** any `output` frame and **before** any observable side effect on the target. That pre-execution guarantee is what makes resolve-and-retry safe for non-idempotent operations.
 
@@ -125,11 +125,11 @@ Runtimes MAY define further families (`approval.user`, `config.value`, `account.
 
 ### prepareBinding (preflight)
 
-`prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). The operation is always implementable — returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so no capability prevents a service from carrying it (satisfaction remains per-operation, as for every contract operation). It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
+`prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). The operation is always implementable — returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so no capability prevents a service from carrying it (correspondence remains per-operation, as for every contract operation). It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
 
 ## Standard error codes
 
-Binding invokers SHOULD use standard error codes to enable protocol-agnostic error handling by the operation invoker and application code. Codes are SCREAMING_SNAKE_CASE strings carried in `InvocationError.code`. The following codes are recommended:
+Binding invokers SHOULD use standard error codes to enable protocol-agnostic error handling by the operation invoker and application code. Codes are SCREAMING_SNAKE_CASE strings carried in `InvocationError.code`. **A code named by a rule of this contract or its operation-invoker peer is normative where named** — `CONTEXT_REQUIRED` (the resolve-and-retry hinge), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, and `ERR_BINDING_NOT_FOUND` at the operation layer. The rest of the registry is recommended convention:
 
 | Code | Meaning | Retryable? |
 |------|---------|------------|
@@ -138,7 +138,8 @@ Binding invokers SHOULD use standard error codes to enable protocol-agnostic err
 | `ERR_PERMISSION_DENIED` | Authenticated but not authorized (HTTP 403) | Not with same credentials |
 | `ERR_INVALID_REF` | Ref is malformed or cannot be parsed | No |
 | `ERR_REF_NOT_FOUND` | Ref is syntactically valid but does not resolve in the source | No |
-| `ERR_VALIDATION_FAILED` | Input or output does not match the declared schema (T-07 / T-08) | No |
+| `ERR_VALIDATION_FAILED` | Input or output does not match the declared schema (the interface's validation promise; core OBI-T-16 governs the claim) | No |
+| `ERR_SCHEMA_UNRESOLVED` | The governing schema graph could not be fully resolved — distinct from a mismatch, per OBI-T-16; validation never proceeds partially | No |
 | `ERR_SOURCE_LOAD_FAILED` | Could not load or parse the binding source | No |
 | `ERR_SOURCE_CONFIG_ERROR` | Source loaded but missing required config (no server URL, etc.) | No |
 | `ERR_CONNECT_FAILED` | Could not establish connection to the service | Maybe (transient) |
@@ -157,7 +158,7 @@ Binding invokers SHOULD use standard error codes to enable protocol-agnostic err
 | `ERR_TRANSPORT_CLOSED` | Underlying transport closed without a terminal frame | Maybe (transient) |
 | `ERR_RUNTIME` | Catch-all for unexpected implementation errors | No |
 
-These codes are SDK conventions, not spec requirements. Third-party binding invokers MAY define additional codes. Implementations that consume error codes SHOULD handle unknown codes gracefully.
+Beyond the contract-named codes above, these are conventions. Third-party binding invokers MAY define additional codes. Implementations that consume error codes SHOULD handle unknown codes gracefully.
 
 ## What a binding invoker must NOT do
 
@@ -168,9 +169,9 @@ These codes are SDK conventions, not spec requirements. Third-party binding invo
 - **Mutate the caller's input.** Context merging and enrichment MUST operate on a copy.
 - **Over-reach for context.** It receives only the context the challenge scoped and applies only what the operation requires (e.g. the security scheme the call declares). It does not read the runtime's store directly, accumulate other targets' credentials, or forward more than a delegate's own challenge requires.
 
-## Cardinality reach depends on the binding format
+## Cardinality reach depends on the binding family
 
-The binding-invoker interface exposes a bidirectional I/O contract through `invokeBinding`. An implementation can only honor the full contract if its chosen binding format can carry bidirectional message streams. This is a property of the binding format, not a property of the interface.
+The binding-invoker interface exposes a bidirectional I/O contract through `invokeBinding`. An implementation can only honor the full contract if its chosen binding family's wire can carry bidirectional message streams. This is a property of the family, not a property of the interface.
 
 | Binding category (examples) | Unary | Server-streaming | Client-streaming | Bidirectional |
 |-----------------------------|-------|------------------|------------------|---------------|
@@ -181,7 +182,7 @@ The binding-invoker interface exposes a bidirectional I/O contract through `invo
 | HTTP/1.1 + SSE (`openapi` with SSE response) | Yes | Yes | No | No |
 | HTTP/1.1 request/response only (`openapi` plain REST) | Yes | No | No | No |
 
-An implementation backed by an HTTP/1.1 binding can only invoke underlying bindings whose cardinality the wire can carry; it cannot proxy a bidi binding. This is fundamental, not a current implementation gap. Implementation authors who want to honor the full contract pick a binding format that supports bidirectional streams. Implementation authors with a constrained binding should document which cardinalities they can carry.
+An implementation backed by an HTTP/1.1 binding can only invoke underlying bindings whose cardinality the wire can carry; it cannot proxy a bidi binding. This is fundamental, not a current implementation gap. Implementation authors who want to honor the full contract pick a binding family whose wire supports bidirectional streams. Implementation authors with a constrained binding should document which cardinalities they can carry.
 
 ## Why `invokeBinding` returns an `Invocation` handle
 
@@ -220,6 +221,6 @@ The caller drives the handle however the operation demands. Cardinality emerges 
 
 The caller's pattern adapts per operation, but the SDK signature is the same. Cardinality is observed at the call site, not declared in types.
 
-### Connection pooling is a format library concern
+### Connection pooling is a binding-specification library concern
 
-Different protocols handle connection reuse differently. HTTP's `http.Client` pools TCP connections automatically. gRPC's `ClientConn` cache multiplexes RPCs on one HTTP/2 connection. MCP's session pool shares one JSON-RPC session across tool calls. AsyncAPI WebSocket pools share one socket across operations on the same channel. This is protocol-specific knowledge that belongs in the format library. The contract stays clean: `invokeBinding(input) -> Invocation`. The format library decides whether to open a new connection or reuse one and routes each invocation's I/O through the appropriate transport.
+Different protocols handle connection reuse differently. HTTP's `http.Client` pools TCP connections automatically. gRPC's `ClientConn` cache multiplexes RPCs on one HTTP/2 connection. MCP's session pool shares one JSON-RPC session across tool calls. AsyncAPI WebSocket pools share one socket across operations on the same channel. This is protocol-specific knowledge that belongs in each binding specification's implementation library. The contract stays clean: `invokeBinding(input) -> Invocation`. That library decides whether to open a new connection or reuse one and routes each invocation's I/O through the appropriate transport.

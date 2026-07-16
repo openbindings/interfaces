@@ -52,6 +52,12 @@ Contracts published against spec **0.1.0** are **not carried in this repository.
 - `openbindings.http-client` → withdrawn (a generic HTTP capability with no consumer; the SDK's injectable `fetch` covers the browser case).
 - `openbindings.interface-synthesizer`, `openbindings.software-descriptor` → continued as the `0.2` files in the cohort above (same names, contract version advanced 0.1 → 0.2).
 
+## Profiles
+
+Alongside the operation contracts above, the repository publishes **semantics profiles**: documented decision procedures the project's tooling implements, published so independent implementations can produce agreeing results. A profile is a README-only entry — it defines no operations, has no versioned `<version>.json` contract document and no canonical contract URL, and is not something an interface *corresponds to*; its conformance surface is prose plus a shared corpus under [`conformance/`](conformance/). Like the contracts, profiles are non-normative: the core spec requires none of them, and conformance to a profile is claimed independently of every other layer.
+
+- `schema-comparison/` — the **Schema Comparison Profile** (identifier `OB-2020-12`, version 0.1): the JSON Schema comparison semantics behind interface compatibility checking (`CheckInterfaceCompatibility` in the SDKs, `ob compat`) — normalization, the fail-closed profile boundary, directional input/output subsumption, and finding suppression. Corpus: [`conformance/comparison/`](conformance/comparison/).
+
 ## How these interfaces relate
 
 They compose rather than overlap:

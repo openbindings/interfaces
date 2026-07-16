@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published interface contracts'** portable, offline-decidable rules. Today that is one rule family: the [operation-invoker](../operation-invoker/) contract's **binding selection** (`conformance/selection/`).
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. Today that is two rule families: the [operation-invoker](../operation-invoker/) contract's **binding selection** (`conformance/selection/`) and the [schema-comparison](../schema-comparison/) profile's **comparison semantics** (`conformance/comparison/`).
 
 The corpus is reference material, not part of any contract: each contract's prose (its README and versioned contract document) is the sole source of conformance, where prose and corpus disagree the prose governs, and a rule without fixtures is no less binding. This mirrors the stance of the spec repository's corpus (`openbindings/spec/conformance`), whose conventions this corpus follows.
 
@@ -9,6 +9,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 | Contract rule family | Coverage |
 |---|---|
 | operation-invoker: binding selection (default policy, `context.configuration.selection` override, explicit-`binding` bypass, candidate-set formation, no-candidate failure) | **Complete** (`selection/`, one file per rule-cluster). |
+| schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression | **Complete** (`comparison/`, manifest-indexed fixtures in four categories). |
 | operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the same second-implementation doctrine the spec corpus applies to its runtime-shaped tool rules, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
 | Other contracts (binding-invoker resolution, delegate-manager, key-value-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
@@ -59,13 +60,57 @@ Binding keys in fixtures are ASCII, where byte order, Unicode code-point order, 
 
 The contract's policy is deterministic: the same document, the same supported set, and the same configuration select the same binding on every conforming implementation. Every fixture in this corpus therefore has exactly one correct outcome — there are no implementation-defined results to allow for.
 
+## Schema comparison (`comparison/`)
+
+Covers the [schema-comparison profile](../schema-comparison/) (identifier `OB-2020-12`, version 0.1): normalization, the profile boundary, directional subsumption, and suppression. Unlike `selection/`, this corpus is **manifest-indexed**: harnesses iterate [`comparison/manifest.json`](comparison/manifest.json), never the directory.
+
+```json
+{
+  "conventionVersion": "1.0",
+  "profile": "OB-2020-12",
+  "files": [
+    { "path": "subsumption/type-sets-input-compatible.json",
+      "mode": "subsume", "direction": "input",
+      "verdict": "compatible", "findings": [] }
+  ]
+}
+```
+
+Each fixture file embeds a **left** (target/contract) and **right** (candidate) OpenBindings interface document and the expected collapsed verdict:
+
+```json
+{
+  "version": "1.0",
+  "description": "the rule this fixture pins",
+  "mode": "subsume",
+  "options": { "profile": "OB-2020-12" },
+  "left":  { "openbindings": "0.2.0", "operations": { "...": {} } },
+  "right": { "openbindings": "0.2.0", "operations": { "...": {} } },
+  "expected": { "summary": { "verdict": "compatible" } }
+}
+```
+
+Field semantics:
+
+- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-12), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` normalizes both sides' schemas per paired operation and compares RFC 8785 canonical strings (`compatible` asserts identity, `incompatible` asserts difference).
+- `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
+- Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified, and the slot's comparison is skipped (the profile's suppression rule).
+- `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).
+- `findings`: informative labels for the deciding rule families (`type`, `enum`, `outside-profile`, ...); harnesses assert verdicts, not findings.
+
+Fixture categories, one directory per family: `profile/` (the profile boundary: fail-closed keywords, annotations, extensions, boolean `false`), `structural/` (normalization equivalence via identical mode; operation pairing, removal, verdict collapse), `subsumption/` (the directional input/output rules), `suppression/` (situations where the profile deliberately reports no finding).
+
+Two schemas validate the corpus in CI: [`comparison/manifest.schema.json`](comparison/manifest.schema.json) and [`comparison/fixture.schema.json`](comparison/fixture.schema.json); embedded documents are additionally validated against the OBI meta-schema, and manifest/fixture verdict agreement plus path completeness are checked.
+
+Like selection, every fixture has exactly one correct outcome: the profile is pure and deterministic.
+
 ## How implementations locate the corpus
 
 Same convention as the spec corpus: a harness looks for a **sibling checkout** of this repository (`openbindings/interfaces` next to the implementation's own checkout) and skips its corpus suite when absent; the environment variable **`OB_INTERFACES_CORPUS`** overrides the location and points at this `conformance/` directory. Reference harnesses:
 
-- Go SDK: `openbindings-go/selection_corpus_test.go` (sibling path `../interfaces/conformance`)
-- TS SDK: `openbindings-ts/packages/sdk/src/selection-corpus.test.ts` (sibling path `../../../../interfaces/conformance` from the test file)
+- Go SDK: `openbindings-go/selection_corpus_test.go` and `openbindings-go/schemaprofile/conformance_test.go` (sibling path `../interfaces/conformance`)
+- TS SDK: `openbindings-ts/packages/sdk/src/selection-corpus.test.ts` and `.../src/schema-profile/conformance.test.ts` (sibling path from the test file)
 
 ## Versioning
 
-Fixtures are authored against **operation-invoker contract 0.1** and OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract changes that affect selection semantics require fixture updates.
+Selection fixtures are authored against **operation-invoker contract 0.1**, comparison fixtures against **schema-comparison profile 0.1**, both against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.

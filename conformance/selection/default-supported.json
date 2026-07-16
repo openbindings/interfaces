@@ -1,0 +1,84 @@
+{
+  "cluster": "default-supported",
+  "description": "Candidate-set formation: the candidate set is the operation's bindings whose governing binding specification the invoker can act on, by exact identifier. Filtering precedes ranking, so a binding of an unsupported specification is invisible to the tier/preference/tiebreak steps; if no invocable binding exists the invoker MUST fail with ERR_BINDING_NOT_FOUND.",
+  "tests": [
+    {
+      "description": "a binding whose specification is unsupported is skipped even when its declared preference is highest",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 1 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 100 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "expected": { "binding": "getThing.rest" }
+    },
+    {
+      "description": "the sole candidate's specification is unsupported: no invocable candidate exists",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "expected": { "error": true, "kind": "no-candidate" }
+    },
+    {
+      "description": "the document declares no bindings at all: the candidate set is empty",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "expected": { "error": true, "kind": "no-candidate" }
+    },
+    {
+      "description": "bindings exist but none targets the addressed operation: another operation's bindings are never candidates",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {}, "listThings": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" }
+        },
+        "bindings": {
+          "listThings.rest": { "operation": "listThings", "source": "rest", "ref": "#/paths/~1things/get", "preference": 100 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "expected": { "error": true, "kind": "no-candidate" }
+    },
+    {
+      "description": "filtering precedes tiering: a deprecated candidate of a supported specification beats a non-deprecated one of an unsupported specification",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "deprecated": true },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 100 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "expected": { "binding": "getThing.rest" }
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbindings.com/interfaces/conformance/selection/fixture.schema.json",
+  "title": "Operation-Invoker Binding-Selection Conformance Fixture",
+  "description": "JSON Schema describing the format of a binding-selection conformance fixture file (one rule-cluster of the operation-invoker contract's selection prose per file).",
+  "type": "object",
+  "required": ["cluster", "description", "tests"],
+  "additionalProperties": false,
+  "properties": {
+    "cluster": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Slug naming the rule-cluster of the selection contract this file covers (e.g., 'default-tier', 'override-selection'). Matches the file's basename."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable statement of the rule-cluster, ideally byte-faithful to the operation-invoker contract's prose."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional file-level rationale about the cluster's coverage in this corpus. Informational; not consumed by harnesses."
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test cases for this rule-cluster. Each case bundles an OBI document, an invocation addressing (operation, or operation plus explicit binding), the notional invoker's supported binding-specification set, and the expected selection outcome.",
+      "items": {
+        "type": "object",
+        "required": ["description", "document", "operation", "supported", "expected"],
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What this specific case exercises."
+          },
+          "document": {
+            "type": "object",
+            "required": ["openbindings", "operations"],
+            "description": "A complete, valid OpenBindings interface document, embedded inline. Harnesses MUST run it through their implementation's real document validation before selecting; a fixture whose document does not validate is a corpus defect."
+          },
+          "operation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The operation identifier the invocation addresses (a key or alias, resolved per OBI-T-12). When 'binding' is also present, this is the operation the binding derives to: the wire contract's OperationInvocationInput carries operation and binding mutually exclusively (the operation is derived from an explicit binding), and the fixture carries the derived operation so operation-keyed native APIs can drive the same scenario. Fixture invariant: document.bindings[binding].operation resolves to this operation (vacuous when the binding key is undefined)."
+          },
+          "supported": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true,
+            "description": "The notional invoker's supported set: exact binding-specification identifiers it can act on (natively or via a delegate). The candidate set is the operation's bindings whose source's governing binding specification appears here, by exact identifier."
+          },
+          "selection": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "The context.configuration.selection consumer override: an ordered list of binding keys, the first invocable entry winning, the default policy applying when none is. Absent means no override is configured; an empty list configures an override with no invocable entry, which also falls through to the default policy."
+          },
+          "binding": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Explicit binding key: the wire contract's binding-addressed form. Selection (default policy and any configured override) is bypassed entirely; the named binding is used even if deprecated, and an unknown key is an error."
+          },
+          "expected": {
+            "description": "The selection outcome: either the key of the selected binding, or an error.",
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["binding"],
+                "additionalProperties": false,
+                "properties": {
+                  "binding": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The binding key selection resolves to."
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["error"],
+                "additionalProperties": false,
+                "properties": {
+                  "error": {
+                    "const": true,
+                    "description": "Selection fails. The contract maps both kinds to a terminal error with code ERR_BINDING_NOT_FOUND."
+                  },
+                  "kind": {
+                    "enum": ["unknown-binding", "no-candidate"],
+                    "description": "Which rule failed: 'unknown-binding' (an explicit binding key that is not defined on the interface), or 'no-candidate' (no invocable binding exists for the operation). Informative for harness reporting; both surface as ERR_BINDING_NOT_FOUND."
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

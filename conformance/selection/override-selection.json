@@ -1,0 +1,160 @@
+{
+  "cluster": "override-selection",
+  "description": "Consumer override: context.configuration.selection is an ordered list of binding keys, the first invocable entry winning. An entry is invocable when it is defined on the interface, targets the resolved operation, and its governing binding specification is supported; entries failing any of those are skipped. When no listed entry is invocable, the default policy applies.",
+  "tests": [
+    {
+      "description": "the override displaces the default policy: a listed key wins over the policy's preferred candidate",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 100 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 1 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["getThing.rpc"],
+      "expected": { "binding": "getThing.rpc" }
+    },
+    {
+      "description": "list order decides between two invocable entries: the first wins, not the one the default policy would rank higher",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 1 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 100 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["getThing.rest", "getThing.rpc"],
+      "expected": { "binding": "getThing.rest" }
+    },
+    {
+      "description": "a listed key that is not defined on the interface is skipped; the next invocable entry wins",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 100 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["getThing.nope", "getThing.rpc"],
+      "expected": { "binding": "getThing.rpc" }
+    },
+    {
+      "description": "a listed key that targets a different operation is skipped; the next invocable entry wins",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {}, "listThings": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 100 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing" },
+          "listThings.rest": { "operation": "listThings", "source": "rest", "ref": "#/paths/~1things/get" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["listThings.rest", "getThing.rpc"],
+      "expected": { "binding": "getThing.rpc" }
+    },
+    {
+      "description": "a listed key whose governing binding specification is unsupported is skipped; the next invocable entry wins",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get" },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "selection": ["getThing.rpc", "getThing.rest"],
+      "expected": { "binding": "getThing.rest" }
+    },
+    {
+      "description": "no listed entry is invocable: selection falls through to the default policy",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {}, "listThings": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 5 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 9 },
+          "listThings.rest": { "operation": "listThings", "source": "rest", "ref": "#/paths/~1things/get" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["getThing.nope", "listThings.rest"],
+      "expected": { "binding": "getThing.rpc" }
+    },
+    {
+      "description": "an empty override list configures no invocable entry: the default policy applies",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 5 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 9 }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": [],
+      "expected": { "binding": "getThing.rpc" }
+    },
+    {
+      "description": "the override selects a deprecated key even when a non-deprecated candidate exists: first-invocable-wins applies no tiering",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get" },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "deprecated": true }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "selection": ["getThing.rpc"],
+      "expected": { "binding": "getThing.rpc" }
+    }
+  ]
+}

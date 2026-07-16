@@ -33,6 +33,36 @@ jobs:
             ajv validate -s .github/scripts/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
           done
 
+      - name: Validate conformance fixtures against the fixture schema
+        run: |
+          for f in conformance/selection/*.json; do
+            [ "$f" = "conformance/selection/fixture.schema.json" ] && continue
+            echo "validating $f"
+            ajv validate -s conformance/selection/fixture.schema.json -d "$f" --spec=draft2020
+          done
+
+      - name: Validate fixture-embedded documents against the OBI schema
+        # Each fixture test embeds a complete OBI document; the reference SDK
+        # harnesses run full document validation on them, this step catches
+        # drift for corpus-only changes without an SDK checkout.
+        run: |
+          mkdir -p "$RUNNER_TEMP/fixture-docs"
+          node -e '
+            const fs = require("fs");
+            let n = 0;
+            for (const f of fs.readdirSync("conformance/selection")) {
+              if (!f.endsWith(".json") || f === "fixture.schema.json") continue;
+              const file = JSON.parse(fs.readFileSync("conformance/selection/" + f, "utf8"));
+              for (const t of file.tests) {
+                fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + f.replace(/\.json$/, "") + "-" + n++ + ".json", JSON.stringify(t.document));
+              }
+            }
+          '
+          for f in "$RUNNER_TEMP"/fixture-docs/*.json; do
+            echo "validating embedded document $f"
+            ajv validate -s .github/scripts/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
+          done
+
       - name: Check canonical field ordering
         # The checker skips any document written against an older openbindings
         # version than the newest among the inputs (none at present).

@@ -41,8 +41,43 @@ jobs:
             ajv validate -s conformance/selection/fixture.schema.json -d "$f" --spec=draft2020
           done
 
+      - name: Validate comparison corpus against its schemas
+        run: |
+          ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020
+          for f in conformance/comparison/*/*.json; do
+            echo "validating $f"
+            ajv validate -s conformance/comparison/fixture.schema.json -d "$f" --spec=draft2020
+          done
+
+      - name: Check comparison manifest consistency
+        # The manifest is the corpus index: every listed path must exist, every
+        # fixture file must be listed, and each fixture's expected verdict must
+        # match its manifest entry (the SDK harnesses assert the same).
+        run: |
+          node -e '
+            const fs = require("fs");
+            const root = "conformance/comparison/";
+            const m = JSON.parse(fs.readFileSync(root + "manifest.json", "utf8"));
+            const listed = new Set(m.files.map((e) => e.path));
+            let bad = 0;
+            for (const e of m.files) {
+              if (!fs.existsSync(root + e.path)) { console.error("missing file: " + e.path); bad++; continue; }
+              const fix = JSON.parse(fs.readFileSync(root + e.path, "utf8"));
+              if (fix.expected.summary.verdict !== e.verdict) { console.error("verdict mismatch: " + e.path); bad++; }
+              if (fix.mode !== e.mode) { console.error("mode mismatch: " + e.path); bad++; }
+            }
+            for (const dir of ["profile", "structural", "subsumption", "suppression"]) {
+              if (!fs.existsSync(root + dir)) continue;
+              for (const f of fs.readdirSync(root + dir)) {
+                if (f.endsWith(".json") && !listed.has(dir + "/" + f)) { console.error("unlisted fixture: " + dir + "/" + f); bad++; }
+              }
+            }
+            if (bad) process.exit(1);
+            console.log("comparison manifest consistent (" + m.files.length + " fixtures)");
+          '
+
       - name: Validate fixture-embedded documents against the OBI schema
-        # Each fixture test embeds a complete OBI document; the reference SDK
+        # Each fixture embeds complete OBI documents; the reference SDK
         # harnesses run full document validation on them, this step catches
         # drift for corpus-only changes without an SDK checkout.
         run: |
@@ -57,6 +92,15 @@ jobs:
                 fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + f.replace(/\.json$/, "") + "-" + n++ + ".json", JSON.stringify(t.document));
               }
             }
+            const m = JSON.parse(fs.readFileSync("conformance/comparison/manifest.json", "utf8"));
+            for (const e of m.files) {
+              const fix = JSON.parse(fs.readFileSync("conformance/comparison/" + e.path, "utf8"));
+              for (const side of ["left", "right"]) {
+                fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + e.path.replace(/[\/]/g, "-").replace(/\.json$/, "") + "-" + side + ".json", JSON.stringify(fix[side]));
+                n++;
+              }
+            }
+            console.log("extracted " + n + " embedded documents");
           '
           for f in "$RUNNER_TEMP"/fixture-docs/*.json; do
             echo "validating embedded document $f"

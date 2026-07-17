@@ -40,7 +40,7 @@ Both have the same shape. At invocation time the invoker loads stored context fo
 
 The invoker does not key or store context. It reports the **target** it is addressing (in the `CONTEXT_REQUIRED` challenge's `target`); the runtime derives a storage key from that target and reads/writes context under it. The runtime's convention is to **normalize to the API's host** (so `https://api.example.com` and `wss://api.example.com` resolve to `api.example.com`), which gives **cross-invoker sharing**: an OpenAPI invoker and an AsyncAPI invoker addressing the same service produce targets the runtime keys identically, so credentials resolved through one are available to the other. That keying is the runtime's policy, not the invoker's and not the store's.
 
-The store itself is a generic [`key-value-store`](../key-value-store/) — `get` / `set` / `delete` over an opaque key and opaque value. Its backend (in-memory, on-disk, OS keychain, hosted vault) and any management surface (listing, inspection, rotation, audit) are implementation-defined and outside that contract.
+The store itself is a generic [`document-store`](../document-store/) — `get` / `set` / `delete` over an opaque key and a whole JSON object. Its backend (in-memory, on-disk, OS keychain, hosted vault) and any management surface (listing, inspection, rotation, audit) are implementation-defined and outside that contract.
 
 ### Well-known context fields
 

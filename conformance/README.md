@@ -11,7 +11,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 | operation-invoker: binding selection (default policy, `context.configuration.selection` override, explicit-`binding` bypass, candidate-set formation, no-candidate failure) | **Complete** (`selection/`, one file per rule-cluster). |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression | **Complete** (`comparison/`, manifest-indexed fixtures in four categories). |
 | operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the same second-implementation doctrine the spec corpus applies to its runtime-shaped tool rules, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
-| Other contracts (binding-invoker resolution, delegate-manager, key-value-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
+| Other contracts (binding-invoker resolution, delegate-manager, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
 ## Binding selection (`selection/`)
 

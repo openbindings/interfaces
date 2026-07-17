@@ -131,6 +131,14 @@ items: enum: candidate value "c" not in target enum
 additionalProperties: target forbids but candidate allows
 ```
 
+The reference SDKs render reasons identically, byte for byte, under these conventions (pinned by mirrored unit tables in both):
+
+- **Deciding keyword.** The prefix names the keyword whose constraint rejects the flowing value. In mixed `const`/`enum` pairings that is direction-aware: input failures name the *candidate's* keyword (the target sends, the candidate refuses); output failures name the *target's* (the candidate produces, the target refuses). A candidate extra property rejected by the target's `additionalProperties: false` names the property's own `properties["…"]` path.
+- **Values render as JCS.** Interpolated values and counts use RFC 8785 rendering — strings quoted, numbers in ECMAScript form (`100000000`, never `1e+08`).
+- **Exclusive bounds are marked** (`minimum: candidate minimum exclusive 0 is greater than target minimum 0`).
+- **Unions carry the real key and index** (`anyOf: target variant 1 has no compatible candidate variant`).
+- **Deterministic member choice.** When several members fail (types, enum values, `required` names, properties), the reason names the lexicographically first failing member — never map or insertion order.
+
 Reason strings are diagnostics for humans; the verdict is the interoperability surface. Independent implementations are expected to agree on the deciding keyword prefix; the corpus asserts verdicts.
 
 **Interface-level checking** (`CheckInterfaceCompatibility`) folds directional checks over two documents: for each operation the required interface declares, the provided interface is searched across its flat key+aliases namespace (OBI-T-12); a missing operation is a `missing` issue; for each matched pair with both schemas present, output is checked (provided output must satisfy required output) and input is checked (required input must be acceptable to provided input), yielding `output_incompatible` / `input_incompatible` issues whose detail carries the engine's reason.

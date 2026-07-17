@@ -2,7 +2,7 @@
 
 An interface synthesizer produces an OBI from a source artifact governed by a binding specification. Given a source artifact (an OpenAPI document, an AsyncAPI document, a protobuf descriptor set, or anything else a supported binding specification governs), it extracts operations, schemas, sources, and bindings into an OpenBindings interface document.
 
-This is what powers OBI synthesis from a raw source artifact — `ob`'s source-driven authoring (`ob source add`, then `ob source pull` to derive operations and bindings), on-the-fly synthesis when a consumer is handed a spec it has no OBI for, and any tool that needs to bootstrap OBI adoption from existing specs.
+This is what powers OBI synthesis from a raw source artifact: source-driven authoring (register a source, then pull it to derive operations and bindings), on-the-fly synthesis when a consumer is handed a spec it has no OBI for, and any tool that needs to bootstrap OBI adoption from existing specs.
 
 ## Authentication is not extracted
 

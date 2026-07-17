@@ -62,7 +62,9 @@ Invokers can store anything else alongside (CSRF tokens, session IDs, consent fl
 
 ### Platform callbacks
 
-When stored context is insufficient and the invoker needs interactive resolution, it asks the runtime through **platform callbacks**: functions the SDK injects at construction. The contract does not carry callbacks (live function references cannot cross a wire); they are an SDK affordance for code-module implementations.
+When stored context is insufficient and an **in-process** invoker needs interactive resolution, it can ask its host through **platform callbacks**: interactive functions the host supplies at construction. This is a convention, not part of the contract — live function references cannot cross a wire, so the contract carries no callbacks; it is an affordance a code-module implementation may surface so the host performs the interaction while the invoker stays protocol-focused.
+
+The conventional callback seam covers the interactions auth flows need:
 
 | Callback | Purpose | Example uses |
 |---|---|---|
@@ -71,9 +73,9 @@ When stored context is insufficient and the invoker needs interactive resolution
 | `confirmation` | Display a message, wait for yes/no | Terms of service, consent screens |
 | `fileSelect` | Let the user pick a file | Client certificates, key files |
 
-The SDKs define this callback seam; hosts supply their own functions (pre-built bundles for common platforms are a planned SDK affordance, not yet shipped). If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; headless environments rely on pre-configured stored context.
+A host supplies whichever of these its environment can perform. If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; a headless environment relies on pre-configured stored context instead.
 
-Wire-form implementations cannot receive callbacks across the wire. They either drive auth flows server-side themselves, or expect callers to pre-resolve credentials before invoking.
+Wire-form implementations cannot receive callbacks across the wire at all. They either drive auth flows server-side themselves, or expect callers to pre-resolve credentials before invoking.
 
 ## Context negotiation (CONTEXT_REQUIRED)
 
@@ -168,7 +170,7 @@ Binding invokers SHOULD use standard error codes to enable protocol-agnostic err
 
 Beyond the contract-named codes above, these are conventions. Third-party binding invokers MAY define additional codes. Implementations that consume error codes SHOULD handle unknown codes gracefully.
 
-**Transport status mapping.** When a binding speaks a protocol that carries its own error status, the reference SDKs map that status onto these codes as convention. For HTTP: **401** → `ERR_AUTH_REQUIRED`, **403** → `ERR_PERMISSION_DENIED`, and every other error status → `ERR_EXECUTION_FAILED` as the catch-all — the numeric status is preserved on the error's `details` so callers can still branch on 404, 422, 429, 503, and the like. Families whose protocol has no HTTP status (gRPC and its native status space, for instance) map their own codes onto the registry by the same convention principle; the specific mapping is implementation-defined, not fixed by this contract.
+**Transport status mapping.** When a binding speaks a protocol that carries its own error status, an implementation conventionally maps that status onto these codes. For HTTP the usual mapping is: **401** → `ERR_AUTH_REQUIRED`, **403** → `ERR_PERMISSION_DENIED`, and every other error status → `ERR_EXECUTION_FAILED` as the catch-all — with the numeric status preserved on the error's `details` so callers can still branch on 404, 422, 429, 503, and the like. Families whose protocol has no HTTP status (gRPC and its native status space, for instance) map their own codes onto the registry by the same convention principle; the specific mapping is implementation-defined, not fixed by this contract.
 
 ## What a binding invoker must NOT do
 
@@ -197,6 +199,8 @@ An implementation backed by an HTTP/1.1 binding can only invoke underlying bindi
 ## Why `invokeBinding` returns an `Invocation` handle
 
 `invokeBinding` returns an `Invocation` handle: a typed I/O pair (write side + read side) scoped to one operation invocation, plus lifecycle controls (`close`, `cancel`, terminal state). This shape unifies every cardinality the OpenBindings spec permits (unary, server-streaming, client-streaming, bidirectional) under one signature.
+
+When this invoker is reached remotely — as a delegate or hosted service rather than an in-process module — that same handle *is* the frame protocol: its frames are carried as the ordinary streaming values of whatever binding the invoker's OBI declares for `invokeBinding`, so no dedicated frame transport exists; any published streaming binding specification (`openbindings.asyncapi@1`, for one) can carry them.
 
 ### The design question
 

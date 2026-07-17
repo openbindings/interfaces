@@ -1,10 +1,10 @@
 # Schema Comparison Profile
 
-The comparison semantics the OpenBindings project's tooling implements when it decides whether one JSON Schema can stand in for another — normalization, structural comparison, directional subsumption, and finding suppression — published so independent implementations can produce agreeing verdicts on the same pair of schemas. This is the engine behind interface compatibility checking (`CheckInterfaceCompatibility` in the Go SDK, `checkInterfaceCompatibility` in the TS SDK, `ob compat`). Conformance here is claimed and versioned independently of core OpenBindings conformance — the core specification deliberately does not define schema comparison (matching, comparison, and selection are tool-defined per its [Scope principle](https://github.com/openbindings/spec/blob/main/openbindings.md#13-authority-and-deferral)), so declining this profile implies nothing about OBI conformance, and conforming to the spec requires nothing here.
+The comparison semantics for deciding whether one JSON Schema can stand in for another — normalization, structural comparison, directional subsumption, and finding suppression — published so independent implementations can produce agreeing verdicts on the same pair of schemas. This is the decision procedure behind interface compatibility checking (which conformant implementations are catalogued under [Reference implementations](#reference-implementations)). Conformance here is claimed and versioned independently of core OpenBindings conformance — the core specification deliberately does not define schema comparison (matching, comparison, and selection are tool-defined per its [Scope principle](https://github.com/openbindings/spec/blob/main/openbindings.md#13-authority-and-deferral)), so declining this profile implies nothing about OBI conformance, and conforming to the spec requires nothing here.
 
 This is a **semantics profile**, not an operation contract: there is no versioned OBI document beside this README, nothing to invoke, and no canonical `<version>.json` URL. What it publishes is a decision procedure. Its conformance surface is the shared corpus in [`../conformance/comparison/`](../conformance/comparison/), which both reference SDKs run unmodified.
 
-**Profile identifier:** `OB-2020-12` (the identifier reference tooling stamps on comparison reports). **Profile version:** 0.1.
+**Profile identifier:** `OB-2020-12` (the identifier an implementation stamps on the comparison reports it emits). **Profile version:** 0.1.
 
 ## The question the profile answers
 
@@ -53,7 +53,7 @@ $schema  format  discriminator  nullable*
 
 Keys prefixed `x-` are extensions and are stripped.
 
-**Everything else fails closed.** A schema using any other keyword (`pattern`, `not`, `if`/`then`/`else`, `patternProperties`, `multipleOf`, `uniqueItems`, `prefixItems`, ...) is *outside the profile*: normalization refuses it with an outside-profile error, and the comparison outcome is **indeterminate** — "this profile cannot decide", never "incompatible". Consumers surface indeterminate distinctly (the corpus verdict vocabulary and `ob compat` both carry it).
+**Everything else fails closed.** A schema using any other keyword (`pattern`, `not`, `if`/`then`/`else`, `patternProperties`, `multipleOf`, `uniqueItems`, `prefixItems`, ...) is *outside the profile*: normalization refuses it with an outside-profile error, and the comparison outcome is **indeterminate** — "this profile cannot decide", never "incompatible". Consumers surface indeterminate distinctly, as a verdict alongside compatible and incompatible (the corpus verdict vocabulary carries it).
 
 `items` is compared as 2020-12 `items` only — one schema applied to every element. The tuple form (`prefixItems`) is outside the profile.
 
@@ -131,7 +131,7 @@ items: enum: candidate value "c" not in target enum
 additionalProperties: target forbids but candidate allows
 ```
 
-The reference SDKs render reasons identically, byte for byte, under these conventions (pinned by mirrored unit tables in both):
+Reason strings follow these conventions, so independent implementations render them alike:
 
 - **Deciding keyword.** The prefix names the keyword whose constraint rejects the flowing value. In mixed `const`/`enum` pairings that is direction-aware: input failures name the *candidate's* keyword (the target sends, the candidate refuses); output failures name the *target's* (the candidate produces, the target refuses). A candidate extra property rejected by the target's `additionalProperties: false` names the property's own `properties["…"]` path.
 - **Values render as JCS.** Interpolated values and counts use RFC 8785 rendering — strings quoted, numbers in ECMAScript form (`100000000`, never `1e+08`).
@@ -141,7 +141,7 @@ The reference SDKs render reasons identically, byte for byte, under these conven
 
 Reason strings are diagnostics for humans; the verdict is the interoperability surface. Independent implementations are expected to agree on the deciding keyword prefix; the corpus asserts verdicts.
 
-**Interface-level checking** (`CheckInterfaceCompatibility`) folds directional checks over two documents: for each operation the required interface declares, the provided interface is searched across its flat key+aliases namespace ([OBI-T-12](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)); a missing operation is a `missing` issue; for each matched pair with both schemas present, output is checked (provided output must satisfy required output) and input is checked (required input must be acceptable to provided input), yielding `output_incompatible` / `input_incompatible` issues whose detail carries the engine's reason.
+**Interface-level checking** folds directional checks over two documents: for each operation the required interface declares, the provided interface is searched across its flat key+aliases namespace ([OBI-T-12](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)); a missing operation is a `missing` issue; for each matched pair with both schemas present, output is checked (provided output must satisfy required output) and input is checked (required input must be acceptable to provided input), yielding `output_incompatible` / `input_incompatible` issues whose detail carries the engine's reason.
 
 **Verdict vocabulary and collapse.** Consumers that summarize many per-operation outcomes into one verdict use three values with dominance
 
@@ -160,7 +160,7 @@ The profile deliberately reports **no finding** in these situations:
 - **Undeclared candidate properties (input).** A candidate that declares no schema for a property the target declares treats it as unconstrained; no finding.
 - **Annotations and extensions.** Differences confined to annotation keywords or `x-` extensions never produce findings (they are stripped before comparison).
 
-Consumer-level *finding suppression* — downgrading a reported finding by rule, with an audit trail, as `ob compat --suppress` does — is a consumer policy on top of the report and is outside this profile.
+Consumer-level *finding suppression* — downgrading a reported finding by rule, with an audit trail — is a consumer policy on top of the report and is outside this profile.
 
 ## Conformance corpus
 

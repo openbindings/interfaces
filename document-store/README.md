@@ -14,7 +14,7 @@ A generic store of named JSON documents: `get`, `set`, and `delete` whole JSON o
 
 This interface is **not required by any implementation**. Context negotiation is defined in flight by the [`binding-invoker`](../binding-invoker/) contract: what "context" means, how a `CONTEXT_REQUIRED` challenge is resolved, and which fields a context object carries all live there. A document store is simply where context-shaped state can **durably live at rest** when you want the storage seam to be *substitutable* — a shared credential service, a delegate-managed store, an on-disk file, an OS keychain — rather than baked into one tool. An implementation that keeps its context in a private, non-substitutable place corresponds to no store contract at all and is none the worse for it.
 
-Like every interface in this catalog it is **non-normative**: the core spec requires it of no one, and conformance is claimed independently of every other layer (an implementation may carry `get`/`set` alone and be fully usable for those; checking a whole contract with `ob compat <contract> <candidate>` is a separate, opt-in assertion).
+Like every interface in this catalog it is **non-normative**: the core spec requires it of no one, and conformance is claimed independently of every other layer (an implementation may carry `get`/`set` alone and be fully usable for those; checking a whole contract for full correspondence is a separate, opt-in assertion).
 
 ## Using it as a context store
 

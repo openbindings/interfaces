@@ -129,36 +129,46 @@ Runtimes MAY define further families (`approval.user`, `config.value`, `account.
 
 ## Standard error codes
 
-Binding invokers SHOULD use standard error codes to enable protocol-agnostic error handling by the operation invoker and application code. Codes are SCREAMING_SNAKE_CASE strings carried in `InvocationError.code`. **A code named by a rule of this contract or its operation-invoker peer is normative where named** — `CONTEXT_REQUIRED` (the resolve-and-retry hinge), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, and `ERR_BINDING_NOT_FOUND` at the operation layer. The rest of the registry is recommended convention:
+Binding invokers SHOULD use standard error codes to enable protocol-agnostic error handling by the operation invoker and application code. Codes are SCREAMING_SNAKE_CASE strings carried in `InvocationError.code`. **A code named by a rule of this contract or its operation-invoker peer is normative where named** — `CONTEXT_REQUIRED` (the resolve-and-retry hinge), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, and `ERR_BINDING_NOT_FOUND` at the operation layer. The rest of the registry is recommended convention. The **Class** column marks the split, so the six normative codes are readable off the table itself:
 
-| Code | Meaning | Retryable? |
-|------|---------|------------|
-| `CONTEXT_REQUIRED` | Required context (credentials, approval, config) is missing; `details` is a `ContextRequiredDetails` | Yes, after resolving the requirements |
-| `ERR_AUTH_REQUIRED` | Supplied credentials were rejected (e.g. HTTP 401 with context present) | Not with same credentials |
-| `ERR_PERMISSION_DENIED` | Authenticated but not authorized (HTTP 403) | Not with same credentials |
-| `ERR_INVALID_REF` | Ref is malformed or cannot be parsed | No |
-| `ERR_REF_NOT_FOUND` | Ref is syntactically valid but does not resolve in the source | No |
-| `ERR_VALIDATION_FAILED` | Input or output does not match the declared schema (the interface's validation promise; core OBI-T-16 governs the claim) | No |
-| `ERR_SCHEMA_UNRESOLVED` | The governing schema graph could not be fully resolved — distinct from a mismatch, per OBI-T-16; validation never proceeds partially | No |
-| `ERR_SOURCE_LOAD_FAILED` | Could not load or parse the binding source | No |
-| `ERR_SOURCE_CONFIG_ERROR` | Source loaded but missing required config (no server URL, etc.) | No |
-| `ERR_CONNECT_FAILED` | Could not establish connection to the service | Maybe (transient) |
-| `ERR_EXECUTION_FAILED` | Call was made but the service returned an error | Depends |
-| `ERR_RESPONSE_ERROR` | Got a response but could not process it | No |
-| `ERR_STREAM_ERROR` | Error during streaming after initial connection | Depends |
-| `ERR_TIMEOUT` | Operation timed out | Maybe (transient) |
-| `ERR_CANCELLED` | Operation was cancelled by the caller (via `cancel()` or `AbortSignal`) | No |
-| `ERR_BINDING_NOT_FOUND` | Requested binding is not defined on the interface | No |
-| `ERR_TRANSFORM_ERROR` | Transform evaluation failed | No |
-| `ERR_INPUT_CLOSED` | Caller wrote after the input side was closed (by caller or binding) | No |
-| `ERR_INVOCATION_CLOSED` | Caller wrote after the invocation reached a terminal state | No |
-| `ERR_TOO_MANY_INPUTS` | Caller wrote more inputs than the binding accepts | No |
-| `ERR_PROTOCOL` | The frame sequence violated the frame protocol (e.g., `input` before `open`, second `open`) | No |
-| `ERR_TYPE_MISMATCH` | Typed adapter received a value not matching the declared output type | No |
-| `ERR_TRANSPORT_CLOSED` | Underlying transport closed without a terminal frame | Maybe (transient) |
-| `ERR_RUNTIME` | Catch-all for unexpected implementation errors | No |
+| Code | Class | Meaning | Retryable? |
+|------|-------|---------|------------|
+| `CONTEXT_REQUIRED` | Normative | Required context (credentials, approval, config) is missing; `details` is a `ContextRequiredDetails` | Yes, after resolving the requirements |
+| `ERR_PROTOCOL` | Normative | The frame sequence violated the frame protocol (e.g., `input` before `open`, second `open`) | No |
+| `ERR_TRANSPORT_CLOSED` | Normative | Underlying transport closed without a terminal frame | Maybe (transient) |
+| `ERR_CANCELLED` | Normative | Operation was cancelled by the caller (via `cancel()` or `AbortSignal`) | No |
+| `ERR_VALIDATION_FAILED` | Normative | Input or output does not match the declared schema (the interface's validation promise; core [OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules) governs the claim) | No |
+| `ERR_BINDING_NOT_FOUND` | Normative | Requested binding is not defined on the interface | No |
+| `ERR_AUTH_REQUIRED` | Convention | Supplied credentials were rejected (e.g. HTTP 401 with context present) | Not with same credentials |
+| `ERR_PERMISSION_DENIED` | Convention | Authenticated but not authorized (HTTP 403) | Not with same credentials |
+| `ERR_INVALID_REF` | Convention | Ref is malformed or cannot be parsed | No |
+| `ERR_REF_NOT_FOUND` | Convention | Ref is syntactically valid but does not resolve in the source | No |
+| `ERR_SCHEMA_UNRESOLVED` | Convention | The governing schema graph could not be fully resolved — distinct from a mismatch, per [OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules); validation never proceeds partially | No |
+| `ERR_SOURCE_LOAD_FAILED` | Convention | Could not load or parse the binding source | No |
+| `ERR_SOURCE_CONFIG_ERROR` | Convention | Source loaded but missing required config (no server URL, etc.) | No |
+| `ERR_CONNECT_FAILED` | Convention | Could not establish connection to the service | Maybe (transient) |
+| `ERR_EXECUTION_FAILED` | Convention | Call was made but the service returned an error | Depends |
+| `ERR_RESPONSE_ERROR` | Convention | Got a response but could not process it | No |
+| `ERR_STREAM_ERROR` | Convention | Error during streaming after initial connection | Depends |
+| `ERR_TIMEOUT` | Convention | Operation timed out | Maybe (transient) |
+| `ERR_OPERATION_NOT_FOUND` | Convention | Requested operation matches no key or alias on the interface | No |
+| `ERR_UNKNOWN_SOURCE` | Convention | A binding references a source not present in the interface | No |
+| `ERR_TRANSFORM_ERROR` | Convention | Transform evaluation failed | No |
+| `ERR_INPUT_CLOSED` | Convention | Caller wrote after the input side was closed (by caller or binding) | No |
+| `ERR_INVOCATION_CLOSED` | Convention | Caller wrote after the invocation reached a terminal state | No |
+| `ERR_TOO_MANY_INPUTS` | Convention | Caller wrote more inputs than the binding accepts | No |
+| `ERR_MISSING_INPUT` | Convention | A required input message never arrived before the input side closed | No |
+| `ERR_ALREADY_CONSUMED` | Convention | The output sequence was acquired a second time (single-consumer), or a second concurrent input reader appeared | No |
+| `ERR_EXPECTED_SINGLE` | Convention | A single-output convenience (`Single` / `single`) observed zero outputs, or a second output where exactly one was expected | No |
+| `ERR_TYPE_MISMATCH` | Convention | Typed adapter received a value not matching the declared output type | No |
+| `ERR_EVENT_LIMIT_EXCEEDED` | Convention | An operation-graph execution exceeded the maximum number of events permitted | No |
+| `ERR_OPERATION_GRAPH_EXIT` | Convention | An operation-graph exit node terminated execution with an error; `details` carries the event that reached the exit | No |
+| `ERR_UNSUPPORTED_FORMAT_VERSION` | Convention | A binding source declares a format version the invoker refuses (higher major, or higher minor while pre-1.0) | No |
+| `ERR_RUNTIME` | Convention | Catch-all for unexpected implementation errors | No |
 
 Beyond the contract-named codes above, these are conventions. Third-party binding invokers MAY define additional codes. Implementations that consume error codes SHOULD handle unknown codes gracefully.
+
+**Transport status mapping.** When a binding speaks a protocol that carries its own error status, the reference SDKs map that status onto these codes as convention. For HTTP: **401** → `ERR_AUTH_REQUIRED`, **403** → `ERR_PERMISSION_DENIED`, and every other error status → `ERR_EXECUTION_FAILED` as the catch-all — the numeric status is preserved on the error's `details` so callers can still branch on 404, 422, 429, 503, and the like. Families whose protocol has no HTTP status (gRPC and its native status space, for instance) map their own codes onto the registry by the same convention principle; the specific mapping is implementation-defined, not fixed by this contract.
 
 ## What a binding invoker must NOT do
 

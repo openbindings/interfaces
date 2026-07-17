@@ -6,7 +6,7 @@ This interface standardizes *managing* delegates. It does not standardize *invok
 
 ## A delegate is any referenceable OBI
 
-A delegate is **not** required to correspond to any particular interface. It is just an OpenBindings interface document, reachable at some location, that declares operations. A delegate "has" the operation you need when its interface answers to that operation's key — as the key itself, or as an `alias` (the spec's operation-correspondence model, OBI-T-12). Nothing about "capabilities" or "binding specifications" is baked in here; those are vocabularies a *specific* application layers on top.
+A delegate is **not** required to correspond to any particular interface. It is just an OpenBindings interface document, reachable at some location, that declares operations. A delegate "has" the operation you need when its interface answers to that operation's key — as the key itself, or as an `alias` (the spec's operation-correspondence model, [OBI-T-12](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)). Nothing about "capabilities" or "binding specifications" is baked in here; those are vocabularies a *specific* application layers on top.
 
 ## Registration takes a snapshot
 

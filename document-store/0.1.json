@@ -39,7 +39,7 @@
             }
         },
         "openbindings.document-store.set": {
-            "description": "Store a document under a key, replacing any existing document for that key in full. Storing null removes the entry — set(key, null) is equivalent to delete(key) — so get's null uniformly means \"no entry\" and a stored null is never distinguishable from an absent key.",
+            "description": "Store a document under a key, replacing any existing document for that key in full. The value is always a JSON object, so no entry ever holds null and get's null uniformly means \"no entry\"; to remove an entry, use delete(key).",
             "idempotent": true,
             "input": {
                 "type": "object",

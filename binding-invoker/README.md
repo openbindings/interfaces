@@ -178,6 +178,7 @@ The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none
 | `ERR_RESPONSE_ERROR` | Convention | service | Got a response but could not process it | No |
 | `ERR_STREAM_ERROR` | Convention | transient | Error during streaming after initial connection | Only if `effects: none` |
 | `ERR_TIMEOUT` | Convention | transient | Operation timed out | Only if `effects: none` (usually `possible`) |
+| `ERR_UNAVAILABLE` | Convention | transient | The service was reached but refused the request as retryable (HTTP 429/502/503, gRPC `UNAVAILABLE`/`RESOURCE_EXHAUSTED`); distinct from `ERR_CONNECT_FAILED` in that the server answered | Yes, with backoff (`effects: none` when the refusal proves non-execution) |
 | `ERR_OPERATION_NOT_FOUND` | Convention | permanent | Requested operation matches no key or alias on the interface | No |
 | `ERR_UNKNOWN_SOURCE` | Convention | permanent | A binding references a source not present in the interface | No |
 | `ERR_TRANSFORM_ERROR` | Convention | validation | Transform evaluation failed | No |
@@ -195,7 +196,22 @@ The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none
 
 Third-party binding invokers MAY define additional codes; each MUST fall in one of the normative categories, and consumers SHOULD handle unknown code *strings* gracefully by falling back to the category. This is what lets an application re-authenticate on every `auth`, auto-retry a `transient` **whose `effects` is `none`**, and give up on every `permanent` — without a table of every code any invoker might emit, and without repeating a call the target may already have observed.
 
-**Transport status mapping.** When a binding speaks a protocol that carries its own error status, an implementation maps that status onto these codes and categories. Two implementations that agree on the category for a given status is the point, so the HTTP mapping is pinned rather than left to taste: **401** → `ERR_AUTH_REQUIRED` (`auth`); **403** → `ERR_PERMISSION_DENIED` (`auth`); **408**, **429**, **502**, **503**, **504** → `transient`; every other **4xx** → `service` (the request reached the server and was refused on its merits — do not blind-retry); **500** and every other **5xx** → `service`. The numeric status is preserved on the error's `details` so callers can still branch on 404, 422, 429, and the like; `effects` is set from how far the exchange got — a request the server provably refused before executing (a 429 or 503 whose response proves non-execution) is `effects: none`, so a backoff-retry is licensed, while a 5xx returned after the request may already have executed is `effects: possible`. Families whose protocol has no HTTP status (gRPC and its native status space, for instance) map their own codes onto the registry and categories by the same principle; that per-family mapping is fixed by the family's binding specification, not left per-implementation, so the resulting `category` is deterministic, not just present.
+**Transport status mapping.** When a binding speaks a protocol that carries its own error status, the invoker maps that status onto these codes and categories. Two implementations agreeing on the category for a given status is the whole point, so the mapping is pinned by this contract rather than left to taste.
+
+For HTTP: **401** → `ERR_AUTH_REQUIRED` (`auth`); **403** → `ERR_PERMISSION_DENIED` (`auth`); **408** and **504** → `ERR_TIMEOUT` (`transient`); **429**, **502**, **503** → `ERR_UNAVAILABLE` (`transient`); every other **4xx** and every **5xx** → `ERR_EXECUTION_FAILED` (`service`) — the request reached the server and was refused on its merits, so do not blind-retry. The numeric status is preserved on the error's `details` so callers can still branch on 404, 422, and the like; `effects` is set from how far the exchange got — a request the server provably refused before executing (a 429 or 503) is `effects: none`, licensing a backoff-retry, while a 5xx or a 502 that may already have executed is `effects: possible`.
+
+Families whose protocol carries a native status space rather than HTTP status carry their own pinned table, fixed **here, by this contract** — not by the family's binding specification. A binding specification is a normative artifact that never references this interface's category vocabulary (that would invert the layering); the status→category mapping is the invoker interface's own, so it is deterministic across conforming invokers without coupling any spec to this contract. For gRPC:
+
+| gRPC status | Code | Category |
+|---|---|---|
+| `UNAUTHENTICATED` | `ERR_AUTH_REQUIRED` | `auth` |
+| `PERMISSION_DENIED` | `ERR_PERMISSION_DENIED` | `auth` |
+| `UNAVAILABLE`, `RESOURCE_EXHAUSTED` | `ERR_UNAVAILABLE` | `transient` |
+| `DEADLINE_EXCEEDED` | `ERR_TIMEOUT` | `transient` |
+| `CANCELLED` | `ERR_CANCELLED` | `cancelled` |
+| every other status (`INVALID_ARGUMENT`, `NOT_FOUND`, `FAILED_PRECONDITION`, `ABORTED`, `INTERNAL`, `UNIMPLEMENTED`, `DATA_LOSS`, `UNKNOWN`, …) | `ERR_EXECUTION_FAILED` | `service` |
+
+As with HTTP, the native status rides in `details` (`grpcCode`) so an application can branch more finely, and `effects` follows dispatch progress: `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are `effects: none` (refused before execution), `DEADLINE_EXCEEDED` is `effects: possible`.
 
 ## What a binding invoker must NOT do
 

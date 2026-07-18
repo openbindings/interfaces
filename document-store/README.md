@@ -25,7 +25,7 @@ A **context store** is this interface used with **target-URL keys**, holding the
 
 — belongs to the [`binding-invoker`](../binding-invoker/) contract and the runtime that resolves its challenges, **not** to this store. See binding-invoker's *Context* section for that field taxonomy. When a binding raises a `CONTEXT_REQUIRED` challenge, the runtime resolves it and persists durable results in a store like this one, keyed by the target it reports.
 
-Confidentiality is likewise a **deployment-boundary** concern, not a property of this contract: whether documents are encrypted, access-controlled, or redacted on read depends on where the store runs and who can reach it. By contract, `get` returns what `set` stored — with one pinned edge: storing `null` is equivalent to `delete`, so `get`'s `null` uniformly means "no entry" and never an entry holding null.
+Confidentiality is likewise a **deployment-boundary** concern, not a property of this contract: whether documents are encrypted, access-controlled, or redacted on read depends on where the store runs and who can reach it. By contract, `get` returns what `set` stored. Because `set`'s `value` is always a JSON object, no entry ever holds `null`, so `get`'s `null` uniformly means "no entry" and never an entry holding null; to remove an entry, use `delete`.
 
 ## Generally reusable
 

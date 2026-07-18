@@ -57,6 +57,7 @@ Context is an opaque object, but for cross-invoker interoperability invokers SHO
 | `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
 | `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
 | `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
+| `configuration` | `{ [point]: object }` | Per-invocation configuration-point values, keyed by point name (the operation-invoker's `selection` point; a family's decode point; …); consulted at the first tier of each point's order |
 
 Invokers can store anything else alongside (CSRF tokens, session IDs, consent flags), but the well-known fields are what make sharing across invokers actually work. The convention is extensible: new fields are adopted through ecosystem usage, no spec change needed.
 

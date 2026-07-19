@@ -20,6 +20,24 @@ answer for a subset silently: an implementation that does not compose
 SHOULD refuse a multi-source input loudly rather than synthesize from the
 first source and drop the rest.
 
+## Synthesis without sources
+
+`sources` is optional, and omitting it is a legitimate call rather than a
+malformed one. The result is a valid OBI with no operations, no sources, and
+no bindings: the skeleton an author fills in by hand, or extends later by
+registering sources against it.
+
+The source-less case is also the one place where `name`, `version`, and
+`description` are not overrides. Those fields override what would otherwise
+be derived from a source artifact, and with no artifact there is nothing to
+derive, so an omitted field has no underlying value behind it. What an
+implementation substitutes for those three, and for `openbindingsVersion`, is
+implementation-defined and carries no cross-implementation meaning. The
+determinism rule below still applies, so the same source-less input yields
+the same document every time and a scaffold can be diffed against a
+checked-in one. A caller that needs a particular identity supplies the fields
+rather than relying on any implementation's placeholder.
+
 ## Other extraction conventions
 
 Binding specifications govern **interpretation**, not generation: they define what a bound artifact means — how a `ref` resolves, how an invocation happens — and say nothing about how an OBI is derived from the artifact. Derivation is this contract's domain. The principles below are cross-family; per-family derivation detail belongs to each implementation's own reference documentation.

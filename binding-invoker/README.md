@@ -214,6 +214,8 @@ Families whose protocol carries a native status space rather than HTTP status ca
 
 As with HTTP, the native status rides in `details` (`grpcCode`) so an application can branch more finely, and `effects` follows dispatch progress: `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are `effects: none` (refused before execution), `DEADLINE_EXCEEDED` is `effects: possible`.
 
+A family that speaks HTTP or WebSocket rather than a native status space simply **reuses the HTTP table**. AsyncAPI (`openbindings.asyncapi@1`) is the case in point: an establishment or response failure over http(s) maps by its HTTP status. A few family-specific outcomes round it out — a subscription that establishes (2xx) but bears the wrong content type, and a malformed declared-JSON delivery, are `ERR_RESPONSE_ERROR` (`service` — the server answered, wrongly); a mid-stream transport drop is `ERR_STREAM_ERROR` / `ERR_TRANSPORT_CLOSED` (`transient`); a failure to connect is `ERR_CONNECT_FAILED` (`transient`, `effects: none`); exceeding a declared subscription bound (the family's loud integrity floor) is `permanent`; an unresolvable address or no resolvable server, refused pre-dispatch, is `ERR_SOURCE_CONFIG_ERROR` (`permanent`); and an input the family refuses (a non-string on the text lane) is `ERR_VALIDATION_FAILED` (`validation`).
+
 ## What a binding invoker must NOT do
 
 - **Understand operations.** It does not know what `getMenu` means. It invokes a binding ref within a source.

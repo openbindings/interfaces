@@ -3,6 +3,24 @@
   "profile": "OB-2020-12",
   "files": [
     {
+      "path": "profile/allof-ref-pattern-indeterminate.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "indeterminate",
+      "findings": [
+        "outside-profile"
+      ]
+    },
+    {
+      "path": "profile/allof-ref-union-indeterminate.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "indeterminate",
+      "findings": [
+        "outside-profile"
+      ]
+    },
+    {
       "path": "profile/annotations-ignored-compatible.json",
       "mode": "subsume",
       "direction": "input",
@@ -83,6 +101,27 @@
       "findings": []
     },
     {
+      "path": "structural/normalize-allof-nested-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "structural/normalize-allof-ref-property-merge-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "structural/normalize-allof-siblings-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
       "path": "structural/normalize-annotations-stripped-identical.json",
       "mode": "identical",
       "direction": "input",
@@ -157,6 +196,24 @@
       "findings": [
         "outside-profile",
         "type"
+      ]
+    },
+    {
+      "path": "subsumption/allof-nested-minlength-output-incompatible.json",
+      "mode": "subsume",
+      "direction": "output",
+      "verdict": "incompatible",
+      "findings": [
+        "length-bounds"
+      ]
+    },
+    {
+      "path": "subsumption/allof-sibling-required-output-incompatible.json",
+      "mode": "subsume",
+      "direction": "output",
+      "verdict": "incompatible",
+      "findings": [
+        "required"
       ]
     },
     {

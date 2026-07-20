@@ -120,15 +120,22 @@ jobs:
       - name: Enforce immutability of published version files
         # Dormant pre-launch: version files are working drafts amendable in
         # place until the first real release (surface-alignment loop, D2).
-        # Create .github/LAUNCHED to arm this check at launch.
-        if: github.event_name == 'pull_request' && hashFiles('.github/LAUNCHED') != ''
+        # Create .github/LAUNCHED to arm this check at launch. The marker is
+        # read from the PR base ref, not the checkout, so a PR cannot disarm
+        # the gate for its own changes; append-only means anything but an
+        # addition (edit, delete, rename) of a version file fails.
+        if: github.event_name == 'pull_request'
         run: |
           base="${{ github.event.pull_request.base.sha }}"
-          modified=$(git diff --diff-filter=M --name-only "$base"...HEAD | grep -E '^[^/]+/[0-9][^/]*\.json$' || true)
-          if [ -n "$modified" ]; then
-            echo "::error::Published interface version files are immutable; these were modified:"
-            echo "$modified"
-            echo "Ship a new <name>/<version>.json instead of editing a released file."
+          if ! git cat-file -e "$base:.github/LAUNCHED" 2>/dev/null; then
+            echo "gate dormant pre-launch (no .github/LAUNCHED on the base ref)"
+            exit 0
+          fi
+          violations=$(git diff --no-renames --name-status "$base"...HEAD | awk -F'\t' '$1 != "A" && $2 ~ /^[^\/]+\/[0-9][^\/]*\.json$/ { print }')
+          if [ -n "$violations" ]; then
+            echo "::error::Published interface version files are append-only; these were changed:"
+            echo "$violations"
+            echo "Ship a new <name>/<version>.json instead of editing, deleting, or renaming a released file."
             exit 1
           fi
-          echo "no published version files modified"
+          echo "no published version files changed"

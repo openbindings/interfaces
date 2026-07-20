@@ -2,7 +2,7 @@
 // Same-named schemas across contracts must stay identical.
 //
 // The root README's self-containment convention says shared shapes
-// (FormatInfo, the context/frame families, ...) are duplicated by hand,
+// (BindingSpecInfo, the context/frame families, ...) are duplicated by hand,
 // byte-for-byte, rather than $ref'd across files. This check is what keeps
 // "duplicated by design" from decaying into divergence.
 //

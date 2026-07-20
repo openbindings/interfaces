@@ -22,6 +22,8 @@ for example `https://openbindings.com/interfaces/document-store/0.1.json`. That 
 
 A published version file is **append-only**: once `<name>/<version>.json` is released it is never edited. A breaking change ships as a new version file beside the old one (`0.1.json` → `0.2.json`), never as an edit to a released file. CI enforces this on pull requests.
 
+This repository has no git tags and no CHANGELOG, by design: the append-only version files are themselves the release history, and the canonical URLs are the release surface. Publishing a new `<version>.json` is the release; a tag or changelog entry would only restate what the version files sitting side by side already record.
+
 > **Pre-launch status:** the project has not yet cut its first release, so the current version files are still working drafts and may be amended in place. The append-only rule (and its CI enforcement) arms at launch.
 
 ## Interfaces

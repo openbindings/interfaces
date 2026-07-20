@@ -383,6 +383,38 @@
       "findings": []
     },
     {
+      "path": "subsumption/schemas-root-per-side-input-compatible.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "subsumption/schemas-root-per-side-input-incompatible.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "enum"
+      ]
+    },
+    {
+      "path": "subsumption/schemas-root-per-side-output-compatible.json",
+      "mode": "subsume",
+      "direction": "output",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "subsumption/schemas-root-per-side-output-incompatible.json",
+      "mode": "subsume",
+      "direction": "output",
+      "verdict": "incompatible",
+      "findings": [
+        "enum"
+      ]
+    },
+    {
       "path": "subsumption/trivial-top-input-compatible.json",
       "mode": "subsume",
       "direction": "input",

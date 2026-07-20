@@ -20,7 +20,7 @@ for example `https://openbindings.com/interfaces/document-store/0.1.json`. That 
 
 ## Immutability
 
-A published version file is **append-only**: once `<name>/<version>.json` is released it is never edited. A breaking change ships as a new version file beside the old one (`0.1.json` → `0.2.json`), never as an edit to a released file. CI enforces this on pull requests.
+A published version file is **append-only**: once `<name>/<version>.json` is released it is never edited. A breaking change ships as a new version file beside the old one (`0.1.json` → `0.2.json`), never as an edit to a released file. Contract versions have **no patch axis**: any change to a published contract, however small — editorial included — ships as the next version file; there is no in-place `0.1.1`. CI enforces this on pull requests.
 
 This repository has no git tags and no CHANGELOG, by design: the append-only version files are themselves the release history, and the canonical URLs are the release surface. Publishing a new `<version>.json` is the release; a tag or changelog entry would only restate what the version files sitting side by side already record.
 

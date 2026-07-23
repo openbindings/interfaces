@@ -44,9 +44,42 @@ Binding specifications govern **interpretation**, not generation: they define wh
 
 - **Operations.** Each callable target in the source becomes one operation. The operation key SHOULD be stable across regenerations: derive it from a source-level identifier (OpenAPI `operationId`, gRPC method name, GraphQL field name) rather than from positional ordering.
 - **Schemas.** Resolve `$ref` pointers when the source artifact uses them, so the produced OBI is self-contained. Cycle-protect when the artifact permits cyclical type references.
-- **Sources.** Echo the input source's `bindingSpec`, `location`, and (when requested) `content`/`outputLocation` faithfully. Do not normalize URLs or rewrite locations unless explicitly asked.
+- **Sources.** Echo the input source's `bindingSpec`, `location`, and source description faithfully; use `name` as the output source key and `outputLocation` as the location written to the result. A local-path authoring convenience may normalize that path to the binding specification's invocable address form. When `embed` is true, preserve a complete accepted source representation as `content` or refuse the request — never ignore the directive or construct a partial discovery pin. Co-present input `content` is authoritative and remains the same JSON value in the result.
 - **Bindings.** Each binding entry MUST carry a `ref` that the corresponding binding invoker can resolve back to the source artifact, in the ref form the governing binding specification defines (a JSON Pointer under `openbindings.openapi@1`, a fully-qualified method name under `openbindings.grpc@1`).
 - **Aliases (optional).** A synthesizer MAY add operation `aliases` to claim correspondence with a shared contract (for example, a well-known operation name a consumer can target across providers). The name is author-asserted and carries no verification semantics.
+
+## Creation-time soundness
+
+Synthesis is a claim that the emitted interface can be realized through the
+governing binding specification. Against the artifact, listing, descriptors,
+or discovery state observed by a synthesis call, every emitted binding MUST
+resolve to its identified target, fall within the binding revision's supported
+subset, and admit at least one faithful invocation path when its declared
+runtime prerequisites are available. A synthesizer MUST NOT emit an operation
+that the corresponding conforming binding invoker is statically guaranteed to
+refuse.
+
+The operation set is complete for the callable targets this synthesizer
+accepts from the source. If a source contains such a target but the
+synthesizer cannot produce a faithful, bindable operation for it, the call MUST
+fail rather than silently return a partial interface. This contract currently
+returns an OBI directly and has no durable partial-result diagnostic channel;
+an implementation-local warning callback is therefore not sufficient notice
+that a target was omitted.
+
+A non-fatal warning remains appropriate when an emitted operation is usable
+but its schema is necessarily a conservative or lossy projection. Such a
+warning MUST NOT mean that the operation is guaranteed to refuse. Missing
+credentials, consumer-selected configuration, unavailable peers or host
+capabilities, and caller values that fail validation are runtime conditions,
+not creation-time synthesis defects.
+
+This is a creation-time invariant, not a temporal-consistency guarantee. A
+synthesizer preserves the source's declared embedded-versus-live semantics; it
+does not have to embed, hash, refresh, or otherwise pin a mutable artifact or
+service. Later artifact or service drift is external lifecycle state. On a
+later invocation, the governing binding specification determines how the
+current source is interpreted and when drift produces refusal.
 
 ## Deterministic output
 

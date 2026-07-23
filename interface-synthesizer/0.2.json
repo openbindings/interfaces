@@ -117,7 +117,7 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterface": {
-            "description": "Synthesize an OpenBindings interface, optionally from binding source artifacts.",
+            "description": "Synthesize a creation-time-sound OpenBindings interface, optionally from binding source artifacts. Every emitted binding resolves to a supported target and admits a faithful invocation path; refuse instead of silently returning a partial interface when an accepted callable target cannot be represented faithfully.",
             "idempotent": true,
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"

@@ -41,6 +41,9 @@ jobs:
             ajv validate -s conformance/selection/fixture.schema.json -d "$f" --spec=draft2020
           done
 
+      - name: Validate synthesis coverage fixtures
+        run: ajv validate -s conformance/synthesis-coverage/fixture.schema.json -d conformance/synthesis-coverage/cases.json --spec=draft2020
+
       - name: Validate comparison corpus against its schemas
         run: |
           ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020
@@ -91,6 +94,10 @@ jobs:
               for (const t of file.tests) {
                 fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + f.replace(/\.json$/, "") + "-" + n++ + ".json", JSON.stringify(t.document));
               }
+            }
+            const coverage = JSON.parse(fs.readFileSync("conformance/synthesis-coverage/cases.json", "utf8"));
+            for (const t of coverage.tests) {
+              fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/synthesis-coverage-" + n++ + ".json", JSON.stringify(t.interface));
             }
             const m = JSON.parse(fs.readFileSync("conformance/comparison/manifest.json", "utf8"));
             for (const e of m.files) {

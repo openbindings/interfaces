@@ -10,7 +10,7 @@
     "cluster": {
       "type": "string",
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-      "description": "Slug naming the rule-cluster of the selection contract this file covers (e.g., 'default-tier', 'override-selection'). Matches the file's basename."
+      "description": "Slug naming the rule-cluster of the binding-resolution contract this file covers (e.g., 'automatic-resolution', 'override-selection'). Matches the file's basename."
     },
     "description": {
       "type": "string",
@@ -54,12 +54,12 @@
           "selection": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "The context.configuration.selection consumer override: an ordered list of binding keys, the first invocable entry winning, the default policy applying when none is. Absent means no override is configured; an empty list configures an override with no invocable entry, which also falls through to the default policy."
+            "description": "The context.configuration.selection caller choice: an ordered list of binding keys, the first invocable entry winning. When none is invocable, the sole-candidate or ambiguity rule applies. Absent means no ordered choice; an empty list makes no choice."
           },
           "binding": {
             "type": "string",
             "minLength": 1,
-            "description": "Explicit binding key: the wire contract's binding-addressed form. Selection (default policy and any configured override) is bypassed entirely; the named binding is used even if deprecated, and an unknown key is an error."
+            "description": "Explicit binding key: the wire contract's binding-addressed form. Other resolution and any configured selection list are bypassed; the named binding is used even if deprecated, and an unknown key is an error."
           },
           "expected": {
             "description": "The selection outcome: either the key of the selected binding, or an error.",
@@ -83,11 +83,11 @@
                 "properties": {
                   "error": {
                     "const": true,
-                    "description": "Selection fails. The contract maps both kinds to a terminal error with code ERR_BINDING_NOT_FOUND."
+                    "description": "Binding resolution fails. Unknown explicit bindings and empty candidate sets use ERR_BINDING_NOT_FOUND; ambiguity uses ERR_BINDING_SELECTION_REQUIRED."
                   },
                   "kind": {
-                    "enum": ["unknown-binding", "no-candidate"],
-                    "description": "Which rule failed: 'unknown-binding' (an explicit binding key that is not defined on the interface), or 'no-candidate' (no invocable binding exists for the operation). Informative for harness reporting; both surface as ERR_BINDING_NOT_FOUND."
+                    "enum": ["unknown-binding", "no-candidate", "ambiguous"],
+                    "description": "Which rule failed: 'unknown-binding' (undefined explicit key), 'no-candidate' (no invocable binding), or 'ambiguous' (several invocable bindings and no effective caller choice)."
                   }
                 }
               }

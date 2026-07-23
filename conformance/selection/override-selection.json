@@ -22,7 +22,7 @@
       "expected": { "binding": "getThing.rpc" }
     },
     {
-      "description": "list order decides between two invocable entries: the first wins, not the one the default policy would rank higher",
+      "description": "list order decides between two invocable entries: the first wins",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },
@@ -99,7 +99,7 @@
       "expected": { "binding": "getThing.rest" }
     },
     {
-      "description": "no listed entry is invocable: selection falls through to the default policy",
+      "description": "no listed entry is invocable: several remaining candidates still require a choice",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {}, "listThings": {} },
@@ -116,10 +116,10 @@
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
       "selection": ["getThing.nope", "listThings.rest"],
-      "expected": { "binding": "getThing.rpc" }
+      "expected": { "error": true, "kind": "ambiguous" }
     },
     {
-      "description": "an empty override list configures no invocable entry: the default policy applies",
+      "description": "an empty override list makes no choice: several remaining candidates still require one",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },
@@ -135,7 +135,7 @@
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
       "selection": [],
-      "expected": { "binding": "getThing.rpc" }
+      "expected": { "error": true, "kind": "ambiguous" }
     },
     {
       "description": "the override selects a deprecated key even when a non-deprecated candidate exists: first-invocable-wins applies no tiering",

@@ -6,7 +6,7 @@ This powers tooling that helps users select which operations to include when aut
 
 ## When to use it
 
-Source inspection is the right primitive when a user is *authoring* an OBI from an existing artifact and wants to choose which targets to bind. Typical surfaces:
+Source inspection is the right primitive when a caller is authoring an OBI from an existing artifact and wants to choose which targets to bind. Typical surfaces:
 
 - An interactive CLI authoring flow that shows the user a checklist of targets to bind.
 - A web tool that lets a user pick endpoints from an uploaded OpenAPI spec.
@@ -20,17 +20,23 @@ Source inspection could conceptually be folded into the interface synthesizer as
 
 ## The `exhaustive` flag
 
-`SourceInspection.exhaustive` tells the consumer whether `targets` is the complete enumeration of bindable targets in the source.
+`SourceInspection.exhaustive` tells the consumer whether `targets` is the complete enumeration of targets admitted by the source's governing binding specification.
 
 - `exhaustive: true` means the inspector has reported every target that could be bound. A "select all" action in the UI is safe.
-- `exhaustive: false` means the inspector returned a meaningful subset (for instance because the source is huge, lazily-loaded, or because some targets were filtered for relevance). The UI should make clear that more may exist.
+- `exhaustive: false` means more admitted targets may exist, for example because enumeration was bounded, part of a live source was inaccessible, or the implementation has a known gap. `limitation` states why; partiality is never silently described as completeness.
 
-Inspectors SHOULD prefer `exhaustive: true` whenever the binding specification's artifact permits enumerating all targets up-front. Set `exhaustive: false` only when enumeration is genuinely partial, not as a defensive default.
+Inspectors SHOULD prefer `exhaustive: true` whenever the artifact permits complete enumeration. When it is false, `limitation.code` is stable machine-readable evidence and `limitation.message` is diagnostic prose. A private relevance filter does not justify omitting targets unless its criteria are explicit caller input or an extension understood by both parties.
+
+The inventory boundary matches synthesis: a bindable target is a source interaction the governing binding revision admits and for which a conforming binding can be formed. Upstream interactions that revision deliberately excludes are not bindable targets; complete upstream coverage, including exclusions, is the interface synthesizer's coverage surface.
 
 ## Operation framing is optional
 
-`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the ref MAY return targets with just `ref` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error.
+`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the ref MAY return targets with just `ref` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target; it is not permission to invent behavior absent from the artifact or binding specification.
 
 ## Idempotency
 
-`inspectSource` is declared idempotent. Calling it repeatedly on the same source MUST return the same targets in the same order. Tooling relies on this for stable UI rendering and stable test fixtures.
+`inspectSource` is declared idempotent: inspection does not intentionally
+change the source or external state. For the same observed source state and
+implementation configuration, targets and ordering are stable. A live
+`location` may change between calls; idempotency does not make an external
+resource immutable.

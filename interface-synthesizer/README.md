@@ -4,9 +4,26 @@ An interface synthesizer produces an OBI from a source artifact governed by a bi
 
 This is what powers OBI synthesis from a raw source artifact: source-driven authoring (register a source, then pull it to derive operations and bindings), on-the-fly synthesis when a consumer is handed a spec it has no OBI for, and any tool that needs to bootstrap OBI adoption from existing specs.
 
+## Two synthesis surfaces
+
+This interface exposes two forms of the same derivation:
+
+- `synthesizeInterface` is the convenient strict surface. It returns the OBI
+  directly and never uses a transient diagnostic to excuse an omitted target
+  that the governing binding specification admits.
+- `synthesizeInterfaceWithCoverage` returns the OBI together with durable,
+  machine-readable dispositions for the source interactions considered by that
+  same call and an explicit exhaustiveness claim. It may return a sound partial
+  OBI when every omission is accounted for; it never turns disclosure into
+  permission to emit an unsound binding.
+
+The coverage form is substrate, not an API registry or crawler. It defines the
+evidence such products can consume without defining discovery, storage,
+ranking, trust, health checking, or invocation policy.
+
 ## Authentication is not extracted
 
-An OBI document carries no authentication or `security` section, so a synthesizer does not extract credentials, security schemes, or auth requirements into the OBI. Authentication is a runtime prerequisite, not interface metadata: the binding invoker negotiates it at call time via a `CONTEXT_REQUIRED` challenge, resolved into the runtime's store (see the [`binding-invoker`](../binding-invoker/) interface).
+An OBI document carries no authentication or `security` section, so a synthesizer does not extract credentials, security schemes, or auth requirements into the OBI. Authentication is a runtime prerequisite, not interface metadata: the binding invoker may negotiate it at call time via a `CONTEXT_REQUIRED` challenge (see the [`binding-invoker`](../binding-invoker/) interface).
 
 A source artifact's security metadata (for example OpenAPI's `securitySchemes`) is therefore not mapped into the document. At most it can inform what the invoker asks for at invocation time; it is never baked into the static OBI.
 
@@ -16,9 +33,9 @@ The input's `sources` is an array, but how many sources one call composes
 into the resulting OBI is the implementer's capability decision — a
 service-level synthesizer may merge many artifacts; a single-family one
 legitimately handles a single artifact. What no implementation may do is
-answer for a subset silently: an implementation that does not compose
-SHOULD refuse a multi-source input loudly rather than synthesize from the
-first source and drop the rest.
+answer for a subset silently: an implementation that does not compose all
+supplied sources MUST refuse the multi-source input rather than synthesize
+from some and drop the rest.
 
 ## Synthesis without sources
 
@@ -59,13 +76,19 @@ runtime prerequisites are available. A synthesizer MUST NOT emit an operation
 that the corresponding conforming binding invoker is statically guaranteed to
 refuse.
 
-The operation set is complete for the callable targets this synthesizer
-accepts from the source. If a source contains such a target but the
-synthesizer cannot produce a faithful, bindable operation for it, the call MUST
-fail rather than silently return a partial interface. This contract currently
-returns an OBI directly and has no durable partial-result diagnostic channel;
-an implementation-local warning callback is therefore not sufficient notice
-that a target was omitted.
+For `synthesizeInterface`, the operation set is complete for the callable
+targets the governing binding revision admits in every source input the call
+accepts. An implementation may refuse an unsupported artifact or source
+representation as a whole; after accepting one, it cannot redefine individual
+admitted targets as outside its accepted subset. If it cannot produce a
+faithful, bindable operation for one of them, the call MUST fail rather than
+silently return a partial interface. A transient warning is not sufficient
+notice that an admitted target was omitted.
+
+The coverage surface may return a sound partial interface only by recording
+every omission with its actual disposition. In particular,
+`implementation-unsupported` is evidence of an implementation gap, not a
+successful strict synthesis.
 
 A non-fatal warning remains appropriate when an emitted operation is usable
 but its schema is necessarily a conservative or lossy projection. Such a
@@ -73,6 +96,81 @@ warning MUST NOT mean that the operation is guaranteed to refuse. Missing
 credentials, consumer-selected configuration, unavailable peers or host
 capabilities, and caller values that fail validation are runtime conditions,
 not creation-time synthesis defects.
+
+## Coverage accounting
+
+Soundness and coverage are independent:
+
+- **Soundness:** every invocation admitted by an emitted OBI operation has a
+  faithful path through the binding specification to the source interaction.
+- **Coverage:** every upstream interaction or independently selectable
+  alternative observed in the source has a recorded disposition, and every
+  one admitted by the binding revision is represented.
+
+`synthesizeInterfaceWithCoverage` returns one disposition for every
+**interaction unit** in the inventory it claims to have enumerated. A unit is an addressable target
+or an independently selectable alternative whose omission would remove a
+source-permitted invocation path. A request media alternative is a unit; a
+parameter's incorporated serialization keyword is behavior of its parent unit,
+not a separate unit. Family implementations document their unit inventory and
+MUST NOT choose a coarser unit merely to hide loss. A report MAY additionally
+carry `projection` entries for schema or semantic fidelity concerns attached
+to represented units; those entries make loss measurable without pretending
+that each projection is another independently invocable upstream operation.
+
+Each disposition is one of:
+
+- **`represented`** — the emitted OBI contains the named operation and binding
+  path. Runtime prerequisites such as credentials or a required codec are
+  carried separately and do not make the unit unrepresented.
+- **`excluded`** — the governing binding-specification revision explicitly
+  excludes this upstream-valid unit. The disposition names the specification
+  rule or section and explains the boundary.
+- **`invalid`** — the source unit is malformed or internally contradictory
+  under its upstream authority. Whole-artifact failures may still terminate
+  the call before a report can be produced.
+- **`lossy`** — the invocation path is represented, but the emitted OBI
+  framing cannot express part of the source contract exactly. This is durable
+  disclosure of a projection gap, not permission to emit a binding that is
+  statically guaranteed to refuse.
+- **`implementation-unsupported`** — the binding revision admits the unit but
+  this synthesizer cannot represent it. This is an implementation gap, never a
+  binding-specification exclusion. A reference implementation has no such
+  disposition at release.
+
+`exhaustive: true` means every interaction unit in every accepted input source,
+as defined by the governing binding revision's documented inventory, has
+exactly one disposition. It does not merely mean "everything the
+implementation happened to notice." If the implementation cannot establish
+that claim, it reports `exhaustive: false` and includes a machine-readable
+`limitation` explaining what may be missing and why. A false flag without that
+evidence would disclose uncertainty without making it actionable.
+
+`fullyRepresented: true` additionally means every upstream-valid unit is
+represented without a lossy or unsupported disposition; the value is derived
+from the entries and MUST NOT contradict them. Exclusion can therefore be
+honest and exhaustive without being described as full upstream coverage.
+
+A `represented` entry identifies the emitted source key, operation key,
+binding key, and binding ref. These redundant links are intentional evidence:
+they let a consumer verify that the input source, output source, binding, and
+operation form one path without guessing from naming conventions.
+`bindingRef` is the empty string when the governing binding specification
+identifies that target by an omitted `ref` (for example the root command in
+`openbindings.usage@1`); empty and absent are not conflated.
+An `excluded`, `invalid`, or `implementation-unsupported` entry identifies the
+source unit even when no conformant binding ref exists. A `lossy` entry MUST
+also identify its emitted source, operation, binding, and ref: loss is a
+property of a usable represented path, and tooling must be able to connect the
+limitation to that path without inference. Stable family-namespaced reason
+codes support corpus measurement; prose messages are diagnostic.
+
+The coverage report is evidence, not proof: a consumer may independently
+compare the source, report, and OBI, and an untrusted synthesizer can still make
+a false claim. The report is part of the operation result, not a callback. It remains
+available when the OBI is persisted or handed to another process. A warning
+callback MAY provide immediate authoring feedback, but it is not coverage
+evidence.
 
 This is a creation-time invariant, not a temporal-consistency guarantee. A
 synthesizer preserves the source's declared embedded-versus-live semantics; it
@@ -87,4 +185,9 @@ A synthesizer SHOULD produce byte-stable output for byte-stable input. That mean
 
 ## Idempotency
 
-`synthesizeInterface` is declared idempotent in the contract. The synthesizer MUST NOT mutate the input source, MUST NOT persist global state, and MUST produce the same OBI for the same input regardless of how many times it is invoked.
+Both operations are declared idempotent: calling them does not intentionally
+change source or external state. For embedded content, the same input and
+implementation configuration produce the same semantic result. A live
+`location` may resolve to different content over time; idempotency does not
+pretend a mutable external resource is frozen. Deterministic ordering applies
+to each observed source state.

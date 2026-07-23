@@ -1,9 +1,9 @@
 {
   "cluster": "default-supported",
-  "description": "Candidate-set formation: the candidate set is the operation's bindings whose governing binding specification the invoker can act on, by exact identifier. Filtering precedes ranking, so a binding of an unsupported specification is invisible to the tier/preference/tiebreak steps; if no invocable binding exists the invoker MUST fail with ERR_BINDING_NOT_FOUND.",
+  "description": "Candidate-set formation: the candidate set is the operation's bindings whose governing binding specification the invoker can act on, by exact identifier. Unsupported bindings are excluded before sole-candidate or ambiguity resolution; no invocable binding fails with ERR_BINDING_NOT_FOUND.",
   "tests": [
     {
-      "description": "a binding whose specification is unsupported is skipped even when its declared preference is highest",
+      "description": "an unsupported binding is skipped, leaving the supported binding as the sole candidate",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },
@@ -63,7 +63,7 @@
       "expected": { "error": true, "kind": "no-candidate" }
     },
     {
-      "description": "filtering precedes tiering: a deprecated candidate of a supported specification beats a non-deprecated one of an unsupported specification",
+      "description": "candidate filtering leaves a deprecated supported binding as the sole invocable candidate",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },

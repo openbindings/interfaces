@@ -2,11 +2,11 @@
     "openbindings": "0.2.0",
     "name": "Delegate Manager",
     "version": "0.1.0",
-    "description": "A registry of delegates — referenceable OpenBindings interfaces a delegating application may route operations to. Register a delegate by location; the manager resolves it, snapshots the operations its interface carries, and can later resolve an operation the caller needs to the registered delegates that carry it, ordered by preference. This contract standardizes only delegate management and resolution. A delegate is any referenceable OBI — it need correspond to no particular interface; matching is by operation-key correspondence (key or alias); and what an application does with the resolved candidates — invoke one, aggregate many, narrow them further — is the application's own policy, outside this contract.",
+    "description": "A registry of delegates — referenceable OpenBindings interfaces a caller may consider for operations. Registering a location resolves it and snapshots the operation identifiers its interface carries; resolution later returns registered candidates that carry a requested operation, optionally ordered by caller-owned preference metadata. Registration records a candidate and is not a trust, authorization, compatibility, or invocation decision. What an application does with candidates is outside this contract.",
     "schemas": {
         "DelegateSummary": {
             "type": "object",
-            "description": "A registered delegate: its identity, the operations its interface carried when last resolved, and its selection preferences.",
+            "description": "A registered delegate record: its locator, the operations its interface carried when last resolved, optional change evidence, and caller-owned ordering metadata.",
             "properties": {
                 "name": {
                     "type": "string",
@@ -25,11 +25,11 @@
                 },
                 "contentHash": {
                     "type": "string",
-                    "description": "A digest of the delegate's interface document as last resolved. Pins the snapshot: a later resolution that hashes differently means the document at the location changed since it was registered and trusted. Opaque to callers — compare it for equality across summaries; do not recompute it. The algorithm is the manager's choice (hashing the document's RFC 8785 canonical form pins content rather than serialization accidents; an algorithm prefix such as 'sha256:' aids tooling that wants to verify independently)."
+                    "description": "Opaque digest of the delegate document as last resolved. Equality can reveal change between observations; it does not authenticate the document or imply trust. The algorithm and representation are manager-defined."
                 },
                 "preference": {
                     "type": "number",
-                    "description": "The delegate-level selection preference — the default for every operation the delegate carries. Higher is more preferred; an absent value is the neutral baseline; negatives rank below it."
+                    "description": "Caller-owned delegate-level ordering value. Higher sorts first; absent is the neutral baseline; negatives sort below it. It has no authorization or security effect."
                 },
                 "operationPreferences": {
                     "type": "object",
@@ -47,7 +47,7 @@
     },
     "operations": {
         "openbindings.delegate-manager.registerDelegate": {
-            "description": "Register a delegate — a referenceable OpenBindings interface the manager may route operations to. The manager resolves the location to the delegate's interface document and records a snapshot of the operation identifiers it carries. Registration fails when the location cannot be resolved to an interface. Re-registering a location re-resolves and replaces its snapshot — this is also how a changed delegate is refreshed; whether a manager additionally refreshes on its own schedule is its own policy. That re-resolve-on-repeat is also why this operation deliberately carries no idempotent flag: two identical calls straddling a change at the location observe different snapshots. A refresh replaces only what was resolved (name, operations, contentHash); the registrar's preferences persist unless the re-registration supplies a new one — the snapshot is the delegate's data, the preferences are the registrar's. The snapshot SHOULD pin the resolved document — by retaining it, or by recording a content digest (contentHash) that later resolutions are verified against — so a change at the location is detected rather than silently trusted. How a failed registration surfaces is the invocation runtime's error model; this contract prescribes no error shape.",
+            "description": "Register a referenceable OpenBindings interface as a candidate. The manager resolves the location and records a snapshot of the operation identifiers it carries; registration fails when the location cannot be resolved to an interface. Re-registering re-resolves and replaces resolved fields while preserving caller-owned preferences unless the call supplies a new delegate-level value. This operation is not marked idempotent because the same location may resolve differently over time. A manager MAY retain the resolved document or record `contentHash` as change evidence. Registration does not grant trust or authorization and does not assert schema compatibility. Failed-registration error shape, automatic refresh, change policy, and verification are outside this contract.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -109,7 +109,7 @@
             }
         },
         "openbindings.delegate-manager.resolveDelegate": {
-            "description": "Resolve an operation the caller needs to the registered delegates that carry it — those whose interface answers to the operation's key or an alias. Candidates are ordered by effective preference — the delegate's per-operation override for this operation when set, else its delegate-level preference, else the neutral baseline; higher first, ties broken by the manager's policy. This is the bridge from 'I need operation X' to a concrete delegate to invoke; it does not invoke anything, and callers are free to narrow the candidates further by criteria of their own.",
+            "description": "Resolve an operation identifier to registered delegate records whose snapshot carries it as a key or alias. Candidates are ordered by caller-owned effective preference — per-operation override, else delegate-level value, else neutral baseline; higher first, with tie order unspecified. Resolution reports candidates only. It does not invoke, authorize, verify compatibility, or require a caller to use the ordering.",
             "idempotent": true,
             "input": {
                 "type": "object",

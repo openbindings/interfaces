@@ -1,0 +1,180 @@
+{
+  "format": "openbindings.interface-synthesis-coverage-cases@1",
+  "tests": [
+    {
+      "description": "complete represented evidence links input source, emitted source, binding, operation, and ref",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": { "getUser": {} },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "ref": "#/paths/~1users~1{id}/get"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1users~1{id}/get",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "getUser",
+          "bindingKey": "getUser.api",
+          "bindingRef": "#/paths/~1users~1{id}/get"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": true,
+        "fullyRepresented": true
+      }
+    },
+    {
+      "description": "an exhaustive binding-specification exclusion is honest but not fully represented",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {},
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi@1",
+            "location": "https://example.com/openapi.json"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceRef": "#/webhooks/onEvent/post",
+          "scope": "target",
+          "status": "excluded",
+          "reasonCode": "openapi.reverse-direction",
+          "rule": "OAPI-P-01",
+          "message": "reverse-direction interaction is outside this binding revision"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": true,
+        "fullyRepresented": false
+      }
+    },
+    {
+      "description": "non-exhaustive evidence can never claim full representation",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": { "getUser": {} },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "ref": "#/paths/~1users~1{id}/get"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1users~1{id}/get",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "getUser",
+          "bindingKey": "getUser.api",
+          "bindingRef": "#/paths/~1users~1{id}/get"
+        }
+      ],
+      "exhaustive": false,
+      "expected": {
+        "valid": true,
+        "fullyRepresented": false
+      }
+    },
+    {
+      "description": "represented evidence is rejected when its binding key names no emitted binding",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": { "getUser": {} },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "ref": "#/paths/~1users~1{id}/get"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1users~1{id}/get",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "getUser",
+          "bindingKey": "getUser.missing",
+          "bindingRef": "#/paths/~1users~1{id}/get"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": false,
+        "errorContains": "no matching binding"
+      }
+    },
+    {
+      "description": "lossy evidence must identify the represented path whose projection is incomplete",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": { "getUser": {} },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "ref": "#/paths/~1users~1{id}/get"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceRef": "#/paths/~1users~1{id}/get::projection::response",
+          "scope": "projection",
+          "status": "lossy",
+          "reasonCode": "openapi.schema_projection",
+          "message": "one upstream schema constraint has no exact OBI projection"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": false,
+        "errorContains": "requires operationKey"
+      }
+    }
+  ]
+}

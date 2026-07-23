@@ -2,7 +2,7 @@
 
 A binding invoker knows how to invoke bindings governed by specific binding specifications. Given a source (bindingSpec + location/content), a ref within that source, and a way to receive input, it makes the protocol-specific call — as the source's governing binding specification defines it — and exposes a typed I/O channel for the caller to write inputs and read outputs.
 
-This is the core capability that makes OpenBindings protocol-agnostic. The developer calls a typed operation. The SDK finds the binding. The invoker handles the protocol. The developer never writes protocol-specific code.
+This is the protocol boundary in the OpenBindings model: callers exchange operation values while the invoker interprets the binding artifact and performs the concrete interaction.
 
 ## Why it's called a *binding* invoker
 
@@ -14,37 +14,31 @@ The name still fits, and is the clearest available, for one reason: the `(bindin
 
 When a binding invoker receives a `BindingInvocationInput`, it follows this lifecycle:
 
-1. **Artifact loading.** Loads and caches the source artifact from the source's `location` or `content`, per its governing binding specification's carriage rules.
-2. **Context resolution.** Reads stored context from the runtime's store, merges with per-call context. Per-call values take precedence. The invoker MUST operate on a copy; it MUST NOT mutate the caller's input.
-3. **Context application.** Applies credentials, headers, cookies, and other context to the wire per the governing binding specification's published wire-application rules (each family's credentials section pins where each scheme's credential rides).
-4. **Invocation.** Interprets the ref within the source artifact per the binding specification, maps writes to the interaction, makes the call, emits outputs back through the `Invocation` handle.
-5. **Context negotiation.** If the binding cannot proceed because required context is missing, it fails with `CONTEXT_REQUIRED` enumerating what to satisfy; the runtime resolves the requirements into context, stores durable results, and retries.
+1. **Artifact interpretation.** Resolves the source artifact from `location` or `content`, per its governing binding specification's carriage rules. Loading and caching strategy are implementation details.
+2. **Context consumption.** Reads the context supplied for this invocation without mutating the caller's input. The contract neither requires nor exposes a context store.
+3. **Context application.** Applies credentials, headers, cookies, and other context to the interaction exactly as the governing binding specification defines.
+4. **Invocation.** Interprets the ref within the source artifact, maps writes to the concrete interaction, and emits outputs through the invocation handle.
+5. **Context negotiation.** If the binding cannot proceed because required context is missing, emits `CONTEXT_REQUIRED` before output or effects. A surrounding runtime may resolve the requirements and start a new attempt with augmented context.
 
 ## Context
 
 A binding invocation usually needs more than the operation input. Credentials, headers, cookies, environment variables, session state, consent flags, custom invoker-specific values: all of it is **context**. Context is opaque to the contract and broader than auth. Credentials are one common kind, not the whole concept.
 
-### Stored vs per-call
+### Context carriage and lifecycle
 
-Context divides by lifecycle, not by content:
+The interface carries one opaque context object on each invocation. Where its values came from — a caller, a credential broker, a durable store, a short-lived session, or a composition of those — is outside the contract. A runtime that combines several sources decides precedence before calling the invoker and supplies the resulting object.
 
-| | Stored context | Per-call context |
-|---|---|---|
-| **Lifecycle** | Persistent across calls | Single invocation |
-| **Origin** | Resolved by the invoker (auth flows, manual configuration) | Supplied by the caller at invocation time |
-| **Held by** | The runtime's store | The caller's `invokeBinding` input |
+This separation is intentional. A stateless remote invoker, an in-process invoker with application-managed credentials, and a runtime backed by a [`document-store`](../document-store/) can all implement the same interface. None must expose storage to the invoker.
 
-Both have the same shape. At invocation time the invoker loads stored context for the target, then layers per-call context on top.
+### Targets and context reuse
 
-### Targets, keys, and cross-invoker sharing
+A `CONTEXT_REQUIRED` challenge reports a **target**: an opaque identifier for the concrete destination or context scope the invoker is about to use. A runtime may use that value to scope resolution or reuse, but key derivation, normalization, persistence, hierarchy, and cross-target sharing are runtime policy rather than this interface's semantics.
 
-The invoker does not key or store context. It reports the **target** it is addressing (in the `CONTEXT_REQUIRED` challenge's `target`); the runtime derives a storage key from that target and reads/writes context under it. The runtime's convention is to **normalize to the API's host** — lowercased, with any userinfo (`user:password@`) excluded, per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) host normalization (so `https://api.example.com`, `wss://API.example.com`, and `https://alice:secret@api.example.com` all resolve to `api.example.com`) — which gives **cross-invoker sharing**: an OpenAPI invoker and an AsyncAPI invoker addressing the same service produce targets the runtime keys identically, so credentials resolved through one are available to the other. That keying is the runtime's policy, not the invoker's and not the store's; this interface is the single owner of the normalization rule — an SDK's key-derivation helpers and the reference tooling's context-surface docs implement or cite it, never restate it. Case-folding and userinfo exclusion are not cosmetic: a case-variant host must not silently fragment one origin's credentials into two keys, and a password must never ride into a store key (a key is the one surface redaction cannot scrub — see [Context confidentiality](#well-known-context-fields) below).
-
-The store itself is a generic [`document-store`](../document-store/) — `get` / `set` / `delete` over an opaque key and a whole JSON object. Its backend (in-memory, on-disk, OS keychain, hosted vault) and any management surface (listing, inspection, rotation, audit) are implementation-defined and outside that contract.
+When a runtime does derive storage keys from network locations, excluding userinfo and other secret material is a security requirement. Host normalization can also improve reuse across binding families. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
 
 ### Well-known context fields
 
-Context is an opaque object, but for cross-invoker interoperability invokers SHOULD use well-known field names:
+Context is an opaque object, but these well-known field names provide cross-invoker interoperability:
 
 | Field | Type | Purpose |
 |---|---|---|
@@ -57,28 +51,15 @@ Context is an opaque object, but for cross-invoker interoperability invokers SHO
 | `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
 | `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
 | `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
-| `configuration` | `{ [point]: object }` | Per-invocation configuration-point values, keyed by point name (the operation-invoker's `selection` point; a family's decode point; …); consulted at the first tier of each point's order |
+| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name (the operation-invoker's `selection` point; a family's decode point; …); consulted at the first tier of each point's order |
 
-Invokers can store anything else alongside (CSRF tokens, session IDs, consent flags), but the well-known fields are what make sharing across invokers actually work. The convention is extensible: new fields are adopted through ecosystem usage, no spec change needed.
+Implementations and callers may add fields for session state, consent, or other family-specific needs. Consumers ignore fields they do not understand unless the governing binding specification says otherwise.
 
-**Context confidentiality.** The credential-bearing fields in the table above — the bearer and OAuth tokens, the API keys (`apiKey` / `apiKeys`), and the `password` inside `basic` — are **secret**, as distinct from the non-secret configuration fields (`headers`, `cookies`, `environment`, `metadata`, `configuration`). No value classified secret here may survive in cleartext to any surface a non-holder can read: a log line, an error message, **or a derived store key**. This table is the single owner of which fields are credentials; an implementation's redaction (of diagnostic output) and its key derivation (of store keys) MUST both take that classification from here, so the two can never disagree about what is secret — and a nested field surfaces only its non-secret structure (a redacted `basic` keeps its `username`, redacted `apiKeys` keeps its scheme names), never a secret value.
+**Context confidentiality.** Bearer and OAuth tokens, API keys, and the password inside `basic` are always secret. Other fields are not inherently non-secret: headers, cookies, environment values, metadata, and configuration can also contain secrets according to their meaning. A runtime MUST protect values classified as secret by their requirement family, governing binding specification, or application policy; it must not expose them in diagnostics or derived keys. Structural redaction may retain non-secret names such as an API-key scheme name, but never the secret value.
 
-### Platform callbacks
+### Interactive resolution
 
-When stored context is insufficient and an **in-process** invoker needs interactive resolution, it can ask its host through **platform callbacks**: interactive functions the host supplies at construction. This is a convention, not part of the contract — live function references cannot cross a wire, so the contract carries no callbacks; it is an affordance a code-module implementation may surface so the host performs the interaction while the invoker stays protocol-focused.
-
-The conventional callback seam covers the interactions auth flows need:
-
-| Callback | Purpose | Example uses |
-|---|---|---|
-| `prompt` | Display a message, collect text input | API key entry, password, custom tokens |
-| `browserRedirect` | Open a URL, capture the redirect callback | OAuth2, SAML, any browser-based auth |
-| `confirmation` | Display a message, wait for yes/no | Terms of service, consent screens |
-| `fileSelect` | Let the user pick a file | Client certificates, key files |
-
-A host supplies whichever of these its environment can perform. If a callback the invoker needs is not provided, the invoker returns an error rather than blocking; a headless environment relies on pre-configured stored context instead.
-
-Wire-form implementations cannot receive callbacks across the wire at all. They either drive auth flows server-side themselves, or expect callers to pre-resolve credentials before invoking.
+Interactive resolution is deliberately outside this contract. An in-process implementation may accept host callbacks, a remote service may drive a flow server-side, and a headless caller may use pre-provisioned values. No callback vocabulary is standardized here because function references and user-interface capabilities do not cross every implementation boundary. Whatever mechanism is used, the resulting values enter the next attempt only through `context`.
 
 ## Context negotiation (CONTEXT_REQUIRED)
 
@@ -88,28 +69,28 @@ When a binding cannot proceed because required context is missing, `invokeBindin
 
 `ContextRequiredDetails` carries:
 
-- `target`: the target the binding addresses — typically its endpoint URL or host. The runtime derives a storage key from it (the host-normalized convention described above) to locate and store resolved context; the invoker reports the target and neither keys nor stores. The target is **asserted by the invoker**, which is a trust boundary when the invoker is not fully trusted (a delegate, a hosted or third-party invoker): a misreporting invoker could name one host's target to obtain another's stored credentials. The runtime holds the source independently in both paths, so **where it can derive the source's authoritative target** — a concrete server URL, a fixed host — it validates the asserted target against that before provisioning, and refuses a mismatch. Where it cannot (an inline artifact whose servers only a family processor can read, a templated or multi-server host), the derivation needs family knowledge the runtime may lack; there it does not silently trust the assertion — it treats the invoker as untrusted for credential provisioning (delegating the target derivation to a component that can perform it, or withholding durable credentials and provisioning only non-secret per-call context). The same taint extends to per-call secrets: it likewise does not forward caller-supplied per-call credentials (`bearerToken`, `apiKey`, and the like) to an invoker whose target it could not verify — a per-call secret the caller attached trusting the *declared* target would otherwise ride to an unverified destination. The bound holds by what the runtime enforces, never by trusting the invoker's word for where it points.
+- `target`: the concrete destination or context scope asserted by the invoker. It is opaque to this contract. A runtime may compare it with independently derived information before releasing secrets; how it verifies, normalizes, or keys that value depends on the binding family and the runtime's trust model.
 - `alternatives`: an **OR** of ways to satisfy the requirement. Each alternative carries `requirements`, an **AND** of `ContextRequirement`s. This OR-of-AND shape expresses real auth semantics a flat preference list cannot, e.g. "OAuth2 **OR** (apiKey **AND** clientCert)".
 
 A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
 
-- `durable: true` (default): resolved context MAY be persisted, keyed from `target`, and reused for later invocations. Credentials are durable.
+- `durable: true` (default): resolved context MAY be persisted, keyed from `target`, and reused for later invocations. This is permission, not a claim that every credential or other value should be stored.
 - `durable: false`: must be satisfied fresh for every invocation and MUST NOT be persisted. A one-shot user approval is not durable.
 
 ### Resolve and retry
 
-On `CONTEXT_REQUIRED`, the runtime:
+On `CONTEXT_REQUIRED`, a runtime may:
 
-1. Picks one `alternative` whose every `requirement` it has a resolver for.
-2. Resolves each requirement into context (prompt, browser flow, approval UI, config lookup, etc.).
-3. Persists durable results in its store, under a key derived from `target`; never persists non-durable ones.
-4. Retries `invokeBinding` with the augmented context.
+1. Pick one `alternative` whose every `requirement` it can satisfy.
+2. Resolve each requirement into context by whatever mechanism it owns.
+3. Persist durable results according to its own storage policy; never persist non-durable ones.
+4. Start a new `invokeBinding` attempt with the augmented context.
 
-The runtime SHOULD bound retries and MUST NOT loop: an invoker should not re-challenge for context it was just supplied. If supplied context proves insufficient, it returns a different error so the loop terminates.
+If it retries, the runtime bounds attempts. An invoker does not repeat the same challenge when the supplied context already satisfies it; if the supplied value is rejected, it reports the applicable authentication, validation, or permanent error.
 
 ### Least privilege
 
-A `CONTEXT_REQUIRED` challenge is a **scope, not a hint**. It bounds what the invoker may receive: the runtime provisions only the context that satisfies the **one selected alternative** (the credentials it names plus non-secret configuration like headers, cookies, and env), and never other stored credentials. The invoker never gets raw access to the store (no enumeration, no arbitrary reads); it sees only this scoped resolution.
+A `CONTEXT_REQUIRED` challenge is a **scope, not a hint**. When resolving it, the runtime provisions only the context needed to satisfy the **one selected alternative**, and never unrelated stored credentials or configuration. Any resolved value may be sensitive according to its requirement family, binding specification, or application policy. The invoker never gets raw access to a caller's store (no enumeration, no arbitrary reads); it sees only the context supplied by value for this attempt.
 
 This matters most when the invoker is a **separate or third-party service**, such as a delegate or a hosted invoker: it receives only the context its own challenge requires, never the caller's full stored profile. Two runtime-enforced limits produce that bound together — the per-challenge field scoping here (*which fields* for a target) and the target validation under `ContextRequiredDetails` (*which target* at all). Both are the provisioning runtime's responsibility, since only it holds the store and the trust relationship; the bound is a property of what the runtime provisions, not of the invoker's good behavior.
 
@@ -126,16 +107,16 @@ This matters most when the invoker is a **separate or third-party service**, suc
 
 A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
 
-`config.value` is the second standard family. It carries a **non-secret** configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` (category `context`, retryable after resolution) instead of a terminal `ERR_SOURCE_CONFIG_ERROR` (category `permanent`), which stays for source misconfiguration no runtime can fix. A `config.value` requirement carries:
+`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` (category `context`, retryable after resolution) instead of a terminal `ERR_SOURCE_CONFIG_ERROR` (category `permanent`), which stays for source misconfiguration no runtime can fix. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
 - `point` — the binding-specification configuration point the value belongs to (`server`, `address`, a family's decode point, …).
 - `key` — the specific value needed within that point (a server-variable name; `address` for a whole channel address).
 - `description` — human-readable prompt text.
-- `choices` (optional) — declared allowed values, when the artifact enumerates them (a server variable's `enum`), for a runtime to render as a picker. Advisory, never a gate — the configuration point itself does not refuse an off-list value (the binding specifications' enum-informs-not-gates rule).
+- `choices` (optional) — values declared by the source artifact, for a runtime to render as a picker. Whether an off-list value is valid is decided by the governing binding specification: a closed artifact enum is enforced; an advisory list remains advisory.
 
-It resolves into the `configuration` context field under its `point`; the **shape** of the value carried there is the invoker's own (configuration carriage is implementation surface, not contract), so this family names *what is needed*, not the resolved value's structure. `durable` defaults to `true` — a configuration choice is usually a reusable preference — and an invoker sets `durable: false` for a value it knows is per-invocation (a runtime-generated address). A runtime with no `config.value` resolver simply cannot satisfy that alternative, exactly as for any other family.
+It resolves into the `configuration` context field under its `point`; the **shape** of the value carried there is the invoker's own (configuration carriage is implementation surface, not contract), so this family names *what is needed*, not the resolved value's structure. `durable` defaults to `true`, which permits but does not require reuse; an invoker sets `durable: false` when the resolved value must be fresh for each attempt. A runtime that cannot satisfy `config.value` simply cannot select that alternative, exactly as for any other family.
 
-Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime with no resolver for it; that alternative cannot be selected. The same holds in the other direction: an invoker whose artifact declares a scheme it cannot itself apply still SURFACES the requirement, with a type derived from the artifact's scheme (e.g. `auth.http.digest`) — the alternative stays discoverable (a runtime with a resolver for that family could satisfy it), and a document whose every alternative is unmappable produces a readable challenge instead of an unauthenticated dispatch and a blind 401. SDKs provide a resolver registry so applications register `(type -> resolver)` and the retry loop dispatches by `type`.
+Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An invoker may surface an artifact-defined scheme as an extension requirement only when it knows how the resulting context will be applied faithfully. If the invoker cannot represent or apply a prerequisite, it refuses before dispatch rather than emitting a satisfiable-looking challenge or attempting the interaction without it.
 
 ### prepareBinding (preflight)
 
@@ -168,7 +149,7 @@ For the categories where the disposition is fixed by the category itself — `co
 
 The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none`, or any failure on an operation the caller independently knows to be idempotent.** `context` (resolve-and-retry) and `cancelled` are their own dispositions. This is the same pre-side-effect reasoning the context hinge already applies, made explicit for the retry path so `category` never invites an unsafe repeat.
 
-**What is also normative: a small set of named codes.** A code named by a rule of this contract or its operation-invoker peer is normative where named — `CONTEXT_REQUIRED` (category `context`), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, and `ERR_BINDING_NOT_FOUND` at the operation layer. These specific strings are guaranteed. Everything else in the registry below is a recommended convention — a stable spelling for a category member, useful but not something a conformant consumer may require. The **Class** column marks the split; the **Category** column is the normative axis to branch on. (`CONTEXT_REQUIRED` keeps its prefix-less spelling for historical reasons; read it as a negotiation signal in the `context` category, not an error — the invocation pauses rather than fails.)
+**What is also normative: a small set of named codes.** A code named by a rule of this contract or its operation-invoker peer is normative where named — `CONTEXT_REQUIRED` (category `context`), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, `ERR_BINDING_NOT_FOUND`, and `ERR_BINDING_SELECTION_REQUIRED` at the operation layer. These specific strings are guaranteed. Everything else in the registry below is a recommended convention — a stable spelling for a category member, useful but not something a conformant consumer may require. The **Class** column marks the split; the **Category** column is the normative axis to branch on. (`CONTEXT_REQUIRED` keeps its prefix-less spelling for historical reasons; read it as a negotiation signal in the `context` category, not a target failure — it terminates the current pre-effect attempt so a new attempt can carry the resolved context.)
 
 | Code | Class | Category | Meaning | Retryable? |
 |------|-------|----------|---------|------------|
@@ -178,6 +159,7 @@ The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none
 | `ERR_CANCELLED` | Normative | cancelled | Operation was cancelled by the caller (via `cancel()` or `AbortSignal`) | N/A — issue a fresh call if wanted |
 | `ERR_VALIDATION_FAILED` | Normative | validation | Input or output does not match the declared schema (the interface's validation promise; core [OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules) governs the claim) | No |
 | `ERR_BINDING_NOT_FOUND` | Normative | permanent | Requested binding is not defined on the interface | No |
+| `ERR_BINDING_SELECTION_REQUIRED` | Normative | permanent | An operation has several invocable bindings and the caller supplied no effective choice | No; start a new attempt with an explicit binding or ordered selection |
 | `ERR_AUTH_REQUIRED` | Convention | auth | Supplied credentials were rejected (e.g. HTTP 401 with context present) | Not with same credentials |
 | `ERR_PERMISSION_DENIED` | Convention | auth | Authenticated but not authorized (HTTP 403) | Not with same credentials |
 | `ERR_INVALID_REF` | Convention | permanent | Ref is malformed or cannot be parsed | No |
@@ -231,7 +213,7 @@ A family that speaks HTTP or WebSocket rather than a native status space simply 
 
 - **Understand operations.** It does not know what `getMenu` means. It invokes a binding ref within a source.
 - **Select bindings.** That is the operation invoker's job. The binding invoker invokes what it is given.
-- **Manage application state.** The invoker does not accumulate state that affects the semantics of subsequent calls. Transport-level state (document caches, connection pools, session caches) is acceptable as internal optimization, but the caller should get the same result whether the invoker reuses a connection or opens a fresh one. Application-level state (credentials, preferences) lives in the runtime's store.
+- **Require a particular state architecture.** The contract supplies context by value and exposes no context store. Caches, pools, sessions, credential brokers, and persistence remain implementation choices so long as their observable behavior honors the contract.
 - **Handle transforms.** Input and output transforms are applied by the operation invoker, not the binding invoker.
 - **Mutate the caller's input.** Context merging and enrichment MUST operate on a copy.
 - **Over-reach for context.** It receives only the context the challenge scoped and applies only what the operation requires (e.g. the security scheme the call declares). It does not read the runtime's store directly, accumulate other targets' credentials, or forward more than a delegate's own challenge requires.
@@ -243,7 +225,7 @@ The binding-invoker interface exposes a bidirectional I/O contract through `invo
 | Binding category (examples) | Unary | Server-streaming | Client-streaming | Bidirectional |
 |-----------------------------|-------|------------------|------------------|---------------|
 | In-process code module (`node-module`, `go-package`) | Yes | Yes | Yes | Yes |
-| stdio / subprocess (`usage`, `stdio`) | Yes | Yes | Yes | Yes |
+| stdio / subprocess (`usage`) | Yes | No | No | No |
 | WebSocket-based (`asyncapi-ws`) | Yes | Yes | Yes | Yes |
 | HTTP/2 streaming (`grpc`, `connect`) | Yes | Yes | Yes | Yes |
 | HTTP/1.1 + SSE (`openapi` with SSE response) | Yes | Yes | No | No |

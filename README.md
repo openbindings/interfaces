@@ -78,6 +78,25 @@ Correspondence is **per-operation**. Each adopted key is its own claim, and ever
 
 These conventions apply to the interfaces published in this directory and are recommended (but not required) for any third party publishing shared interfaces.
 
+### Published contract schemas are comparable
+
+The interfaces in this repository keep their operation schemas within the
+[`OB-2020-12` Schema Comparison Profile](schema-comparison/). This is a project
+authoring policy, not a core OpenBindings restriction and not a claim that
+JSON Schema should be limited to that subset. It makes the advertised workflow
+— `ob compat <contract> <candidate>` — useful for the contracts this project
+publishes instead of predictably returning `indeterminate`.
+
+The profile includes structural unions, so conditional contract shapes are
+written as `oneOf` alternatives when that preserves the requirement exactly.
+Constraints whose containment the profile cannot soundly decide, such as
+regular-expression `pattern` or `uniqueItems`, are not added merely as
+validation decoration: their essential semantics belong in an in-profile
+shape or in normative operation prose; otherwise the contract needs a future
+comparison-profile revision before this repository publishes the constraint.
+CI walks every named and inline operation schema and fails on an
+outside-profile keyword.
+
 ### Operation keys are qualified `openbindings.<interface>.<operation>`
 
 Every operation key in these interfaces is `openbindings.` followed by the interface name and the operation's short name: `openbindings.binding-invoker.invokeBinding`, `openbindings.document-store.get`, `openbindings.software-descriptor.describe`, and so on. The short name alone (`invokeBinding`, `get`) is used in prose for readability, but the qualified form is the operation's actual key and the name a corresponding document adopts.

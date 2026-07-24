@@ -156,7 +156,7 @@
                 },
                 "reasonCode": {
                     "type": "string",
-                    "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$",
+                    "minLength": 1,
                     "description": "Stable family-namespaced reason code. Required unless status is represented."
                 },
                 "rule": {
@@ -173,8 +173,7 @@
                     "items": {
                         "type": "string",
                         "minLength": 1
-                    },
-                    "uniqueItems": true
+                    }
                 },
                 "details": {
                     "type": "object",
@@ -188,52 +187,49 @@
                 "scope",
                 "status"
             ],
-            "allOf": [
+            "oneOf": [
                 {
-                    "if": {
-                        "properties": {
-                            "status": {
-                                "const": "represented"
-                            }
-                        },
-                        "required": [
-                            "status"
-                        ]
+                    "properties": {
+                        "status": {
+                            "const": "represented"
+                        }
                     },
-                    "then": {
-                        "required": [
-                            "sourceKey",
-                            "operationKey",
-                            "bindingKey",
-                            "bindingRef"
-                        ]
-                    },
-                    "else": {
-                        "required": [
-                            "reasonCode",
-                            "message"
-                        ]
-                    }
+                    "required": [
+                        "sourceKey",
+                        "operationKey",
+                        "bindingKey",
+                        "bindingRef"
+                    ]
                 },
                 {
-                    "if": {
-                        "properties": {
-                            "status": {
-                                "const": "lossy"
-                            }
-                        },
-                        "required": [
-                            "status"
-                        ]
+                    "properties": {
+                        "status": {
+                            "const": "lossy"
+                        }
                     },
-                    "then": {
-                        "required": [
-                            "sourceKey",
-                            "operationKey",
-                            "bindingKey",
-                            "bindingRef"
-                        ]
-                    }
+                    "required": [
+                        "sourceKey",
+                        "operationKey",
+                        "bindingKey",
+                        "bindingRef",
+                        "reasonCode",
+                        "message"
+                    ]
+                },
+                {
+                    "properties": {
+                        "status": {
+                            "enum": [
+                                "excluded",
+                                "invalid",
+                                "implementation-unsupported"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "reasonCode",
+                        "message"
+                    ]
                 }
             ]
         },
@@ -264,23 +260,23 @@
                 "exhaustive",
                 "fullyRepresented"
             ],
-            "allOf": [
+            "oneOf": [
                 {
-                    "if": {
-                        "properties": {
-                            "exhaustive": {
-                                "const": false
-                            }
-                        },
-                        "required": [
-                            "exhaustive"
-                        ]
-                    },
-                    "then": {
-                        "required": [
-                            "limitation"
-                        ]
+                    "properties": {
+                        "exhaustive": {
+                            "const": true
+                        }
                     }
+                },
+                {
+                    "properties": {
+                        "exhaustive": {
+                            "const": false
+                        }
+                    },
+                    "required": [
+                        "limitation"
+                    ]
                 }
             ]
         },
@@ -290,7 +286,7 @@
             "properties": {
                 "code": {
                     "type": "string",
-                    "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$",
+                    "minLength": 1,
                     "description": "Stable namespaced reason code."
                 },
                 "message": {

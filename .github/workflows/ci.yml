@@ -124,6 +124,9 @@ jobs:
         # (self-containment convention); this keeps the copies identical.
         run: node .github/scripts/check-shared-schemas.mjs */[0-9]*.json
 
+      - name: Keep published contracts comparable
+        run: node .github/scripts/check-interface-profile.mjs */[0-9]*.json
+
       - name: Enforce immutability of published version files
         # Dormant pre-launch: version files are working drafts amendable in
         # place until the first real release (surface-alignment loop, D2).

@@ -56,8 +56,8 @@
           "sourceRef": "#/webhooks/onEvent/post",
           "scope": "target",
           "status": "excluded",
-          "reasonCode": "openapi.reverse-direction",
-          "rule": "OAPI-P-01",
+          "reasonCode": "openapi.reverse_direction",
+          "rule": "OAPI-D-03",
           "message": "reverse-direction interaction is outside this binding revision"
         }
       ],

@@ -107,7 +107,7 @@ This matters most when the invoker is a **separate or third-party service**, suc
 
 A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
 
-`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` (category `context`, retryable after resolution) instead of a terminal `ERR_SOURCE_CONFIG_ERROR` (category `permanent`), which stays for source misconfiguration no runtime can fix. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
+`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by source configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
 - `point` — the binding-specification configuration point the value belongs to (`server`, `address`, a family's decode point, …).
 - `key` — the specific value needed within that point (a server-variable name; `address` for a whole channel address).
@@ -122,102 +122,55 @@ Runtimes MAY define further families (`approval.user`, `account.link`, ...). An 
 
 `prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). The operation is always implementable — returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so no capability prevents a service from carrying it (correspondence remains per-operation, as for every contract operation). It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
 
-## Standard error codes
+## Unsuccessful completion
 
-Binding invokers use standard error codes so the operation invoker and application code can handle failures without knowing the protocol underneath. Codes are SCREAMING_SNAKE_CASE strings carried in `InvocationError.code`. Two things about a failure are **normative**; the specific code string is mostly not.
+An `error` output frame means that the current invocation did not complete
+normally. That structural distinction is the portable contract. It does not
+imply a universal ontology for why every present or future binding family can
+complete unsuccessfully.
 
-**What is normative: the classification.** Every `InvocationError` carries a `category` — one of a fixed, closed set (closed for this interface's major version; a later major MAY add members, and a consumer that meets an unknown category treats it as `permanent`) — and, where retry is even in question, an `effects` marker (below). The category is the interop surface: an application, or the operation invoker, branches on it without knowing which binding family or which specific code produced the failure. A third party may mint any specific code it likes, but it MUST place that code in one of these categories, and consumers MAY rely on the category being present and accurate.
+`InvocationError` therefore has a deliberately small shape:
 
-| `category` | Meaning for the consumer | Consumer's move |
-|---|---|---|
-| `context` | Required context is missing; this is the resolve-and-retry hinge, not a failure | The runtime resolves the requirement and retries |
-| `auth` | Supplied credentials were rejected or insufficient | Re-credential, then retry — never retry with the same credentials |
-| `cancelled` | The caller ended the invocation (`cancel()` / `AbortSignal`); not a failure of the call | Nothing; the same request may be issued fresh |
-| `transient` | A lower-layer condition that may clear on its own (transport dropped, connect failed, timed out) | Retry — but see `effects`: only auto-retry when the call's side effects cannot have taken hold |
-| `service` | The target was reached and returned an error of its own | Application decides from the target's own signal (preserved in `details`) |
-| `validation` | Input or output does not match the declared schema, or the schema graph could not be resolved | Fix the value or the document; do not retry as-is |
-| `protocol` | The frame sequence or the invocation contract was violated | Fix the caller; do not retry |
-| `permanent` | A terminal failure that will not clear by retrying the same request | Do not retry |
+- `code` identifies a reason. Only codes named by a rule of this interface or
+  its operation-invoker peer have portable semantics. Other strings are open
+  implementation or extension identifiers; an ordinary caller does not need
+  to interpret them to observe unsuccessful completion.
+- `message` is a human-readable, protocol-independent presentation. It may
+  preserve failure prose supplied by the application author when the governing
+  binding can identify that prose without its protocol container. Otherwise it
+  MUST NOT restate a native status line, frame, process result, or other raw
+  protocol evidence; that material belongs in `diagnostics`.
+- `details` carries either portable structured data defined by a named
+  interface code or an opaque JSON failure value that the governing binding
+  rules identify as application-authored. In this revision,
+  `CONTEXT_REQUIRED` uses it for `ContextRequiredDetails`. Application failure
+  values have only the meaning their author gave them; admitting one does not
+  create a universal failure vocabulary. Raw statuses, headers, trailers,
+  envelopes, bytes, and implementation evidence do not belong here merely
+  because a binding observed them.
+- `diagnostics`, when present, is an explicit expert escape hatch for
+  binding-native or implementation evidence. It may reveal the selected
+  binding and MUST NOT be required for correct ordinary use.
 
-**What is also normative where retry is even in question: the `effects` marker — because a category alone cannot say retry-is-safe.** Only `context` carries a pre-execution guarantee (the challenge is raised before any side effect); a `transient` failure can happen *after* the call was dispatched — a POST that was sent before the transport dropped, a timeout after the server began work — so "transient ⇒ retry" is unsafe for a non-idempotent operation. Where retry is even considered — the `transient` and `service` categories — an `InvocationError` therefore also carries `effects`, the invoker's honest report of **whether the call's side effects may have taken hold**:
+The interface-owned codes are exactly those required by its own mechanics:
 
-- `effects: none` — the call's side effects provably did not take hold: the connection failed before send; the server definitively refused before executing (e.g. a 429/503 or an auth rejection whose response proves non-execution); or a challenge was raised pre-dispatch. Safe to retry (or backoff-retry).
-- `effects: possible` — the call may have taken effect: it was dispatched, then the transport dropped or it timed out before a conclusive response. Auto-retry is **not** safe for a non-idempotent operation; surface it, or retry only when the operation is known idempotent.
-- `effects: definite` — the call took effect: a success or partial output was seen, or the server signaled it acted. Retry is a re-invocation the caller must reason about.
+| Code | Meaning |
+|---|---|
+| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `details` before dispatch. |
+| `ERR_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
+| `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
+| `ERR_CANCELLED` | The caller cancelled the invocation. |
+| `ERR_VALIDATION_FAILED` | The operation-invoker's declared value-validation claim failed. |
+| `ERR_BINDING_NOT_FOUND` | The requested operation has no invocable binding. |
+| `ERR_BINDING_SELECTION_REQUIRED` | Several invocable bindings remain and the caller supplied no choice. |
 
-For the categories where the disposition is fixed by the category itself — `context`, `cancelled`, `auth`, `validation`, `protocol`, `permanent` — retry is not a question `effects` decides, so the marker is `none` (or simply not consulted) and MAY be omitted. An `InvocationError` that omits `effects` is treated as `possible`: a consumer never auto-retries it, and never infers `none` from silence.
-
-The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none`, or any failure on an operation the caller independently knows to be idempotent.** `context` (resolve-and-retry) and `cancelled` are their own dispositions. This is the same pre-side-effect reasoning the context hinge already applies, made explicit for the retry path so `category` never invites an unsafe repeat.
-
-**What is also normative: a small set of named codes.** A code named by a rule of this contract or its operation-invoker peer is normative where named — `CONTEXT_REQUIRED` (category `context`), `ERR_PROTOCOL`, `ERR_TRANSPORT_CLOSED`, `ERR_CANCELLED`, `ERR_VALIDATION_FAILED`, `ERR_BINDING_NOT_FOUND`, and `ERR_BINDING_SELECTION_REQUIRED` at the operation layer. These specific strings are guaranteed. Everything else in the registry below is a recommended convention — a stable spelling for a category member, useful but not something a conformant consumer may require. The **Class** column marks the split; the **Category** column is the normative axis to branch on. (`CONTEXT_REQUIRED` keeps its prefix-less spelling for historical reasons; read it as a negotiation signal in the `context` category, not a target failure — it terminates the current pre-effect attempt so a new attempt can carry the resolved context.)
-
-| Code | Class | Category | Meaning | Retryable? |
-|------|-------|----------|---------|------------|
-| `CONTEXT_REQUIRED` | Normative | context | Required context (credentials, approval, config) is missing; `details` is a `ContextRequiredDetails` | Yes, after resolving the requirements |
-| `ERR_PROTOCOL` | Normative | protocol | The frame sequence violated the frame protocol (e.g., `input` before `open`, second `open`) | No |
-| `ERR_TRANSPORT_CLOSED` | Normative | transient | Underlying transport closed without a terminal frame | Only if `effects: none` |
-| `ERR_CANCELLED` | Normative | cancelled | Operation was cancelled by the caller (via `cancel()` or `AbortSignal`) | N/A — issue a fresh call if wanted |
-| `ERR_VALIDATION_FAILED` | Normative | validation | Input or output does not match the declared schema (the interface's validation promise; core [OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules) governs the claim) | No |
-| `ERR_BINDING_NOT_FOUND` | Normative | permanent | Requested binding is not defined on the interface | No |
-| `ERR_BINDING_SELECTION_REQUIRED` | Normative | permanent | An operation has several invocable bindings and the caller supplied no effective choice | No; start a new attempt with an explicit binding or ordered selection |
-| `ERR_AUTH_REQUIRED` | Convention | auth | Supplied credentials were rejected (e.g. HTTP 401 with context present) | Not with same credentials |
-| `ERR_PERMISSION_DENIED` | Convention | auth | Authenticated but not authorized (HTTP 403) | Not with same credentials |
-| `ERR_INVALID_REF` | Convention | permanent | Ref is malformed or cannot be parsed | No |
-| `ERR_REF_NOT_FOUND` | Convention | permanent | Ref is syntactically valid but does not resolve in the source | No |
-| `ERR_SCHEMA_UNRESOLVED` | Convention | validation | The governing schema graph could not be fully resolved — distinct from a mismatch, per [OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules); validation never proceeds partially | No |
-| `ERR_SOURCE_LOAD_FAILED` | Convention | permanent | Could not load or parse the binding source | No |
-| `ERR_SOURCE_CONFIG_ERROR` | Convention | permanent | Source loaded but missing required config (no server URL, etc.) | No |
-| `ERR_CONNECT_FAILED` | Convention | transient | Could not establish connection to the service | Yes (`effects: none` — never dispatched) |
-| `ERR_EXECUTION_FAILED` | Convention | service | Call was made but the service returned an error | Per the service (status in `details`) |
-| `ERR_RESPONSE_ERROR` | Convention | service | Got a response but could not process it | No |
-| `ERR_STREAM_ERROR` | Convention | transient | Error during streaming after initial connection | Only if `effects: none` |
-| `ERR_TIMEOUT` | Convention | transient | Operation timed out | Only if `effects: none` (usually `possible`) |
-| `ERR_UNAVAILABLE` | Convention | transient | The service was reached but refused the request as retryable (HTTP 429/502/503, gRPC `UNAVAILABLE`/`RESOURCE_EXHAUSTED`); distinct from `ERR_CONNECT_FAILED` in that the server answered | Yes, with backoff (`effects: none` when the refusal proves non-execution) |
-| `ERR_OPERATION_NOT_FOUND` | Convention | permanent | Requested operation matches no key or alias on the interface | No |
-| `ERR_UNKNOWN_SOURCE` | Convention | permanent | A binding references a source not present in the interface | No |
-| `ERR_TRANSFORM_ERROR` | Convention | validation | Transform evaluation failed | No |
-| `ERR_INPUT_CLOSED` | Convention | protocol | Caller wrote after the input side was closed (by caller or binding) | No |
-| `ERR_INVOCATION_CLOSED` | Convention | protocol | Caller wrote after the invocation reached a terminal state | No |
-| `ERR_TOO_MANY_INPUTS` | Convention | protocol | Caller wrote more inputs than the binding accepts | No |
-| `ERR_MISSING_INPUT` | Convention | protocol | A required input message never arrived before the input side closed | No |
-| `ERR_ALREADY_CONSUMED` | Convention | protocol | The output sequence was acquired a second time (single-consumer), or a second concurrent input reader appeared | No |
-| `ERR_EXPECTED_SINGLE` | Convention | protocol | A single-output convenience (`Single` / `single`) observed zero outputs, or a second output where exactly one was expected | No |
-| `ERR_TYPE_MISMATCH` | Convention | validation | Typed adapter received a value not matching the declared output type | No |
-| `ERR_EVENT_LIMIT_EXCEEDED` | Convention | permanent | An operation-graph execution exceeded the maximum number of events permitted | No |
-| `ERR_OPERATION_GRAPH_EXIT` | Convention | service | An operation-graph exit node terminated execution with an error; `details` carries the event that reached the exit | No |
-| `ERR_UNSUPPORTED_FORMAT_VERSION` | Convention | permanent | A binding source declares a format version the invoker refuses (higher major, or higher minor while pre-1.0) | No |
-| `ERR_RUNTIME` | Convention | permanent | Catch-all for unexpected implementation errors | No |
-
-Third-party binding invokers MAY define additional codes; each MUST fall in one of the normative categories, and consumers SHOULD handle unknown code *strings* gracefully by falling back to the category. This is what lets an application re-authenticate on every `auth`, auto-retry a `transient` **whose `effects` is `none`**, and give up on every `permanent` — without a table of every code any invoker might emit, and without repeating a call the target may already have observed.
-
-`details` is also the lossless handoff for a binding-native failure. A family
-may require preservation of an HTTP response, gRPC status details, GraphQL
-error envelope, metadata, or another source-native observation without making
-that observation an operation output. The error frame MUST carry that evidence
-unchanged from the binding invoker to its consumer. This contract deliberately
-does not normalize all protocols into one details schema: the selected binding
-defines the evidence, while `code`, `category`, and `effects` provide the
-binding-neutral control axes. Local runtime failures do not invent native
-evidence for an interaction that never occurred.
-
-**Transport status mapping.** When a binding speaks a protocol that carries its own error status, the invoker maps that status onto these codes and categories. Two implementations agreeing on the category for a given status is the whole point, so the mapping is pinned by this contract rather than left to taste.
-
-For HTTP: **401** → `ERR_AUTH_REQUIRED` (`auth`); **403** → `ERR_PERMISSION_DENIED` (`auth`); **408** and **504** → `ERR_TIMEOUT` (`transient`); **429**, **502**, **503** → `ERR_UNAVAILABLE` (`transient`); every other **4xx** and every **5xx** → `ERR_EXECUTION_FAILED` (`service`) — the request reached the server and was refused on its merits, so do not blind-retry. The numeric status is preserved on the error's `details` so callers can still branch on 404, 422, and the like; `effects` is set from how far the exchange got — a request the server provably refused before executing (a 429 or 503) is `effects: none`, licensing a backoff-retry, while a 5xx or a 502 that may already have executed is `effects: possible`.
-
-Families whose protocol carries a native status space rather than HTTP status carry their own pinned table, fixed **here, by this contract** — not by the family's binding specification. A binding specification is a normative artifact that never references this interface's category vocabulary (that would invert the layering); the status→category mapping is the invoker interface's own, so it is deterministic across conforming invokers without coupling any spec to this contract. For gRPC:
-
-| gRPC status | Code | Category |
-|---|---|---|
-| `UNAUTHENTICATED` | `ERR_AUTH_REQUIRED` | `auth` |
-| `PERMISSION_DENIED` | `ERR_PERMISSION_DENIED` | `auth` |
-| `UNAVAILABLE`, `RESOURCE_EXHAUSTED` | `ERR_UNAVAILABLE` | `transient` |
-| `DEADLINE_EXCEEDED` | `ERR_TIMEOUT` | `transient` |
-| `CANCELLED` | `ERR_CANCELLED` | `cancelled` |
-| every other status (`INVALID_ARGUMENT`, `NOT_FOUND`, `FAILED_PRECONDITION`, `ABORTED`, `INTERNAL`, `UNIMPLEMENTED`, `DATA_LOSS`, `UNKNOWN`, …) | `ERR_EXECUTION_FAILED` | `service` |
-
-As with HTTP, the native status rides in `details` (`grpcCode`) so an application can branch more finely, and `effects` follows dispatch progress: `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are `effects: none` (refused before execution), `DEADLINE_EXCEEDED` is `effects: possible`.
-
-A family that speaks HTTP or WebSocket rather than a native status space simply **reuses the HTTP table**. AsyncAPI (`openbindings.asyncapi@1`) is the case in point: an establishment or response failure over http(s) maps by its HTTP status. A few family-specific outcomes round it out — a subscription that establishes (2xx) but bears the wrong content type, and a malformed declared-JSON delivery, are `ERR_RESPONSE_ERROR` (`service` — the server answered, wrongly); a mid-stream transport drop is `ERR_STREAM_ERROR` / `ERR_TRANSPORT_CLOSED` (`transient`); a failure to connect is `ERR_CONNECT_FAILED` (`transient`, `effects: none`); exceeding a declared subscription bound (the family's loud integrity floor) is `permanent`; an unresolvable address or no resolvable server, refused pre-dispatch, is `ERR_SOURCE_CONFIG_ERROR` (`permanent`); and an input the family refuses (a non-string on the text lane) is `ERR_VALIDATION_FAILED` (`validation`).
+Implementations may use additional codes for local failures or a binding's
+unsuccessful completion, but this contract assigns those codes no portable
+category, retry disposition, or protocol-status mapping. Retry and side-effect
+policy belong to the caller and SDK layer. A diagnostic surface may preserve
+an HTTP response, gRPC status, process result, or other native evidence, but
+the error frame never requires that evidence and ordinary application behavior
+never branches on it.
 
 ## What a binding invoker must NOT do
 

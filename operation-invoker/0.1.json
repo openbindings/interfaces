@@ -101,7 +101,7 @@
                     "description": "Human-readable description."
                 },
                 "details": {
-                    "description": "Optional structured details specific to the error code. For code CONTEXT_REQUIRED, `details` is a ContextRequiredDetails object."
+                    "description": "Optional structured details specific to the error code or selected binding. For code CONTEXT_REQUIRED, `details` is a ContextRequiredDetails object. When a binding produced a source-native failure, this field carries the binding-native evidence its binding specification requires an invoker to preserve; the evidence is not an operation output, and this interface does not impose one cross-protocol details schema."
                 },
                 "category": {
                     "type": "string",

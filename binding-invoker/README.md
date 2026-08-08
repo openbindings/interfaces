@@ -190,6 +190,16 @@ The safe automatic-retry rule a runtime may rely on is exactly: **`effects: none
 
 Third-party binding invokers MAY define additional codes; each MUST fall in one of the normative categories, and consumers SHOULD handle unknown code *strings* gracefully by falling back to the category. This is what lets an application re-authenticate on every `auth`, auto-retry a `transient` **whose `effects` is `none`**, and give up on every `permanent` — without a table of every code any invoker might emit, and without repeating a call the target may already have observed.
 
+`details` is also the lossless handoff for a binding-native failure. A family
+may require preservation of an HTTP response, gRPC status details, GraphQL
+error envelope, metadata, or another source-native observation without making
+that observation an operation output. The error frame MUST carry that evidence
+unchanged from the binding invoker to its consumer. This contract deliberately
+does not normalize all protocols into one details schema: the selected binding
+defines the evidence, while `code`, `category`, and `effects` provide the
+binding-neutral control axes. Local runtime failures do not invent native
+evidence for an interaction that never occurred.
+
 **Transport status mapping.** When a binding speaks a protocol that carries its own error status, the invoker maps that status onto these codes and categories. Two implementations agreeing on the category for a given status is the whole point, so the mapping is pinned by this contract rather than left to taste.
 
 For HTTP: **401** → `ERR_AUTH_REQUIRED` (`auth`); **403** → `ERR_PERMISSION_DENIED` (`auth`); **408** and **504** → `ERR_TIMEOUT` (`transient`); **429**, **502**, **503** → `ERR_UNAVAILABLE` (`transient`); every other **4xx** and every **5xx** → `ERR_EXECUTION_FAILED` (`service`) — the request reached the server and was refused on its merits, so do not blind-retry. The numeric status is preserved on the error's `details` so callers can still branch on 404, 422, and the like; `effects` is set from how far the exchange got — a request the server provably refused before executing (a 429 or 503) is `effects: none`, licensing a backoff-retry, while a 5xx or a 502 that may already have executed is `effects: possible`.

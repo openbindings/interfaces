@@ -29,7 +29,7 @@ Because the document is a value, the caller also decides how much of it to send.
 When it receives an `OperationInvocationInput` (carried by the `open` frame), it:
 
 1. **Resolves the key.** An `operation` key resolves to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it.
-2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose governing binding specification the invoker can act on. The contract follows caller and artifact authority without inventing a ranking:
+2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose governing binding specification the invoker can act on. The contract follows caller policy and binding-specification authority without inventing a ranking:
    - an explicit `binding` key is used directly;
    - when `context.configuration.selection` supplies an ordered list, the first invocable listed binding is used;
    - without an effective caller choice, a sole invocable candidate is used;

@@ -1,6 +1,6 @@
 # Interface Synthesizer
 
-An interface synthesizer produces an OBI from a source artifact governed by a binding specification. Given a source artifact (an OpenAPI document, an AsyncAPI document, a protobuf descriptor set, or anything else a supported binding specification governs), it extracts operations, schemas, sources, and bindings into an OpenBindings interface document.
+An interface synthesizer produces an OBI from a source artifact governed by a binding specification. Given a source artifact (an OpenAPI document, an AsyncAPI document, a protobuf descriptor set, or anything else a supported binding specification governs), it extracts operations, schemas, sources, and bindings into an OpenBindings interface document. The named binding specification is the semantic authority; the artifact's own specification applies only on the terms that binding specification incorporates.
 
 This is what powers OBI synthesis from a raw source artifact: source-driven authoring (register a source, then pull it to derive operations and bindings), on-the-fly synthesis when a consumer is handed a spec it has no OBI for, and any tool that needs to bootstrap OBI adoption from existing specs.
 
@@ -127,8 +127,9 @@ Each disposition is one of:
   excludes this upstream-valid unit. The disposition names the specification
   rule or section and explains the boundary.
 - **`invalid`** — the source unit is malformed or internally contradictory
-  under its upstream authority. Whole-artifact failures may still terminate
-  the call before a report can be produced.
+  under the binding specification or an authority it incorporates.
+  Whole-artifact failures may still terminate the call before a report can be
+  produced.
 - **`lossy`** — the invocation path is represented, but the emitted OBI
   framing cannot express part of the source contract exactly. This is durable
   disclosure of a projection gap, not permission to emit a binding that is

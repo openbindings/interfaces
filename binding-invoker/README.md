@@ -2,6 +2,15 @@
 
 A binding invoker knows how to invoke bindings governed by specific binding specifications. Given a source (bindingSpec + location/content), a ref within that source, and a way to receive input, it makes the protocol-specific call — as the source's governing binding specification defines it — and exposes a typed I/O channel for the caller to write inputs and read outputs.
 
+The binding specification is the semantic authority; any artifact or protocol
+authority applies only to the extent that specification incorporates it. This
+interface does not require every named specification to be complete. An
+invoker may supply local behavior where one is silent, but that completion is
+implementation-defined: it must not be represented as portable meaning or
+cross-implementation conformance under the identifier. No new frame or core
+field is needed to carry that distinction; it belongs in the implementation's
+support documentation and claims.
+
 This is the protocol boundary in the OpenBindings model: callers exchange operation values while the invoker interprets the binding artifact and performs the concrete interaction.
 
 ## Why it's called a *binding* invoker

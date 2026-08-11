@@ -31,7 +31,7 @@ The inventory boundary matches synthesis: a bindable target is a source interact
 
 ## Operation framing is optional
 
-`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the ref MAY return targets with just `ref` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target; it is not permission to invent behavior absent from the artifact or binding specification.
+`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the ref MAY return targets with just `ref` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target under the binding specification and any disclosed implementation-defined completion. Such a completion may make this inspector useful for an underdefined specification, but the projection is not evidence that the completion belongs to the identifier's portable meaning.
 
 ## Idempotency
 

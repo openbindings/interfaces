@@ -200,7 +200,7 @@ An implementation backed by an HTTP/1.1 binding can only invoke underlying bindi
 
 `invokeBinding` returns an `Invocation` handle: a typed I/O pair (write side + read side) scoped to one operation invocation, plus lifecycle controls (`close`, `cancel`, terminal state). This shape unifies every cardinality the OpenBindings spec permits (unary, server-streaming, client-streaming, bidirectional) under one signature.
 
-When this invoker is reached remotely — as a delegate or hosted service rather than an in-process module — that same handle *is* the frame protocol: its frames are carried as the ordinary streaming values of whatever binding the invoker's OBI declares for `invokeBinding`, so no dedicated frame transport exists; any published streaming binding specification (`openbindings.asyncapi@1`, for one) can carry them.
+When this invoker is reached remotely — as a delegate or hosted service rather than an in-process module — that same handle *is* the frame protocol: its frames are carried as the ordinary streaming values of whatever binding the invoker's OBI declares for `invokeBinding`, so no dedicated frame transport exists. Any supported streaming binding specification can carry them; `openbindings.asyncapi@1` is the project's current unreleased candidate for one such family.
 
 ### The design question
 

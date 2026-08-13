@@ -37,8 +37,8 @@ When it receives an `OperationInvocationInput` (carried by the `open` frame), it
    - several candidates fail with `ERR_BINDING_SELECTION_REQUIRED`.
 
    `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or ordered selection list.
-3. **Validates and transforms.** Input values are validated against the operation's input schema, outputs against its output schema (where declared), and the binding's input/output transforms are applied. This is the layer the binding invoker lacks. Validating is a claim, and the claim carries the core's semantics ([OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)): success only against the complete statically reachable schema graph, `format` as annotation, per value — a mismatch is `ERR_VALIDATION_FAILED`, an unresolvable schema graph is reported distinctly, and neither is ever papered over with partial validation.
-4. **Drives the binding invocation,** forwarding caller context down. It preserves the binding invoker's *frame sequence* — the same `output` / `input_closed` / terminal shape, one-for-one — but the output *payloads* it relays are the values after the operation's output transform and output-schema validation have run (step 3 is applied to this stream, not bypassed). An unsuccessful terminal frame remains unsuccessful, interface-owned fields such as a `CONTEXT_REQUIRED` challenge remain intact, and an opaque application-authored failure value in `details` is relayed without protocol reinterpretation. Optional binding diagnostics may be relayed on the explicitly diagnostic field, but ordinary operation behavior never depends on them. The frames this layer may add are terminal ones of its own mechanics, such as `ERR_VALIDATION_FAILED` when an output fails the schema claim. "Relayed" means the envelope and ordering are the binding's; the carried values are this layer's transformed, validated ones.
+3. **Validates and transforms.** Input values are validated against the operation's input schema, outputs against its output schema (where declared), and the binding's input/output transforms are applied. This is the layer the binding invoker lacks. Validating is a claim, and the claim carries the core's semantics ([OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)): success only against the complete statically reachable schema graph, `format` as annotation, per value — a mismatch is `ERR_OPERATION_VALIDATION_FAILED`, an unresolvable schema graph is reported distinctly, and neither is ever papered over with partial validation.
+4. **Drives the binding invocation,** forwarding caller context down. It preserves the binding invoker's *frame sequence* — the same `output` / `input_closed` / terminal shape, one-for-one — but the output *payloads* it relays are the values after the operation's output transform and output-schema validation have run (step 3 is applied to this stream, not bypassed). An unsuccessful terminal frame remains unsuccessful, interface-owned data such as a `CONTEXT_REQUIRED` challenge remains intact, and an opaque application-authored failure value in `data` is relayed unchanged without protocol reinterpretation, output transformation, or output-schema validation. Binding-native evidence does not cross this boundary. The frames this layer may add are terminal ones of its own mechanics, such as `ERR_OPERATION_VALIDATION_FAILED` when an output fails the schema claim. "Relayed" means the envelope and ordering are the binding's; the carried values are this layer's transformed, validated ones.
 
 ## The frame protocol
 
@@ -48,11 +48,11 @@ The frame protocol and **every normative frame rule** are identical to [`binding
 
 ## Context is forwarded, not reinterpreted
 
-The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` error from that invocation propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details.
+The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` error from that invocation propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution failure is a local runtime failure, not a declined challenge, and an unchanged resolver result does not trigger another attempt.
 
 The contract does not prescribe where resolution runs or whether context is stored. A monolithic runtime may compose selection, resolution, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
 
-`CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any side effect**, so a new attempt restarts a call that never happened. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
+`CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any observable operation side effect**, so a new attempt restarts a call that never happened. A binding may re-challenge after supplied context proves unusable only while its governing rules can still prove that boundary; a native failure status is not sufficient evidence by itself. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
 
 One well-known context field rides through this layer: **`configuration`**, an
 object keyed by configuration-point name. This interface defines only its
@@ -64,6 +64,27 @@ invocable entry supplies no effective choice; the sole-candidate/ambiguity
 rules still apply. Binding specifications may define other configuration
 points. Each defining specification owns the value's meaning and consultation
 rules.
+
+## Operation-invoker-owned errors
+
+This interface owns only the codes required by its resolution, validation,
+and transform mechanics. Their spellings and meanings are reserved:
+
+| Code | Meaning |
+|---|---|
+| `ERR_OPERATION_NOT_FOUND` | The requested operation key or alias does not resolve. |
+| `ERR_BINDING_NOT_FOUND` | The explicit binding does not exist, or no invocable binding remains for the operation. |
+| `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied no effective choice. |
+| `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |
+| `ERR_OPERATION_VALIDATION_FAILED` | An input or output value violates the operation's governing schema. |
+| `ERR_SCHEMA_UNRESOLVED` | The complete statically reachable governing schema graph cannot be established, so validation cannot be claimed. |
+| `ERR_TRANSFORM_ERROR` | An operation input or output transform cannot be applied successfully. |
+
+These outcomes are code-only: this interface defines no `data` for them.
+Binding-invoker-owned failures and governing-binding-specification-owned
+failures relay unchanged. Any other implementation code remains non-portable
+under this interface; in particular, this list is not a general failure
+vocabulary for bindings or protocols.
 
 ### prepareOperation (preflight)
 

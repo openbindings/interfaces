@@ -43,6 +43,14 @@ This separation is intentional. A stateless remote invoker, an in-process invoke
 
 A `CONTEXT_REQUIRED` challenge reports a **target**: an opaque identifier for the concrete destination or context scope the invoker is about to use. A runtime may use that value to scope resolution or reuse, but key derivation, normalization, persistence, hierarchy, and cross-target sharing are runtime policy rather than this interface's semantics.
 
+The target is an invoker assertion, not self-authenticating proof. A resolver
+that does not include the invoker in its trust boundary MUST independently
+validate the asserted target before releasing a reusable secret. An in-process
+resolver may deliberately treat its co-located invoker as trusted; a delegate
+or hosted invoker normally requires an independently derived comparison. This
+contract does not pretend that a generic resolver can validate an opaque
+identifier without binding-family knowledge.
+
 When a runtime does derive storage keys from network locations, excluding userinfo and other secret material is a security requirement. Host normalization can also improve reuse across binding families. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
 
 ### Well-known context fields
@@ -53,7 +61,8 @@ Context is an opaque object, but these well-known field names provide cross-invo
 |---|---|---|
 | `bearerToken` | `string` | Bearer token (OAuth2, JWT, etc.) |
 | `apiKey` | `string` | API key (the single-key convenience) |
-| `apiKeys` | `{ [name]: string }` | Scheme-scoped API keys, keyed by the requirement's `name` (the artifact's scheme name) — for the alternative that ANDs several API keys; a scheme looks up its named entry first, then falls back to `apiKey` |
+| `credentials` | `{ [name]: credential }` | General scheme-scoped credentials keyed by the requirement's artifact-authored `name`: bearer/API-key strings, Basic `{ username, password }`, or OAuth `{ accessToken, refreshToken?, expiresAt?, clientSecret? }` |
+| `apiKeys` | `{ [name]: string }` | Historical named-API-key convenience; implementations accept it after `credentials[name]` and before the flat `apiKey` fallback |
 | `basic` | `{ username, password }` | HTTP Basic credentials |
 | `accessToken` / `refreshToken` / `expiresAt` | `string` | OAuth lifecycle |
 | `headers` | `{ [k]: string }` | HTTP headers (per-target) |
@@ -83,8 +92,8 @@ When a binding cannot proceed because required context is missing, `invokeBindin
 
 A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
 
-- `durable: true` (default): resolved context MAY be persisted, keyed from `target`, and reused for later invocations. This is permission, not a claim that every credential or other value should be stored.
-- `durable: false`: must be satisfied fresh for every invocation and MUST NOT be persisted. A one-shot user approval is not durable.
+- `durable: true`: resolved context MAY be persisted, keyed from `target`, and reused for later invocations. This is permission, not a claim that every credential or other value should be stored.
+- absent or `durable: false` (the default): resolved context is for the immediate attempt only and MUST NOT be persisted. A one-shot user approval and a short-lived challenge response are not durable.
 
 ### Resolve and retry
 
@@ -95,7 +104,13 @@ On `CONTEXT_REQUIRED`, a runtime may:
 3. Persist durable results according to its own storage policy; never persist non-durable ones.
 4. Start a new `invokeBinding` attempt with the augmented context.
 
-If it retries, the runtime bounds attempts. An invoker does not repeat the same challenge when the supplied context already satisfies it; if the supplied value is rejected, it reports the applicable authentication, validation, or permanent error.
+If it retries, the runtime bounds attempts and does not retry when resolution
+made no structural change to the supplied context. A binding MAY issue a fresh
+`CONTEXT_REQUIRED` after supplied context proves unusable (for example, an
+expired credential) only when its governing rules can still guarantee that no
+output or observable operation side effect occurred. A native failure status
+alone does not prove that guarantee. When it cannot prove the safe boundary,
+the attempt completes unsuccessfully instead of being replayed automatically.
 
 ### Least privilege
 
@@ -109,21 +124,26 @@ This matters most when the invoker is a **separate or third-party service**, suc
 
 | Requirement type | Resolves to | Typical flow |
 |---|---|---|
-| `auth.bearer` | `bearerToken` | Prompt for a token. |
-| `auth.oauth2` | `accessToken` | Drive the flow named by `grantType` (`authorization_code`, `implicit`, `password`, `client_credentials`) from `authorizeUrl` / `tokenUrl` / `scopes`. |
-| `auth.basic` | `basic` (`{ username, password }`) | Prompt for username and password. |
-| `auth.apiKey` | `apiKey`, or `apiKeys[name]` when the requirement carries a `name` | Prompt for a key. |
+| `auth.bearer` | `credentials[name]`, otherwise `bearerToken` | Prompt for a token. |
+| `auth.oauth2` | `credentials[name]`, otherwise the flat OAuth fields beginning with `accessToken` | Drive the flow named by `grantType` (`authorization_code`, `implicit`, `password`, `client_credentials`) from `authorizeUrl` / `tokenUrl` / `scopes`. |
+| `auth.basic` | `credentials[name]`, otherwise `basic` (`{ username, password }`) | Prompt for username and password. |
+| `auth.apiKey` | `credentials[name]`, historical `apiKeys[name]`, otherwise `apiKey` | Prompt for a key. |
 
 A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
 
 `config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by source configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
 - `point` — the binding-specification configuration point the value belongs to (`server`, `address`, a family's decode point, …).
-- `key` — the specific value needed within that point (a server-variable name; `address` for a whole channel address).
+- `path` — an RFC 6901 JSON Pointer relative to `configuration[point]`. The
+  empty pointer denotes the whole point; `/variables/region` denotes a nested
+  member, and `/value` denotes a member literally named `value`.
 - `description` — human-readable prompt text.
 - `choices` (optional) — values declared by the source artifact, for a runtime to render as a picker. Whether an off-list value is valid is decided by the governing binding specification: a closed artifact enum is enforced; an advisory list remains advisory.
 
-It resolves into the `configuration` context field under its `point`; the **shape** of the value carried there is the invoker's own (configuration carriage is implementation surface, not contract), so this family names *what is needed*, not the resolved value's structure. `durable` defaults to `true`, which permits but does not require reuse; an invoker sets `durable: false` when the resolved value must be fresh for each attempt. A runtime that cannot satisfy `config.value` simply cannot select that alternative, exactly as for any other family.
+It resolves into the `configuration` context field at the deterministic address
+above. `durable` defaults to `false`; an invoker sets `durable: true` only when
+reuse is safe. A runtime that cannot satisfy `config.value` simply cannot
+select that alternative, exactly as for any other family.
 
 Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An invoker may surface an artifact-defined scheme as an extension requirement only when it knows how the resulting context will be applied faithfully. If the invoker cannot represent or apply a prerequisite, it refuses before dispatch rather than emitting a satisfiable-looking challenge or attempting the interaction without it.
 
@@ -141,45 +161,51 @@ complete unsuccessfully.
 `InvocationError` therefore has a deliberately small shape:
 
 - `code` identifies a reason. Only codes named by a rule of this interface or
-  its operation-invoker peer have portable semantics. Other strings are open
-  implementation or extension identifiers; an ordinary caller does not need
-  to interpret them to observe unsuccessful completion.
-- `message` is a human-readable, protocol-independent presentation. It may
-  preserve failure prose supplied by the application author when the governing
-  binding can identify that prose without its protocol container. Otherwise it
-  MUST NOT restate a native status line, frame, process result, or other raw
-  protocol evidence; that material belongs in `diagnostics`.
-- `details` carries either portable structured data defined by a named
-  interface code or an opaque JSON failure value that the governing binding
-  rules identify as application-authored. In this revision,
-  `CONTEXT_REQUIRED` uses it for `ContextRequiredDetails`. Application failure
-  values have only the meaning their author gave them; admitting one does not
-  create a universal failure vocabulary. Raw statuses, headers, trailers,
-  envelopes, bytes, and implementation evidence do not belong here merely
-  because a binding observed them.
-- `diagnostics`, when present, is an explicit expert escape hatch for
-  binding-native or implementation evidence. It may reveal the selected
-  binding and MUST NOT be required for correct ordinary use.
+  its operation-invoker peer or the governing binding specification have
+  portable semantics. Other strings are open implementation or extension
+  identifiers; an ordinary caller does not need to interpret them to observe
+  unsuccessful completion. Human-readable descriptions of interface-owned
+  codes belong to their documentation and local SDK presentation, not the
+  interoperable record.
+- `data`, when present, is portable JSON data associated with the unsuccessful
+  completion. A rule defining `code` may define its structure and semantics;
+  otherwise the governing binding specification may use it to preserve an
+  opaque application-authored failure value. `CONTEXT_REQUIRED` uses it for a
+  `ContextRequiredDetails` object. Presence is significant: an absent member
+  means no portable associated value, while `"data": null` is a present JSON
+  null. Statuses, headers, trailers, envelopes, raw debugging bytes, exception
+  prose, stacks, and implementation evidence do not belong here unless an
+  explicit governing rule makes them application data.
 
-The interface-owned codes are exactly those required by its own mechanics:
+The record has no portable presentation string and no diagnostic escape hatch.
+A binding implementation may use protocol-native facts internally to determine
+the correct code, application value, and lifecycle, but those facts do not
+cross this abstraction boundary. Artifact-specific clients, logs, traces, and
+protocol tooling remain the places to inspect them.
+
+The binding-invoker-owned codes are exactly those required by its own
+mechanics. Their spellings are reserved and a governing binding specification
+cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
-| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `details` before dispatch. |
-| `ERR_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
+| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. |
+| `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
 | `ERR_CANCELLED` | The caller cancelled the invocation. |
-| `ERR_VALIDATION_FAILED` | The operation-invoker's declared value-validation claim failed. |
-| `ERR_BINDING_NOT_FOUND` | The requested operation has no invocable binding. |
-| `ERR_BINDING_SELECTION_REQUIRED` | Several invocable bindings remain and the caller supplied no choice. |
+| `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, side-effect, authentication, or availability semantics. |
 
-Implementations may use additional codes for local failures or a binding's
-unsuccessful completion, but this contract assigns those codes no portable
-category, retry disposition, or protocol-status mapping. Retry and side-effect
-policy belong to the caller and SDK layer. A diagnostic surface may preserve
-an HTTP response, gRPC status, process result, or other native evidence, but
-the error frame never requires that evidence and ordinary application behavior
-never branches on it.
+The operation-invoker interface and each governing binding specification own
+the additional codes they explicitly define. Implementations may use further
+codes where those authorities are silent, but such codes are implementation
+behavior rather than portable contract meaning. Community convergence around
+an underdefined case is a reason to tighten the governing specification, not
+to infer a hidden universal taxonomy. This contract assigns additional codes
+no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
+policy belong to the caller and SDK layer. Artifact runtimes, protocol-native
+clients, logs, and traces may preserve native evidence below the OpenBindings
+invocation boundary, but the error frame never carries that evidence and
+ordinary application behavior never branches on it.
 
 ## What a binding invoker must NOT do
 

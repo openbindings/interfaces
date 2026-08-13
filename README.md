@@ -74,6 +74,49 @@ A service claims correspondence with one of these interfaces by giving the corre
 
 Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
 
+## Error-code registry
+
+This section is the single home for the ownership rule governing every code
+string an unsuccessful invocation completion can carry. Other documents cite
+it; none restates it.
+
+A code has **portable semantics only when a rule of one of three authorities
+owns it**; every other string is an open implementation or extension
+identifier that still communicates unsuccessful completion but carries only
+locally documented meaning. The three authorities, in the order a reader
+should check:
+
+1. **[binding-invoker](binding-invoker/)** owns the codes its own mechanics
+   require: `CONTEXT_REQUIRED`, `ERR_FRAME_PROTOCOL`, `ERR_TRANSPORT_CLOSED`,
+   `ERR_CANCELLED`, `ERR_EXECUTION_FAILED`. Its README defines each; the
+   spellings are reserved and no other authority may redefine them.
+2. **[operation-invoker](operation-invoker/)** owns the codes its resolution,
+   validation, and transform mechanics require: `ERR_OPERATION_NOT_FOUND`,
+   `ERR_BINDING_NOT_FOUND`, `ERR_BINDING_SELECTION_REQUIRED`,
+   `ERR_UNKNOWN_SOURCE`, `ERR_OPERATION_VALIDATION_FAILED`,
+   `ERR_SCHEMA_UNRESOLVED`, `ERR_TRANSFORM_ERROR`.
+3. **The governing binding specification** may define codes for the sources it
+   governs, with the same standing. No `openbindings.*` binding-specification
+   candidate currently defines one; a specification that does so defines the
+   code in its own text, and this registry gains a citation, not a copy.
+
+Two generic spellings are deliberately **left open** by the owned set so that
+binding specifications and implementations can use them without collision:
+`ERR_PROTOCOL` (frame mechanics use the narrower `ERR_FRAME_PROTOCOL`) and
+`ERR_VALIDATION_FAILED` (operation-schema mismatch uses the narrower
+`ERR_OPERATION_VALIDATION_FAILED`).
+
+Everything else an implementation emits is tier-three by definition. The
+reference SDKs document their own conventions in their exported code lists
+(`openbindings-go/errcodes.go`, `openbindings-ts/packages/sdk/src/errcodes.ts`)
+— lifecycle misuse (`ERR_ALREADY_CONSUMED`, `ERR_INPUT_CLOSED`, …), source and
+transport diagnostics (`ERR_SOURCE_LOAD_FAILED`, `ERR_CONNECT_FAILED`, …),
+local runtime failure (`ERR_RUNTIME`), and extensions such as `ERR_TIMEOUT`.
+None of these is part of any contract here; an ordinary caller never needs to
+interpret them to observe unsuccessful completion, and community convergence
+around one is a reason to tighten an owning specification, not evidence of a
+hidden portable meaning.
+
 ## Authoring conventions
 
 These conventions apply to the interfaces published in this directory and are recommended (but not required) for any third party publishing shared interfaces.

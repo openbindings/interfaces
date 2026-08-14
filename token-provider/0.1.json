@@ -1,0 +1,134 @@
+{
+    "openbindings": "0.2.0",
+    "name": "Token Provider",
+    "version": "0.1.0",
+    "description": "Operations that produce, examine, and end short-lived bearer tokens: exchange a credential for a new short-lived token (mint), exchange a refresh token for its successor (refresh), describe a token (introspect), or end one (revoke). The operations require nothing of the caller beyond their input values; what a manifestation additionally requires to perform them \u2014 authentication of its caller, configuration \u2014 is that manifestation's prerequisite, outside this contract, as for any operation. Scope is the non-interactive machine lane, and a produced token always applies by bearer presentation alone \u2014 interactive login, sender-constrained or non-bearer credentials, and acting on tokens without possessing them (by identifier, listing, administration) are all outside this contract. Providers are audience-bound \u2014 each provider's tokens work where that provider says they work, so carrying these operation names does not make two providers interchangeable; which provider a caller entrusts a credential or token to is caller configuration, established out of band, and callers MUST NOT give a credential or token to a provider they do not already trust to receive it.",
+    "schemas": {
+        "Token": {
+            "type": "object",
+            "description": "A produced token. accessToken is the token itself, applied by bearer presentation; expiresAt bounds its life; refreshToken, when present, is accepted by the refresh operation of the provider that produced this object (presenting it to another provider's refresh is outside this contract). Every value this contract marks Secret \u2014 in outputs and inputs alike \u2014 MUST be kept confidential wherever operation values travel; expiresAt is not secret, and callers may log or index it for scheduling.",
+            "properties": {
+                "accessToken": {
+                    "type": "string",
+                    "description": "The token a caller presents, as a bearer. A token whose acceptance depends on anything beyond bearer presentation MUST NOT be returned here. Secret."
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "RFC 3339 instant, on the provider's clock, after which the token no longer applies. Callers SHOULD apply a skew margin and renew before this instant rather than at it."
+                },
+                "refreshToken": {
+                    "type": "string",
+                    "description": "A token accepted by the producing provider's refresh operation. Absent when this output carries no new refresh token: from mint, the provider issues none; from refresh, the given token remains current. Secret."
+                }
+            },
+            "required": [
+                "accessToken",
+                "expiresAt"
+            ]
+        },
+        "TokenInfo": {
+            "type": "object",
+            "description": "What a token is. Providers MAY add further properties (account context, provider-specific detail); this contract requires only the subject. Added properties MUST be non-secret metadata \u2014 anything secret rides Token, never TokenInfo.",
+            "properties": {
+                "subject": {
+                    "type": "string",
+                    "description": "The principal the token authenticates, in the provider's own identifier scheme."
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Capabilities granted to the token, in the provider's own vocabulary. Absent means this surface states no capabilities claim; callers MUST NOT read absence as unlimited, or as none."
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "RFC 3339 instant (provider's clock) after which the presented token no longer applies. Absent means this surface states no bound; callers MUST NOT treat absence as a claim of unboundedness."
+                }
+            },
+            "required": [
+                "subject"
+            ]
+        }
+    },
+    "operations": {
+        "openbindings.token-provider.mint": {
+            "description": "Exchange a credential for a new short-lived token authenticating the same subject \u2014 mint is renewal, never delegation, impersonation, or escalation (this contract defines no narrowing parameters). The given credential is unchanged, remains valid under its own lifetime, and is never returned; mint is safe to retry. Minting does not end previously minted tokens \u2014 each lives to its own expiry or revocation, so independent holders of one credential may mint without disturbing one another, and a provider that bounds concurrent tokens surfaces the bound as an unsuccessful completion, never by silently ending an earlier token. The minted token's expiresAt MUST NOT exceed the remaining validity of the given credential when that is known to or determinable by the provider and bounded, and providers SHOULD refuse to mint from a credential whose remaining validity is bounded but not determinable by them \u2014 where these bounds hold, successive mints only decay, never extending an expired credential's reach. Providers MAY refuse credentials they do not consider primary enough to mint from (for example, a previously minted short-lived token), surfacing the refusal as an unsuccessful completion.",
+            "input": {
+                "type": "object",
+                "properties": {
+                    "credential": {
+                        "type": "string",
+                        "description": "The credential to mint from \u2014 an API key or other primary credential, in the provider's own format. Secret. Absent when the provider mints from identity it already holds (an ambient login, a sidecar's bootstrap); a provider that requires a given credential completes unsuccessfully without one, and a provider given a credential MUST mint from it or complete unsuccessfully, never silently substituting identity it holds."
+                    }
+                },
+                "additionalProperties": false
+            },
+            "output": {
+                "$ref": "#/schemas/Token"
+            }
+        },
+        "openbindings.token-provider.refresh": {
+            "description": "Exchange a refresh token for a successor token for the same subject. The refresh token MUST be one this same provider produced. Unlike mint, refresh MAY consume the given token: a rotating provider returns the successor's refreshToken in the output and may no longer accept the predecessor. Callers MUST therefore persist a returned successor before discarding its predecessor, and MUST NOT run concurrent refreshes for one refresh token \u2014 a lost rotation response or a rotation race can strand the chain, and providers implementing reuse detection may end the whole family. An output without a refreshToken means the given token was not consumed and remains the one to present next; rotation is expressed only by a returned successor, never by omission. An unsuccessful refresh portably establishes nothing about the given refresh token \u2014 the failure may be transient, or the token or its whole chain may already be ended \u2014 and the portable recovery is a new mint from a primary credential, not re-presentation of the refresh token.",
+            "idempotent": false,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "The refresh token to exchange. Secret."
+                    }
+                },
+                "required": [
+                    "refreshToken"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "$ref": "#/schemas/Token"
+            }
+        },
+        "openbindings.token-provider.introspect": {
+            "description": "Describe the given token: the subject it authenticates, what it may do, and when it stops applying. A successful completion asserts the given token currently applies per this provider \u2014 for a refresh token, that it is accepted at refresh; expiry, revocation, and non-recognition are all unsuccessful completions, regardless of whether the provider still remembers the token, and introspection never reports on a token that no longer applies. Because any string can be given, an introspect surface reachable without authenticating its caller is a token-scanning oracle; realizations SHOULD require authentication of the caller or otherwise defeat scanning. Examining tokens without possessing them (the administrative verifier's role) is outside this contract.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "The token to describe \u2014 any token this provider produced that the caller holds, access or refresh. Secret."
+                    }
+                },
+                "required": [
+                    "token"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "$ref": "#/schemas/TokenInfo"
+            }
+        },
+        "openbindings.token-provider.revoke": {
+            "description": "End the given token, immediately for this provider. A successful completion asserts the postcondition, scoped to this provider: the given token no longer applies here \u2014 whether this call ended it, it was already inactive, or this provider never issued it \u2014 and asserts nothing about any other provider. Revoke is therefore idempotent and safe to retry; an unsuccessful completion establishes nothing \u2014 the token may or may not still apply \u2014 and the caller may retry. Only the given token's ending is portably guaranteed: whether related tokens (a paired refreshToken, descendants, the wider grant) also end is provider policy, and callers MUST NOT rely on wider termination occurring or on survival \u2014 a caller needing containment revokes each token it holds, refresh tokens first. Revoke is not compromise containment. Ending a token other than one the caller holds is token administration, outside this contract. Providers whose tokens cannot be ended early (purely stateless verification) do not carry this operation; correspondence is per-operation.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "The token to end \u2014 access or refresh. Secret."
+                    }
+                },
+                "required": [
+                    "token"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "type": "null"
+            }
+        }
+    }
+}

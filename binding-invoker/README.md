@@ -189,11 +189,12 @@ cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
-| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. |
+| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. A refusal with a resolution path: like `ERR_REFUSED`, it guarantees no observable side effect occurred. |
 | `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
 | `ERR_CANCELLED` | The caller cancelled the invocation. |
-| `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, side-effect, authentication, or availability semantics. |
+| `ERR_REFUSED` | Unsuccessful completion carrying the guarantee that **no observable interaction side effect occurred** — the invocation was refused before dispatch. Every "refuses before dispatch" rule in a governing binding specification surfaces portably as this code (or as `CONTEXT_REQUIRED` when the refusal carries a resolution path). An implementation MUST NOT emit it unless the guarantee holds; a caller may treat it as safe to retry once the refusal's cause is addressed. |
+| `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: the caller MUST treat the interaction as possibly dispatched. |
 
 The operation-invoker interface and each governing binding specification own
 the additional codes they explicitly define. Implementations may use further
@@ -203,13 +204,14 @@ an underdefined case is a reason to tighten the governing specification, not
 to infer a hidden universal taxonomy. This contract assigns additional codes
 no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
 policy belong to the caller and SDK layer. Binding specifications prove many
-refusals to happen **before dispatch**, but this contract deliberately defines
-no marker distinguishing a never-dispatched completion from a mid-flight
-failure: outside a code whose own defined meaning states dispatch semantics
-(as `CONTEXT_REQUIRED` does), a caller MUST treat every unsuccessful
-completion — `ERR_EXECUTION_FAILED` above all — as possibly dispatched. The
-omission is intentional; a reserved never-dispatched marker remains available
-to a future revision if real callers need one. Artifact runtimes, protocol-native
+refusals to happen **before dispatch**, and that boundary fact is carried
+portably by the code space itself: `ERR_REFUSED` (and its special case
+`CONTEXT_REQUIRED`) guarantees no observable side effect occurred, while
+`ERR_EXECUTION_FAILED` makes no dispatch-state claim and MUST be treated as
+possibly dispatched. Codes may encode interaction-boundary facts of this
+kind — whether dispatch occurred — and never cause, blame, or protocol
+category: that line is what keeps the set small and the taxonomy refusal
+intact. Artifact runtimes, protocol-native
 clients, logs, and traces may preserve native evidence below the OpenBindings
 invocation boundary, but the error frame never carries that evidence and
 ordinary application behavior never branches on it.

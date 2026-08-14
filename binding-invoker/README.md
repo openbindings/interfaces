@@ -202,7 +202,14 @@ behavior rather than portable contract meaning. Community convergence around
 an underdefined case is a reason to tighten the governing specification, not
 to infer a hidden universal taxonomy. This contract assigns additional codes
 no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
-policy belong to the caller and SDK layer. Artifact runtimes, protocol-native
+policy belong to the caller and SDK layer. Binding specifications prove many
+refusals to happen **before dispatch**, but this contract deliberately defines
+no marker distinguishing a never-dispatched completion from a mid-flight
+failure: outside a code whose own defined meaning states dispatch semantics
+(as `CONTEXT_REQUIRED` does), a caller MUST treat every unsuccessful
+completion — `ERR_EXECUTION_FAILED` above all — as possibly dispatched. The
+omission is intentional; a reserved never-dispatched marker remains available
+to a future revision if real callers need one. Artifact runtimes, protocol-native
 clients, logs, and traces may preserve native evidence below the OpenBindings
 invocation boundary, but the error frame never carries that evidence and
 ordinary application behavior never branches on it.

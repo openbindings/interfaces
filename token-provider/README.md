@@ -99,15 +99,15 @@ as ordinary unsuccessful completions. Two standing rules:
   improvement. Callers therefore MUST NOT read an unsuccessful introspect
   as proof the token is invalid — provider faults land in the same bucket;
   the correct caller response is renew, with backoff.
-- For `mint` and `refresh` refusals, implementations MAY use the
-  non-portable tier-three code `ERR_TOKEN_REFUSED` (this repository's
-  README defines the error-code tiers) to mean *the presented
-  value is not accepted and re-presenting it cannot succeed* — the
-  retry-vs-surrender bit and nothing more. No reason taxonomy: dead
-  credential, policy refusal, and unknown value stay indistinguishable to
-  the holder. The code has no portable meaning under any published
-  interface; whether a published contract may one day own such a code is an
-  open registry design question, tracked separately.
+- For `mint` and `refresh` refusals, implementations MAY use the code
+  `ERR_TOKEN_REFUSED` — an open, non-portable implementation identifier in
+  the sense of this repository's error-code registry (owned by none of its
+  three authorities) — to mean *the presented value is not accepted and
+  re-presenting it cannot succeed*: the retry-vs-surrender bit and nothing
+  more. No reason taxonomy: dead credential, policy refusal, and unknown
+  value stay indistinguishable to the holder. Whether a published contract
+  may one day own such a code is an open registry design question, tracked
+  separately.
 
 ## Realization notes
 

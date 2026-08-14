@@ -152,6 +152,27 @@ Schemas used as operation **inputs** MAY use `additionalProperties: false` when 
 
 Some interfaces that mirror externally-defined schemas (e.g., OIDC) may use strict field sets where the upstream contract requires them. A closed **wire-protocol enum** is also exempt: when an output schema is a fixed set of frame variants rather than an evolving data shape (as in `binding-invoker`'s `BindingInvokerOutputFrame`), `additionalProperties: false` on each variant is correct — an unknown frame property is a protocol violation, not a forward-compatible addition.
 
+### Inputs are the operation's subject matter, not its prerequisites
+
+An operation's input and output schemas carry what the operation is *about*.
+What a concrete manifestation additionally requires to *perform* it —
+authentication of the caller, deployment configuration — is a prerequisite
+of that manifestation, not part of the operation's contract, and does not
+appear in its schemas. How prerequisites are supplied belongs to other
+layers: the governing binding specification, and whatever machinery a
+consuming runtime uses (the binding-invoker contract's context negotiation
+is one such mechanism, not a layer of the model). An operation that lists
+documents behind an authenticated surface takes no credential input: the
+credential is that manifestation's prerequisite. An operation whose domain
+**is** credentials — minting, describing, or ending tokens — takes them as
+ordinary inputs and outputs, marked secret in their descriptions. The test:
+write the operation as a plain function; its parameters are its inputs,
+wherever a wire convention might carry them. The same value can be a
+prerequisite to one operation and the subject of another. Routing an
+operation's subject matter through a prerequisite channel couples the
+abstract contract to one runtime's machinery and leaves the operand
+invisible in the one place adopters and compatibility checks can see it.
+
 ### Schemas are intentionally self-contained per interface
 
 Each interface in this directory is a self-contained document. Schemas are defined locally in each file rather than referenced across files via `$ref`, even when sibling interfaces use the same shape (e.g., `BindingSpecInfo` appears in binding-invoker, interface-synthesizer, and source-inspector).

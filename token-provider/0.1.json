@@ -29,11 +29,11 @@
         },
         "TokenInfo": {
             "type": "object",
-            "description": "What a token is. Providers MAY add further properties (account context, provider-specific detail); this contract requires only the subject. Added properties MUST be non-secret metadata \u2014 anything secret rides Token, never TokenInfo.",
+            "description": "What a token is. Providers MAY add further properties (account context, provider-specific detail); this contract requires only the subject. Every property \u2014 required, optional, or added \u2014 MUST be non-secret metadata: anything secret rides Token, never TokenInfo.",
             "properties": {
                 "subject": {
                     "type": "string",
-                    "description": "The principal the token authenticates, in the provider's own identifier scheme."
+                    "description": "The principal the token authenticates, in the provider's own identifier scheme. Subjects are equal iff the principal is the same, and a subject, once used, is never reassigned to a different principal."
                 },
                 "scopes": {
                     "type": "array",
@@ -111,7 +111,7 @@
             }
         },
         "openbindings.token-provider.revoke": {
-            "description": "End the given token, immediately for this provider. A successful completion asserts the postcondition, scoped to this provider: the given token no longer applies here \u2014 whether this call ended it, it was already inactive, or this provider never issued it \u2014 and asserts nothing about any other provider. Revoke is therefore idempotent and safe to retry; an unsuccessful completion establishes nothing \u2014 the token may or may not still apply \u2014 and the caller may retry. Only the given token's ending is portably guaranteed: whether related tokens (a paired refreshToken, descendants, the wider grant) also end is provider policy, and callers MUST NOT rely on wider termination occurring or on survival \u2014 a caller needing containment revokes each token it holds, refresh tokens first. Revoke is not compromise containment. Ending a token other than one the caller holds is token administration, outside this contract. Providers whose tokens cannot be ended early (purely stateless verification) do not carry this operation; correspondence is per-operation.",
+            "description": "End the given token, at this provider's authority. A successful completion asserts the postcondition, scoped to this provider: the given token no longer applies here \u2014 whether this call ended it, it was already inactive, or this provider never issued it \u2014 and asserts nothing about any other provider. Where verification is cached or replicated, acceptance MAY persist downstream of the authority after success; callers MUST NOT read the postcondition as instantaneous everywhere the provider verifies. Revoke is therefore idempotent and safe to retry; an unsuccessful completion establishes nothing \u2014 the token may or may not still apply \u2014 and the caller may retry. Only the given token's ending is portably guaranteed: whether related tokens (a paired refreshToken, descendants, the wider grant) also end is provider policy, and callers MUST NOT rely on wider termination occurring or on survival \u2014 a caller needing containment revokes each token it holds, refresh tokens first. Revoke is not compromise containment. Ending a token other than one the caller holds is token administration, outside this contract. Providers whose tokens cannot be ended early (purely stateless verification) do not carry this operation; correspondence is per-operation.",
             "idempotent": true,
             "input": {
                 "type": "object",

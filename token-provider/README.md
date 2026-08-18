@@ -39,8 +39,9 @@ diagnostics and provenance envelopes, caches, validation-failure output
 that echoes the offending instance, record/replay fixtures, generated
 examples, command lines and argv, URL paths and query strings, and
 tool-call transcripts. `expiresAt` and everything in `TokenInfo` are not
-secret; extension properties providers add to `TokenInfo` MUST be
-non-secret metadata — anything secret rides `Token`, never `TokenInfo`.
+secret; every `TokenInfo` property — required, optional, or added by a
+provider — MUST be non-secret metadata, so anything secret rides `Token`,
+never `TokenInfo`.
 
 The marker is prose today. A machine-readable secret annotation (covering
 inputs and outputs symmetrically) is planned so that binding

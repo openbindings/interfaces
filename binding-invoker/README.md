@@ -138,7 +138,13 @@ A requirement MAY carry a `name` — the scheme name as the source artifact decl
   empty pointer denotes the whole point; `/variables/region` denotes a nested
   member, and `/value` denotes a member literally named `value`.
 - `description` — human-readable prompt text.
-- `choices` (optional) — values declared by the source artifact, for a runtime to render as a picker. Whether an off-list value is valid is decided by the governing binding specification: a closed artifact enum is enforced; an advisory list remains advisory.
+- `schema` (optional) — an engine-asserted JSON Schema for the value addressed
+  by `point` and `path`. It is derived from the source artifact where the
+  artifact speaks, supplied by the binding-specification implementation where
+  that specification pins a shape, and absent where nothing does; absence
+  means the value is unconstrained. An `enum` declares the closed admissible
+  set, and satisfaction validates against it; `examples` are advisory
+  suggestions, and an off-list value remains valid.
 
 It resolves into the `configuration` context field at the deterministic address
 above. `durable` defaults to `false`; an invoker sets `durable: true` only when

@@ -89,9 +89,10 @@ locally documented meaning. The three authorities, in the order a reader
 should check:
 
 1. **[binding-invoker](binding-invoker/)** owns the codes its own mechanics
-   require: `CONTEXT_REQUIRED`, `ERR_FRAME_PROTOCOL`, `ERR_TRANSPORT_CLOSED`,
-   `ERR_CANCELLED`, `ERR_EXECUTION_FAILED`. Its README defines each; the
-   spellings are reserved and no other authority may redefine them.
+   require: `CONTEXT_REQUIRED`, `ERR_CANCELLED`, `ERR_FRAME_PROTOCOL`,
+   `ERR_TRANSPORT_CLOSED`, `ERR_REFUSED`, `ERR_EXECUTION_FAILED`. Its README
+   defines each; the spellings are reserved and no other authority may
+   redefine them.
 2. **[operation-invoker](operation-invoker/)** owns the codes its resolution,
    validation, and transform mechanics require: `ERR_OPERATION_NOT_FOUND`,
    `ERR_BINDING_NOT_FOUND`, `ERR_BINDING_SELECTION_REQUIRED`,

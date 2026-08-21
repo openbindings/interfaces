@@ -52,9 +52,20 @@ A delegate's declared operations are author-asserted; this contract attaches no 
 
 Authentication of the registration surface, delegate verification, operation-scoped authorization, and invocation approval belong to the application or deployment. They may be binary, graded, or policy-driven. The manager's preference fields are caller-owned ordering metadata only and have no security effect.
 
-## What you consume, not what you offer
+## Declaring a need does not choose a delegate
 
-A program's own OBI describes what it *offers*; its delegate registry describes part of what it *consumes*. The two are independent. A delegated operation may also be one the program exposes — a facade, fulfilling its own surface by reference — or it may never appear on the program's interface at all, registered purely so internal features can use it ("register a delegate that carries `y`, and this feature lights up"). This contract never asks which: `resolveDelegate` matches the caller's needs against what delegates carry, not against what the caller exposes.
+An OBI can declare both concrete realizations through `bindings` and named
+consumption points through `dependencies`. A program may therefore depend on
+an operation it also exposes — a facade fulfilling its own surface by
+reference — or on an operation used only by an internal feature. Those two
+roles are independent.
+
+A Core dependency still does not register, select, trust, or authorize a
+provider. The application resolves the dependency's operation and any
+binding-specification constraint, then uses `resolveDelegate` to find
+registered delegates that carry the operation. This contract manages that
+candidate state; it does not decide whether a candidate satisfies the
+dependency or how the application composes the resulting matches.
 
 ## Application-agnostic by design
 

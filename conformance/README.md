@@ -63,7 +63,7 @@ Resolution is deterministic without imposing a preference policy: explicit calle
 
 Covers the format-neutral invariants of the interface-synthesizer contract's `synthesizeInterfaceWithCoverage` operation:
 
-- represented evidence names an operation, binding, source, and binding ref that agree with one another in the emitted OBI;
+- represented evidence names an operation, binding, source, and binding selector that agree with one another in the emitted OBI;
 - non-represented evidence carries a stable reason code and explanation;
 - `fullyRepresented` is derived rather than asserted: it is true only for exhaustive evidence with no upstream-valid exclusion, lossy projection, or implementation gap;
 - non-exhaustive evidence never claims full representation.

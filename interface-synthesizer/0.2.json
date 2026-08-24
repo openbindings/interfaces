@@ -118,10 +118,10 @@
                     "minLength": 1,
                     "description": "Key of the corresponding source in the emitted interface. Required when status is represented or lossy."
                 },
-                "sourceRef": {
+                "sourceSelector": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Stable source-local identifier for the interaction unit. It need not be a conformant binding ref when the unit is excluded or invalid."
+                    "description": "Stable source-local identifier for the interaction unit. It need not be a conformant binding selector when the unit is excluded or invalid."
                 },
                 "scope": {
                     "type": "string",
@@ -150,9 +150,9 @@
                     "type": "string",
                     "description": "Emitted binding key. Required when status is represented or lossy."
                 },
-                "bindingRef": {
+                "bindingSelector": {
                     "type": "string",
-                    "description": "Emitted binding ref. Required when status is represented or lossy; the empty string denotes a binding-specification-defined omitted ref."
+                    "description": "Emitted binding selector. Required when status is represented or lossy; the empty string denotes a binding-specification-defined omitted selector."
                 },
                 "reasonCode": {
                     "type": "string",
@@ -183,7 +183,7 @@
             },
             "required": [
                 "sourceIndex",
-                "sourceRef",
+                "sourceSelector",
                 "scope",
                 "status"
             ],
@@ -198,7 +198,7 @@
                         "sourceKey",
                         "operationKey",
                         "bindingKey",
-                        "bindingRef"
+                        "bindingSelector"
                     ]
                 },
                 {
@@ -211,7 +211,7 @@
                         "sourceKey",
                         "operationKey",
                         "bindingKey",
-                        "bindingRef",
+                        "bindingSelector",
                         "reasonCode",
                         "message"
                     ]

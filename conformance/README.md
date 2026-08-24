@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers operation-invoker binding resolution, interface-synthesizer coverage evidence, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative binding-specification support queries, operation-invoker binding resolution, interface-synthesizer coverage evidence, and schema-comparison semantics.
 
 The corpus is reference material, not part of any contract: each contract's prose (its README and versioned contract document) is the sole source of conformance, where prose and corpus disagree the prose governs, and a rule without fixtures is no less binding. This mirrors the stance of the spec repository's corpus (`openbindings/spec/conformance`), whose conventions this corpus follows.
 
@@ -8,11 +8,27 @@ The corpus is reference material, not part of any contract: each contract's pros
 
 | Contract rule family | Coverage |
 |---|---|
+| binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`binding-spec-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression | **Complete** (`comparison/`, manifest-indexed fixtures in four categories). |
 | operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the same second-implementation doctrine the spec corpus applies to its runtime-shaped tool rules, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
 | Other contracts (binding-invoker resolution, delegate-manager, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
+
+## Binding-specification support (`binding-spec-support/`)
+
+Covers the shared `checkBindingSpecs` semantics in binding-invoker 0.1 and
+interface-synthesizer 0.2. Each case declares the implementation's exact
+`warranted` set, its advisory `listed` subset, the input tokens, and the
+ordered verdicts. The fixtures pin empty input, first-occurrence
+deduplication, exact-match refusal of prefix-adjacent tokens, strict boolean
+answers, and the law `listed ⊆ warranted`.
+
+The fixture's `warranted` array models the specifications the implementation
+has actually implemented; it is not a pattern language. A harness compares
+tokens by exact string equality. `listed` is deliberately allowed to omit
+warranted identifiers because absence from the advisory list carries no
+information.
 
 ## Binding selection (`selection/`)
 

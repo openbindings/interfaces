@@ -21,6 +21,24 @@
                 "bindingSpec"
             ]
         },
+        "BindingSpecVerdict": {
+            "type": "object",
+            "description": "Authoritative support verdict for one exact binding-specification identifier. Future optional fields may annotate this verdict but never qualify or soften supported.",
+            "properties": {
+                "bindingSpec": {
+                    "type": "string",
+                    "description": "Exact binding-specification identifier token as supplied by the caller."
+                },
+                "supported": {
+                    "type": "boolean",
+                    "description": "Strict support verdict. True warrants that this implementation implements the specification denoted by the exact bindingSpec string, as published; false is an unqualified refusal."
+                }
+            },
+            "required": [
+                "bindingSpec",
+                "supported"
+            ]
+        },
         "Source": {
             "type": "object",
             "description": "A binding source (binding-specification identifier plus location or content), as an OpenBindings document carries it. Open to extension fields so a document's source entry forwards verbatim.",
@@ -313,12 +331,38 @@
     },
     "operations": {
         "openbindings.binding-invoker.listBindingSpecs": {
-            "description": "List the binding specifications this invoker supports, by exact identifier.",
+            "description": "Return an advisory glance at binding specifications this invoker can name, for display, documentation, and pickers. Presence is a support warrant, and every listed identifier MUST receive supported: true from checkBindingSpecs. Absence carries no information and MUST NOT be treated as a negative support decision.",
             "idempotent": true,
             "output": {
                 "type": "array",
                 "items": {
                     "$ref": "#/schemas/BindingSpecInfo"
+                }
+            }
+        },
+        "openbindings.binding-invoker.checkBindingSpecs": {
+            "description": "Authoritatively determine support for exact, opaque binding-specification identifier tokens. This is the only operation a consumer may use to make a support decision such as binding selection, refusal, or delegation. The result contains one verdict per unique input token in first-occurrence order. supported is always a strict boolean; true warrants that this implementation implements the specification the exact string denotes, as published. The result is deterministic for a given implementation version and the operation is side-effect free. An internal pattern may compress the warranted set but MUST NOT extend it: an implementation never answers true for a specification it has not implemented and never matches future revisions by prefix or regular expression. Future optional verdict fields may annotate a verdict but never qualify or soften supported.",
+            "idempotent": true,
+            "input": {
+                "type": "object",
+                "properties": {
+                    "bindingSpecs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Exact, opaque binding-specification identifier tokens to check. The array may be empty."
+                    }
+                },
+                "required": [
+                    "bindingSpecs"
+                ],
+                "additionalProperties": false
+            },
+            "output": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/schemas/BindingSpecVerdict"
                 }
             }
         },

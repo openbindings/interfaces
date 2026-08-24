@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbindings.com/interfaces/conformance/binding-spec-support/fixture.schema.json",
+  "title": "Binding-Specification Support Query Cases",
+  "type": "object",
+  "required": ["format", "tests"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "openbindings.binding-spec-support-cases@1"
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["description", "warranted", "listed", "bindingSpecs", "expected"],
+        "additionalProperties": false,
+        "properties": {
+          "description": { "type": "string", "minLength": 1 },
+          "warranted": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string" }
+          },
+          "listed": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string" }
+          },
+          "bindingSpecs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["bindingSpec", "supported"],
+              "additionalProperties": false,
+              "properties": {
+                "bindingSpec": { "type": "string" },
+                "supported": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

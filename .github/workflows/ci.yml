@@ -44,6 +44,9 @@ jobs:
       - name: Validate synthesis coverage fixtures
         run: ajv validate -s conformance/synthesis-coverage/fixture.schema.json -d conformance/synthesis-coverage/cases.json --spec=draft2020
 
+      - name: Validate binding-spec support fixtures
+        run: ajv validate -s conformance/binding-spec-support/fixture.schema.json -d conformance/binding-spec-support/cases.json --spec=draft2020
+
       - name: Validate comparison corpus against its schemas
         run: |
           ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020

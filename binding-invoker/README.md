@@ -13,6 +13,35 @@ support documentation and claims.
 
 This is the protocol boundary in the OpenBindings model: callers exchange operation values while the invoker interprets the binding artifact and performs the concrete interaction.
 
+## Binding-specification support
+
+`checkBindingSpecs` is the authoritative support surface. It accepts exact,
+opaque identifier tokens and returns one verdict for each unique token, in
+first-occurrence order. A `supported: true` verdict is a conformance warrant:
+this implementation implements the specification that exact string denotes,
+as published. The boolean is strict — there is no maybe or partial state — and
+the result is deterministic for a given implementation version and free of
+side effects. A consumer may base binding selection, refusal, or delegation on
+this operation and no other support signal.
+
+An implementation may use an internal pattern to compress its warranted set,
+but never to extend it. In particular, a prefix or regular expression cannot
+make an unpublished or future revision supported merely because its spelling
+resembles an implemented identifier. Future optional verdict fields may
+annotate the answer, never qualify or soften `supported`.
+
+`listBindingSpecs` is the advisory glance: identifiers the implementation can
+name for display, documentation, or pickers. Presence is a warrant, but
+**absence from the list carries no information**. It cannot say no and no tool
+may treat it as if it answers the support question. The one law connecting the
+surfaces is `listed ⊆ supported`: every listed identifier MUST receive
+`supported: true` from `checkBindingSpecs`.
+
+This advisory/authoritative division already has a precedent in this contract:
+`prepareBinding` is advisory pre-flight, while the live `CONTEXT_REQUIRED`
+challenge is authoritative. The same division now applies on the
+binding-specification-support axis.
+
 ## Why it's called a *binding* invoker
 
 A binding invoker takes a `(source, selector)` directly — not an OBI document, and not a binding key. It invokes **by value**: you hand it the entire realization, and it needs no interface document to act. So, strictly, it isn't handed "a binding" in the document sense; it's handed a binding's invocable essence (the operation label and key that an OBI binding entry adds are discovery metadata the wire never needs).

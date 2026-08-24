@@ -1,0 +1,69 @@
+{
+  "format": "openbindings.binding-spec-support-cases@1",
+  "tests": [
+    {
+      "description": "exact matching refuses unknown and prefix-adjacent tokens while preserving first-occurrence order",
+      "warranted": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
+      "listed": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
+      "bindingSpecs": [
+        "openbindings.openapi@1",
+        "openbindings.openapi",
+        "openbindings.openapi@10",
+        "openbindings.grpc@1",
+        "openbindings.openapi@1"
+      ],
+      "expected": [
+        {
+          "bindingSpec": "openbindings.openapi@1",
+          "supported": true
+        },
+        {
+          "bindingSpec": "openbindings.openapi",
+          "supported": false
+        },
+        {
+          "bindingSpec": "openbindings.openapi@10",
+          "supported": false
+        },
+        {
+          "bindingSpec": "openbindings.grpc@1",
+          "supported": true
+        }
+      ]
+    },
+    {
+      "description": "empty input produces an empty verdict list",
+      "warranted": [
+        "openbindings.openapi@1"
+      ],
+      "listed": [],
+      "bindingSpecs": [],
+      "expected": []
+    },
+    {
+      "description": "an advisory listing may omit support but every listed identifier is warranted",
+      "warranted": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
+      "listed": [
+        "openbindings.openapi@1"
+      ],
+      "bindingSpecs": [
+        "openbindings.openapi@1"
+      ],
+      "expected": [
+        {
+          "bindingSpec": "openbindings.openapi@1",
+          "supported": true
+        }
+      ]
+    }
+  ]
+}

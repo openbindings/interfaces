@@ -1,6 +1,6 @@
 # Binding Invoker
 
-A binding invoker knows how to invoke bindings governed by specific binding specifications. Given a source (bindingSpec + location/content), a ref within that source, and a way to receive input, it makes the protocol-specific call — as the source's governing binding specification defines it — and exposes a typed I/O channel for the caller to write inputs and read outputs.
+A binding invoker knows how to invoke bindings governed by specific binding specifications. Given a source (bindingSpec + location/content), a selector within that source, and a way to receive input, it makes the protocol-specific call — as the source's governing binding specification defines it — and exposes a typed I/O channel for the caller to write inputs and read outputs.
 
 The binding specification is the semantic authority; any artifact or protocol
 authority applies only to the extent that specification incorporates it. This
@@ -15,9 +15,9 @@ This is the protocol boundary in the OpenBindings model: callers exchange operat
 
 ## Why it's called a *binding* invoker
 
-A binding invoker takes a `(source, ref)` directly — not an OBI document, and not a binding key. It invokes **by value**: you hand it the entire realization, and it needs no interface document to act. So, strictly, it isn't handed "a binding" in the document sense; it's handed a binding's invocable essence (the operation label and key that an OBI binding entry adds are discovery metadata the wire never needs).
+A binding invoker takes a `(source, selector)` directly — not an OBI document, and not a binding key. It invokes **by value**: you hand it the entire realization, and it needs no interface document to act. So, strictly, it isn't handed "a binding" in the document sense; it's handed a binding's invocable essence (the operation label and key that an OBI binding entry adds are discovery metadata the wire never needs).
 
-The name still fits, and is the clearest available, for one reason: the `(bindingSpec, ref)` pattern only exists *because* OpenBindings defines sources and bindings. Outside the OpenBindings model you would not address a call as "a ref into a declared source," so naming it for that model is exactly right. Its peer — the one that takes an interface and a *key*, resolving an operation or a binding **by reference** — is the [operation invoker](../operation-invoker/).
+The name still fits, and is the clearest available, for one reason: the `(bindingSpec, selector)` pattern only exists *because* OpenBindings defines sources and bindings. Outside the OpenBindings model you would not address a call as "a selector into a declared source," so naming it for that model is exactly right. Its peer — the one that takes an interface and a *key*, resolving an operation or a binding **by reference** — is the [operation invoker](../operation-invoker/).
 
 ## What an invoker does
 
@@ -26,7 +26,7 @@ When a binding invoker receives a `BindingInvocationInput`, it follows this life
 1. **Artifact interpretation.** Resolves the source artifact from `location` or `content`, per its governing binding specification's carriage rules. Loading and caching strategy are implementation details.
 2. **Context consumption.** Reads the context supplied for this invocation without mutating the caller's input. The contract neither requires nor exposes a context store.
 3. **Context application.** Applies credentials, headers, cookies, and other context to the interaction exactly as the governing binding specification defines.
-4. **Invocation.** Interprets the ref within the source artifact, maps writes to the concrete interaction, and emits outputs through the invocation handle.
+4. **Invocation.** Interprets the selector within the source artifact, maps writes to the concrete interaction, and emits outputs through the invocation handle.
 5. **Context negotiation.** If the binding cannot proceed because required context is missing, emits `CONTEXT_REQUIRED` before output or effects. A surrounding runtime may resolve the requirements and start a new attempt with augmented context.
 
 ## Context
@@ -224,7 +224,7 @@ ordinary application behavior never branches on it.
 
 ## What a binding invoker must NOT do
 
-- **Understand operations.** It does not know what `getMenu` means. It invokes a binding ref within a source.
+- **Understand operations.** It does not know what `getMenu` means. It invokes a binding selector within a source.
 - **Select bindings.** That is the operation invoker's job. The binding invoker invokes what it is given.
 - **Require a particular state architecture.** The contract supplies context by value and exposes no context store. Caches, pools, sessions, credential brokers, and persistence remain implementation choices so long as their observable behavior honors the contract.
 - **Handle transforms.** Input and output transforms are applied by the operation invoker, not the binding invoker.

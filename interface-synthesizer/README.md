@@ -57,12 +57,12 @@ rather than relying on any implementation's placeholder.
 
 ## Other extraction conventions
 
-Binding specifications govern **interpretation**, not generation: they define what a bound artifact means — how a `ref` resolves, how an invocation happens — and say nothing about how an OBI is derived from the artifact. Derivation is this contract's domain. The principles below are cross-family; per-family derivation detail belongs to each implementation's own reference documentation.
+Binding specifications govern **interpretation**, not generation: they define what a bound artifact means — how a `selector` resolves, how an invocation happens — and say nothing about how an OBI is derived from the artifact. Derivation is this contract's domain. The principles below are cross-family; per-family derivation detail belongs to each implementation's own reference documentation.
 
 - **Operations.** Each callable target in the source becomes one operation. The operation key SHOULD be stable across regenerations: derive it from a source-level identifier (OpenAPI `operationId`, gRPC method name, GraphQL field name) rather than from positional ordering.
 - **Schemas.** Resolve `$ref` pointers when the source artifact uses them, so the produced OBI is self-contained. Cycle-protect when the artifact permits cyclical type references.
 - **Sources.** Echo the input source's `bindingSpec`, `location`, and source description faithfully; use `name` as the output source key and `outputLocation` as the location written to the result. A local-path authoring convenience may normalize that path to the binding specification's invocable address form. When `embed` is true, preserve a complete accepted source representation as `content` or refuse the request — never ignore the directive or construct a partial discovery pin. Co-present input `content` is authoritative and remains the same JSON value in the result.
-- **Bindings.** Each binding entry MUST carry a `ref` that the corresponding binding invoker can resolve back to the source artifact, in the ref form the governing binding specification defines (a JSON Pointer under `openbindings.openapi@1`, a fully-qualified method name under `openbindings.grpc@1`).
+- **Bindings.** Each binding entry MUST carry a `selector` that the corresponding binding invoker can resolve back to the source artifact, in the selector form the governing binding specification defines (a JSON Pointer under `openbindings.openapi@1`, a fully-qualified method name under `openbindings.grpc@1`).
 - **Aliases (optional).** A synthesizer MAY add operation `aliases` to claim correspondence with a shared contract (for example, a well-known operation name a consumer can target across providers). The name is author-asserted and carries no verification semantics.
 
 ## Creation-time soundness
@@ -153,15 +153,15 @@ from the entries and MUST NOT contradict them. Exclusion can therefore be
 honest and exhaustive without being described as full upstream coverage.
 
 A `represented` entry identifies the emitted source key, operation key,
-binding key, and binding ref. These redundant links are intentional evidence:
+binding key, and binding selector. These redundant links are intentional evidence:
 they let a consumer verify that the input source, output source, binding, and
 operation form one path without guessing from naming conventions.
-`bindingRef` is the empty string when the governing binding specification
-identifies that target by an omitted `ref` (for example the root command in
+`bindingSelector` is the empty string when the governing binding specification
+identifies that target by an omitted `selector` (for example the root command in
 `openbindings.usage@1`); empty and absent are not conflated.
 An `excluded`, `invalid`, or `implementation-unsupported` entry identifies the
-source unit even when no conformant binding ref exists. A `lossy` entry MUST
-also identify its emitted source, operation, binding, and ref: loss is a
+source unit even when no conformant binding selector exists. A `lossy` entry MUST
+also identify its emitted source, operation, binding, and selector: loss is a
 property of a usable represented path, and tooling must be able to connect the
 limitation to that path without inference. Stable family-namespaced reason
 codes support corpus measurement; prose messages are diagnostic.

@@ -2,7 +2,7 @@
 
 A source inspector examines a binding source before an OBI is created. It returns bindable targets that tooling can offer to users, optionally including a suggested operation key and operation framing for each target.
 
-This powers tooling that helps users select which operations to include when authoring an OBI without relying on non-normative ref naming conventions.
+This powers tooling that helps users select which operations to include when authoring an OBI without relying on non-normative selector naming conventions.
 
 ## When to use it
 
@@ -31,7 +31,7 @@ The inventory boundary matches synthesis: a bindable target is a source interact
 
 ## Operation framing is optional
 
-`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the ref MAY return targets with just `ref` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target under the binding specification and any disclosed implementation-defined completion. Such a completion may make this inspector useful for an underdefined specification, but the projection is not evidence that the completion belongs to the identifier's portable meaning.
+`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the selector MAY return targets with just `selector` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target under the binding specification and any disclosed implementation-defined completion. Such a completion may make this inspector useful for an underdefined specification, but the projection is not evidence that the completion belongs to the identifier's portable meaning.
 
 ## Idempotency
 

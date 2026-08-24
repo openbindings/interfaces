@@ -12,8 +12,8 @@
           "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "preference": 1 },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 100 }
+          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get", "preference": 1 },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "preference": 100 }
         }
       },
       "operation": "getThing",
@@ -29,7 +29,7 @@
           "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
         },
         "bindings": {
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing" }
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing" }
         }
       },
       "operation": "getThing",
@@ -55,7 +55,7 @@
           "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" }
         },
         "bindings": {
-          "listThings.rest": { "operation": "listThings", "source": "rest", "ref": "#/paths/~1things/get", "preference": 100 }
+          "listThings.rest": { "operation": "listThings", "source": "rest", "selector": "#/paths/~1things/get", "preference": 100 }
         }
       },
       "operation": "getThing",
@@ -72,8 +72,8 @@
           "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "ref": "#/paths/~1things~1{id}/get", "deprecated": true },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "ref": "things.v1.Things/GetThing", "preference": 100 }
+          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get", "deprecated": true },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "preference": 100 }
         }
       },
       "operation": "getThing",

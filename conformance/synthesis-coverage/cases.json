@@ -2,7 +2,7 @@
   "format": "openbindings.interface-synthesis-coverage-cases@1",
   "tests": [
     {
-      "description": "complete represented evidence links input source, emitted source, binding, operation, and ref",
+      "description": "complete represented evidence links input source, emitted source, binding, operation, and selector",
       "interface": {
         "openbindings": "0.2.0",
         "operations": { "getUser": {} },
@@ -16,7 +16,7 @@
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "ref": "#/paths/~1users~1{id}/get"
+            "selector": "#/paths/~1users~1{id}/get"
           }
         }
       },
@@ -29,7 +29,7 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.api",
-          "bindingRef": "#/paths/~1users~1{id}/get"
+          "bindingSelector": "#/paths/~1users~1{id}/get"
         }
       ],
       "exhaustive": true,
@@ -82,7 +82,7 @@
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "ref": "#/paths/~1users~1{id}/get"
+            "selector": "#/paths/~1users~1{id}/get"
           }
         }
       },
@@ -95,7 +95,7 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.api",
-          "bindingRef": "#/paths/~1users~1{id}/get"
+          "bindingSelector": "#/paths/~1users~1{id}/get"
         }
       ],
       "exhaustive": false,
@@ -119,7 +119,7 @@
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "ref": "#/paths/~1users~1{id}/get"
+            "selector": "#/paths/~1users~1{id}/get"
           }
         }
       },
@@ -132,7 +132,7 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.missing",
-          "bindingRef": "#/paths/~1users~1{id}/get"
+          "bindingSelector": "#/paths/~1users~1{id}/get"
         }
       ],
       "exhaustive": true,
@@ -156,7 +156,7 @@
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "ref": "#/paths/~1users~1{id}/get"
+            "selector": "#/paths/~1users~1{id}/get"
           }
         }
       },

@@ -4,7 +4,7 @@ An operation invoker invokes an operation described by an OpenBindings interface
 
 This is a reusable invocation contract, not a requirement of core OpenBindings. Conformance is claimed and versioned independently of core conformance and of every binding specification.
 
-It is the **by-reference** peer of the binding invoker. The binding invoker invokes *by value* (a self-contained `source + ref`, no document); the operation invoker invokes *by reference* (an interface plus a key it resolves). Both share one frame protocol and bottom out in the same wire engine. They differ only in how the call is addressed.
+It is the **by-reference** peer of the binding invoker. The binding invoker invokes *by value* (a self-contained `source + selector`, no document); the operation invoker invokes *by reference* (an interface plus a key it resolves). Both share one frame protocol and bottom out in the same wire engine. They differ only in how the call is addressed.
 
 ## By value vs by reference
 
@@ -12,7 +12,7 @@ This axis, not "binding vs operation," is the real distinction between the two i
 
 | | Binding invoker | Operation invoker |
 |---|---|---|
-| **Addresses by** | `source` + `ref` (the realization itself) | `interface` + `operation` **or** `binding` key |
+| **Addresses by** | `source` + `selector` (the realization itself) | `interface` + `operation` **or** `binding` key |
 | **Needs an OBI?** | No | Yes (the key is meaningless without the document) |
 | **Knows the schemas?** | No, values are opaque | Yes, validates input/output, applies transforms |
 | **Selects a binding?** | No, it's given one | Yes (when addressed by operation key) |
@@ -100,4 +100,4 @@ vocabulary for bindings or protocols.
 
 ## Relationship to the binding invoker
 
-The operation-invoker semantics compose with the binding-invoker semantics: after a key resolves to `(source, ref)`, the remaining behavior is binding invocation plus the operation's validation and transforms. An implementation may literally layer the two components or fuse them behind one service. Publishing both interfaces reflects two genuinely different ways to address a call — by value and by reference — not a required process architecture.
+The operation-invoker semantics compose with the binding-invoker semantics: after a key resolves to `(source, selector)`, the remaining behavior is binding invocation plus the operation's validation and transforms. An implementation may literally layer the two components or fuse them behind one service. Publishing both interfaces reflects two genuinely different ways to address a call — by value and by reference — not a required process architecture.

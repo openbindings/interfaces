@@ -24,7 +24,7 @@
         {
           "sourceIndex": 0,
           "sourceKey": "api",
-          "sourceSelector": "#/paths/~1users~1{id}/get",
+          "sourceRef": "#/paths/~1users~1{id}/get",
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
@@ -53,7 +53,7 @@
       "entries": [
         {
           "sourceIndex": 0,
-          "sourceSelector": "#/webhooks/onEvent/post",
+          "sourceRef": "#/webhooks/onEvent/post",
           "scope": "target",
           "status": "excluded",
           "reasonCode": "openapi.reverse_direction",
@@ -90,7 +90,7 @@
         {
           "sourceIndex": 0,
           "sourceKey": "api",
-          "sourceSelector": "#/paths/~1users~1{id}/get",
+          "sourceRef": "#/paths/~1users~1{id}/get",
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
@@ -127,7 +127,7 @@
         {
           "sourceIndex": 0,
           "sourceKey": "api",
-          "sourceSelector": "#/paths/~1users~1{id}/get",
+          "sourceRef": "#/paths/~1users~1{id}/get",
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
@@ -163,7 +163,7 @@
       "entries": [
         {
           "sourceIndex": 0,
-          "sourceSelector": "#/paths/~1users~1{id}/get::projection::response",
+          "sourceRef": "#/paths/~1users~1{id}/get::projection::response",
           "scope": "projection",
           "status": "lossy",
           "reasonCode": "openapi.schema_projection",

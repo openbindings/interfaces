@@ -118,7 +118,7 @@
                     "minLength": 1,
                     "description": "Key of the corresponding source in the emitted interface. Required when status is represented or lossy."
                 },
-                "sourceSelector": {
+                "sourceRef": {
                     "type": "string",
                     "minLength": 1,
                     "description": "Stable source-local identifier for the interaction unit. It need not be a conformant binding selector when the unit is excluded or invalid."
@@ -183,7 +183,7 @@
             },
             "required": [
                 "sourceIndex",
-                "sourceSelector",
+                "sourceRef",
                 "scope",
                 "status"
             ],

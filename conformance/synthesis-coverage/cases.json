@@ -5,7 +5,9 @@
       "description": "complete represented evidence links input source, emitted source, binding, operation, and selector",
       "interface": {
         "openbindings": "0.2.0",
-        "operations": { "getUser": {} },
+        "operations": {
+          "getUser": {}
+        },
         "sources": {
           "api": {
             "bindingSpec": "openbindings.openapi@1",
@@ -71,7 +73,9 @@
       "description": "non-exhaustive evidence can never claim full representation",
       "interface": {
         "openbindings": "0.2.0",
-        "operations": { "getUser": {} },
+        "operations": {
+          "getUser": {}
+        },
         "sources": {
           "api": {
             "bindingSpec": "openbindings.openapi@1",
@@ -108,7 +112,9 @@
       "description": "represented evidence is rejected when its binding key names no emitted binding",
       "interface": {
         "openbindings": "0.2.0",
-        "operations": { "getUser": {} },
+        "operations": {
+          "getUser": {}
+        },
         "sources": {
           "api": {
             "bindingSpec": "openbindings.openapi@1",
@@ -145,7 +151,9 @@
       "description": "lossy evidence must identify the represented path whose projection is incomplete",
       "interface": {
         "openbindings": "0.2.0",
-        "operations": { "getUser": {} },
+        "operations": {
+          "getUser": {}
+        },
         "sources": {
           "api": {
             "bindingSpec": "openbindings.openapi@1",
@@ -174,6 +182,164 @@
       "expected": {
         "valid": false,
         "errorContains": "requires operationKey"
+      }
+    },
+    {
+      "description": "a dependency unit an exclusion removed keeps dependency scope and carries the reason",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "createJob": {},
+          "onJobDone": {}
+        },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi-3.1@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "createJob.api": {
+            "operation": "createJob",
+            "source": "api",
+            "selector": "#/paths/~1jobs/post"
+          }
+        },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1jobs/post",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "createJob",
+          "bindingKey": "createJob.api",
+          "bindingSelector": "#/paths/~1jobs/post"
+        },
+        {
+          "sourceIndex": 0,
+          "sourceRef": "#/paths/~1jobs/post/callbacks/done/{$request.body#~1url}/post",
+          "scope": "dependency",
+          "status": "represented"
+        },
+        {
+          "sourceIndex": 0,
+          "sourceRef": "#/webhooks/jobFailed/post",
+          "scope": "dependency",
+          "status": "excluded",
+          "reasonCode": "openapi.inbound_dependency_excluded",
+          "message": "the inbound operation declares no resolvable request contract"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": true,
+        "fullyRepresented": false
+      }
+    },
+    {
+      "description": "a represented dependency entry carrying emitted binding identity is rejected",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "createJob": {},
+          "onJobDone": {}
+        },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi-3.1@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "createJob.api": {
+            "operation": "createJob",
+            "source": "api",
+            "selector": "#/paths/~1jobs/post"
+          }
+        },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1jobs/post",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "createJob",
+          "bindingKey": "createJob.api",
+          "bindingSelector": "#/paths/~1jobs/post"
+        },
+        {
+          "sourceIndex": 0,
+          "sourceRef": "#/paths/~1jobs/post/callbacks/done/{$request.body#~1url}/post",
+          "scope": "dependency",
+          "status": "represented",
+          "operationKey": "onJobDone",
+          "bindingKey": "createJob.api",
+          "bindingSelector": "#/paths/~1jobs/post"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": false,
+        "errorContains": "must not carry operation or binding identity"
+      }
+    },
+    {
+      "description": "an emitted dependency with no represented dependency entry is rejected",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "createJob": {},
+          "onJobDone": {}
+        },
+        "sources": {
+          "api": {
+            "bindingSpec": "openbindings.openapi-3.1@1",
+            "location": "https://example.com/openapi.json"
+          }
+        },
+        "bindings": {
+          "createJob.api": {
+            "operation": "createJob",
+            "source": "api",
+            "selector": "#/paths/~1jobs/post"
+          }
+        },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1jobs/post",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "createJob",
+          "bindingKey": "createJob.api",
+          "bindingSelector": "#/paths/~1jobs/post"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": false,
+        "errorContains": "for 1 emitted dependencies"
       }
     }
   ]

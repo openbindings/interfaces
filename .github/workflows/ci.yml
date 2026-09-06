@@ -47,6 +47,9 @@ jobs:
       - name: Validate binding-spec support fixtures
         run: ajv validate -s conformance/binding-spec-support/fixture.schema.json -d conformance/binding-spec-support/cases.json --spec=draft2020
 
+      - name: Validate runtime composition fixtures
+        run: ajv validate -s conformance/composition/fixture.schema.json -d conformance/composition/cases.json --spec=draft2020
+
       - name: Validate comparison corpus against its schemas
         run: |
           ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020

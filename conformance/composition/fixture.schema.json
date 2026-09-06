@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbindings.org/conformance/composition/fixture.schema.json",
+  "title": "OpenBindings runtime composition conformance corpus",
+  "type": "object",
+  "required": ["formatVersion", "policyId", "cases"],
+  "properties": {
+    "formatVersion": { "const": "1.0.0" },
+    "policyId": { "type": "string", "minLength": 1 },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "consumer", "providers", "dependency", "expected"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "consumer": { "type": "object" },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["key", "preference", "runtimeBindingSpecs", "interface"],
+              "properties": {
+                "key": { "type": "string", "minLength": 1 },
+                "preference": { "type": "number" },
+                "runtimeBindingSpecs": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true
+                },
+                "interface": { "type": "object" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "dependency": { "type": "string", "minLength": 1 },
+          "invocation": {
+            "type": "object",
+            "required": ["input", "output"],
+            "properties": {
+              "input": true,
+              "output": true
+            },
+            "additionalProperties": false
+          },
+          "expected": {
+            "type": "object",
+            "required": ["status", "assessmentCodes"],
+            "properties": {
+              "status": { "enum": ["available", "ambiguous", "unavailable"] },
+              "providerKey": { "type": "string" },
+              "bindingKey": { "type": "string" },
+              "ambiguityStage": { "enum": ["provider", "realization"] },
+              "assessmentCodes": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

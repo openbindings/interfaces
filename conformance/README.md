@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative binding-specification support queries, operation-invoker binding resolution, interface-synthesizer coverage evidence, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative binding-specification support queries, operation-invoker binding resolution, runtime interface composition, interface-synthesizer coverage evidence, and schema-comparison semantics.
 
 The corpus is reference material, not part of any contract: each contract's prose (its README and versioned contract document) is the sole source of conformance, where prose and corpus disagree the prose governs, and a rule without fixtures is no less binding. This mirrors the stance of the spec repository's corpus (`openbindings/spec/conformance`), whose conventions this corpus follows.
 
@@ -10,6 +10,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 |---|---|
 | binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`binding-spec-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
+| SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression | **Complete** (`comparison/`, manifest-indexed fixtures in four categories). |
 | operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the same second-implementation doctrine the spec corpus applies to its runtime-shaped tool rules, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
@@ -88,6 +89,21 @@ Covers the format-neutral invariants of the interface-synthesizer contract's `sy
 
 Coverage evidence is a portable audit record, not a proof that consumers must trust. A consumer may independently inspect the source and compare it with the emitted OBI; the evidence makes that verification easier and makes omissions explicit.
 
+## Runtime composition (`composition/`)
+
+[`composition/cases.json`](composition/cases.json), validated by
+[`composition/fixture.schema.json`](composition/fixture.schema.json), pins the
+observable decisions of `openbindings.reference-composition@1`. Each case
+contains a complete consumer OBI, application-owned provider registrations,
+the runtime binding specifications installed for each provider, one dependency
+key, and the expected route-to-one status. Available cases additionally pin the
+provider and binding identity; ambiguous cases pin the provider-versus-
+realization stage; unavailable cases pin ordered stable assessment codes.
+
+The policy is an SDK convention rather than a Core specification semantic.
+Putting it here prevents the two reference SDKs from drifting while keeping
+third-party policies free to make different, explicitly identified decisions.
+
 ## Schema comparison (`comparison/`)
 
 Covers the [schema-comparison profile](../schema-comparison/) (identifier `OB-2020-12`, version 0.1): normalization, the profile boundary, directional subsumption, and suppression. Unlike `selection/`, this corpus is **manifest-indexed**: harnesses iterate [`comparison/manifest.json`](comparison/manifest.json), never the directory.
@@ -138,8 +154,8 @@ Like selection, every fixture has exactly one correct outcome: the profile is pu
 
 Same convention as the spec corpus: a harness looks for a **sibling checkout** of this repository (`openbindings/interfaces` next to the implementation's own checkout) and skips its corpus suite when absent; the environment variable **`OB_INTERFACES_CORPUS`** overrides the location and points at this `conformance/` directory. Reference harnesses:
 
-- Go SDK: `openbindings-go/selection_corpus_test.go`, `openbindings-go/synthesis_coverage_corpus_test.go`, and `openbindings-go/schemaprofile/conformance_test.go` (sibling path `../interfaces/conformance`)
-- TS SDK: `openbindings-ts/packages/sdk/src/selection-corpus.test.ts`, `.../src/synthesis-coverage-corpus.test.ts`, and `.../src/schema-profile/conformance.test.ts` (sibling path from the test file)
+- Go SDK: `openbindings-go/selection_corpus_test.go`, `openbindings-go/synthesis_coverage_corpus_test.go`, `openbindings-go/invoke/composition_corpus_test.go`, and `openbindings-go/schemaprofile/conformance_test.go` (sibling path `../interfaces/conformance`)
+- TS SDK: `openbindings-ts/packages/sdk/src/selection-corpus.test.ts`, `.../src/synthesis-coverage-corpus.test.ts`, `packages/invoke/src/composition-corpus.test.ts`, and `.../src/schema-profile/conformance.test.ts` (sibling path from the test file)
 
 ## Versioning
 

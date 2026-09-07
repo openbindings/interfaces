@@ -86,7 +86,7 @@ rather than relying on any implementation's placeholder.
 
 ## Other extraction conventions
 
-Binding specifications govern **interpretation**, not generation: they define what a bound artifact means — how a `selector` resolves, how an invocation happens — and say nothing about how an OBI is derived from the artifact. Derivation is this contract's domain. The principles below are cross-family; per-family derivation detail belongs to each implementation's own reference documentation.
+Binding specifications govern **interpretation and faithful correspondence**: they define what a bound artifact means and may constrain the soundness of an OBI derived from it. That does not make this Synthesizer interface, its generation strategy, or its reporting product a prerequisite for binding conformance. This optional contract separately defines its own derivation and reporting promises. The principles below are cross-family; per-family strategy detail belongs to each implementation's own reference documentation, subject to the governing binding specification.
 
 - **Operations.** Each callable target in the source becomes one operation. The operation key SHOULD be stable across regenerations: derive it from a source-level identifier (OpenAPI `operationId`, gRPC method name, GraphQL field name) rather than from positional ordering.
 - **Schemas.** Resolve `$ref` pointers when the source artifact uses them, so the produced OBI is self-contained. Cycle-protect when the artifact permits cyclical type references.

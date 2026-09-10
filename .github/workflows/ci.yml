@@ -53,10 +53,14 @@ jobs:
       - name: Validate comparison corpus against its schemas
         run: |
           ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020
+          ajv validate -s conformance/comparison/exact-values.schema.json -d conformance/comparison/exact-values.json --spec=draft2020
           for f in conformance/comparison/*/*.json; do
             echo "validating $f"
             ajv validate -s conformance/comparison/fixture.schema.json -d "$f" --spec=draft2020
           done
+
+      - name: Check exact-value fixture carriage (not Core conformance)
+        run: node .github/scripts/check-exact-value-fixtures.mjs
 
       - name: Check comparison manifest consistency
         # The manifest is the corpus index: every listed path must exist, every

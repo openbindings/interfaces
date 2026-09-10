@@ -12,7 +12,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 | operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
-| schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression | **Complete** (`comparison/`, manifest-indexed fixtures in four categories). |
+| schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
 | operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the same second-implementation doctrine the spec corpus applies to its runtime-shaped tool rules, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
 | Other contracts (binding-invoker resolution, delegate-manager, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
@@ -106,12 +106,40 @@ third-party policies free to make different, explicitly identified decisions.
 
 ## Schema comparison (`comparison/`)
 
+This is **comparison-profile conformance**, not general Core or binding-spec
+conformance. Any implementer may adopt the profile; a tool not claiming it is
+not assessed against this suite. The official SDKs also use selected fixture
+inputs for separately named snapshot/value-carriage qualification tests. Those
+tests exercise SDK implementation commitments, not new Core requirements.
+Neither suite alone qualifies all SDK invocation, storage or transform paths.
+
+The manifest's required `exactValues` entry names `exact-values.json`, validated
+by `exact-values.schema.json`. This is a second fixture **carriage**, not a
+second profile or precision mode. Each case carries complete OBI documents as
+`leftJSON`/`rightJSON` strings and optionally a validation witness as JSON text.
+Readers parse the envelope normally, but decode these texts without reducing
+numeric tokens before the production comparison/validation call. Sorted
+`numberTokens` lists witness the ingress values, excluding digits in strings;
+`-0` and `0` may normalize to the same zero. Missing/extra tokens are harness
+failures. The `rule` and authored expected verdict/error explain the oracle;
+agreement between SDKs is never the oracle. A witness proves the stated point
+membership, not general subsumption by itself.
+
+Both the existing manifest cases and the exact-value pack must run for a
+whole-profile claim. Explicit refusals on required exact cases are unmet
+profile capability, not passing outside-keyword cases. Runtime gaps remain
+real test failures; do not skip or round fixtures to obtain a green gate.
+`reason` assertions are the official SDKs' extra diagnostic alignment bar;
+`leftUnionConstOrder` exercises the profile's authored traversal order. Schema
+merge errors are distinct from the three comparison verdicts.
+
 Covers the [schema-comparison profile](../schema-comparison/) (identifier `OB-2020-12`, version 0.1): normalization, the profile boundary, directional subsumption, and suppression. Unlike `selection/`, this corpus is **manifest-indexed**: harnesses iterate [`comparison/manifest.json`](comparison/manifest.json), never the directory.
 
 ```json
 {
   "conventionVersion": "1.0",
   "profile": "OB-2020-12",
+  "exactValues": "exact-values.json",
   "files": [
     { "path": "subsumption/type-sets-input-compatible.json",
       "mode": "subsume", "direction": "input",
@@ -136,7 +164,7 @@ Each fixture file embeds a **left** (target/contract) and **right** (candidate) 
 
 Field semantics:
 
-- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-12), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` normalizes both sides' schemas per paired operation and compares RFC 8785 canonical strings (`compatible` asserts identity, `incompatible` asserts difference).
+- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-12), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
 - `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
 - Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified, and the slot's comparison is skipped (the profile's suppression rule).
 - `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).

@@ -18,7 +18,7 @@
     },
     "mode": {
       "enum": ["subsume", "identical"],
-      "description": "Comparison mode. 'subsume': pair operations across the two documents and run the directional compatibility check on the direction's schemas, collapsing per-operation verdicts by dominance (indeterminate > incompatible > compatible). 'identical': normalize both sides' schemas per paired operation and compare their RFC 8785 canonical strings ('compatible' asserts they are identical, 'incompatible' asserts they differ)."
+      "description": "Comparison mode. 'subsume': pair operations and run directional compatibility, collapsing by indeterminate > incompatible > compatible. 'identical': compare normalized schema structure under exact instance equality and the profile's union-permutation rule, never lossy canonical strings."
     },
     "options": {
       "type": "object",

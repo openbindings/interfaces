@@ -4,9 +4,10 @@
   "title": "Schema-Comparison Conformance Manifest",
   "description": "JSON Schema describing the comparison corpus manifest: the index of fixture files with their mode, direction, and expected verdict. Harnesses iterate the manifest, never the directory.",
   "type": "object",
-  "required": ["conventionVersion", "profile", "files"],
+  "required": ["conventionVersion", "profile", "exactValues", "files"],
   "additionalProperties": false,
   "properties": {
+    "exactValues": {"const": "exact-values.json", "description": "Additional JSON-text carriage cases for the same profile; required, not a second profile or an optional pass."},
     "conventionVersion": {
       "const": "1.0",
       "description": "Fixture-format version. Every fixture file's 'version' field carries the same value."

@@ -1,6 +1,7 @@
 {
   "conventionVersion": "1.0",
   "profile": "OB-2020-12",
+  "exactValues": "exact-values.json",
   "files": [
     {
       "path": "profile/allof-ref-pattern-indeterminate.json",

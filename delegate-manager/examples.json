@@ -1,0 +1,318 @@
+{
+    "description": "Actual expected and provider OBI values for offline shape and correspondence checks. The provider's HTTP service is illustrative, not deployed.",
+    "expectedInterface": {
+        "openbindings": "0.2.0",
+        "name": "Example Document Store",
+        "operations": {
+            "openbindings.document-store.get": {
+                "description": "Get a whole document by key; return null if absent.",
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "key"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "openbindings.document-store.set": {
+                "description": "Store a whole document by key.",
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "key",
+                        "value"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "type": "null"
+                }
+            },
+            "openbindings.document-store.delete": {
+                "description": "Ensure the keyed document is absent.",
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "key"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "type": "null"
+                }
+            }
+        }
+    },
+    "providerInterface": {
+        "openbindings": "0.2.0",
+        "name": "Example storage service",
+        "operations": {
+            "readDocument": {
+                "description": "Get a whole document by key; return null if absent.",
+                "aliases": [
+                    "openbindings.document-store.get"
+                ],
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "key"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "oneOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "writeDocument": {
+                "description": "Store a whole document by key.",
+                "aliases": [
+                    "openbindings.document-store.set"
+                ],
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "key",
+                        "value"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "type": "null"
+                }
+            },
+            "removeDocument": {
+                "description": "Ensure the keyed document is absent.",
+                "aliases": [
+                    "openbindings.document-store.delete"
+                ],
+                "idempotent": true,
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "key"
+                    ],
+                    "additionalProperties": false
+                },
+                "output": {
+                    "type": "null"
+                }
+            }
+        },
+        "sources": {
+            "api": {
+                "bindingSpec": "openbindings.openapi-3.1@1",
+                "content": {
+                    "openapi": "3.1.2",
+                    "info": {
+                        "title": "Example storage API",
+                        "version": "0.1.0"
+                    },
+                    "servers": [
+                        {
+                            "url": "https://storage.example.invalid"
+                        }
+                    ],
+                    "paths": {
+                        "/documents/readDocument": {
+                            "post": {
+                                "operationId": "readDocument",
+                                "requestBody": {
+                                    "required": true,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "key"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    }
+                                },
+                                "responses": {
+                                    "200": {
+                                        "description": "Successful result.",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "/documents/writeDocument": {
+                            "post": {
+                                "operationId": "writeDocument",
+                                "requestBody": {
+                                    "required": true,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string"
+                                                    },
+                                                    "value": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "key",
+                                                    "value"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    }
+                                },
+                                "responses": {
+                                    "200": {
+                                        "description": "Successful result.",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "type": "null"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "/documents/removeDocument": {
+                            "post": {
+                                "operationId": "removeDocument",
+                                "requestBody": {
+                                    "required": true,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "key"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    }
+                                },
+                                "responses": {
+                                    "200": {
+                                        "description": "Successful result.",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "type": "null"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "bindings": {
+            "readDocument": {
+                "operation": "readDocument",
+                "source": "api",
+                "selector": "#/paths/~1documents~1readDocument/post"
+            },
+            "writeDocument": {
+                "operation": "writeDocument",
+                "source": "api",
+                "selector": "#/paths/~1documents~1writeDocument/post"
+            },
+            "removeDocument": {
+                "operation": "removeDocument",
+                "source": "api",
+                "selector": "#/paths/~1documents~1removeDocument/post"
+            }
+        },
+        "x-example": {
+            "purpose": "By-value fixture; no service is deployed."
+        }
+    }
+}

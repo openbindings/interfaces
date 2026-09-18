@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Delegate Manager admission cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "cases"
+  ],
+  "properties": {
+    "format": {
+      "const": "openbindings.delegate-manager-admission-cases@1"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "roles",
+          "interface",
+          "requestedRoles",
+          "expected"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/role"
+            }
+          },
+          "interface": {
+            "$ref": "#/$defs/obi"
+          },
+          "requestedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "admitted"
+            ],
+            "properties": {
+              "admitted": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "obi": {
+      "type": "object",
+      "required": [
+        "openbindings",
+        "operations"
+      ],
+      "properties": {
+        "openbindings": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "acceptedInterfaces"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptedInterfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/obi"
+          }
+        }
+      }
+    }
+  }
+}

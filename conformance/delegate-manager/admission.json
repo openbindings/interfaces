@@ -1,0 +1,860 @@
+{
+  "format": "openbindings.delegate-manager-admission-cases@1",
+  "cases": [
+    {
+      "id": "canonical-alias",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "multi-role-explicit",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A",
+        "B"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "unbound-provider-admissible",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "missing-required-operation",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "other": {
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "expected-alias-not-substitute",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  },
+                  "aliases": [
+                    "legacy.read"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "legacy.read": {
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "whole-second-alternative",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.other": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "partial-alternatives-not-stitched",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.a": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                },
+                "example.b": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.c": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                },
+                "example.d": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "example.a": {
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "example.d": {
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "provider-input-wider",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "integer"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "example.read": {
+            "input": {
+              "type": "number"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "provider-input-narrower",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "number"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "example.read": {
+            "input": {
+              "type": "integer"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "provider-output-wider",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "example.read": {
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "required-output-unspecified",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "example.read": {
+            "input": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "empty-roles",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "duplicate-roles",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A",
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "unknown-role-atomic",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A",
+        "unknown"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "own-reference-roots",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "schemas": {
+                "Input": {
+                  "type": "string"
+                }
+              },
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "$ref": "#/schemas/Input"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "schemas": {
+          "Input": {
+            "type": "number"
+          }
+        },
+        "operations": {
+          "example.read": {
+            "input": {
+              "$ref": "#/schemas/Input"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": false
+      }
+    },
+    {
+      "id": "two-expected-keys-one-provider-operation",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.a": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                },
+                "example.b": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.a",
+              "example.b"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    },
+    {
+      "id": "qualified-correspondence-with-bare-decoy",
+      "roles": [
+        {
+          "id": "A",
+          "description": "Example application read responsibility. Compatibility admits a candidate, not operational activation. Explicit configuration governs use; preferences inform a separately owned choice.",
+          "acceptedInterfaces": [
+            {
+              "openbindings": "0.2.0",
+              "operations": {
+                "example.read": {
+                  "input": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "aliases": [
+              "example.read"
+            ],
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "read": {
+            "input": {
+              "type": "number"
+            },
+            "output": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "requestedRoles": [
+        "A"
+      ],
+      "expected": {
+        "admitted": true
+      }
+    }
+  ]
+}

@@ -86,9 +86,22 @@ failures relay unchanged. Any other implementation code remains non-portable
 under this interface; in particular, this list is not a general failure
 vocabulary for bindings or protocols.
 
-### prepareOperation (preflight)
+### prepareOperation (optional preparation)
 
-`prepareOperation` is the by-reference counterpart to `prepareBinding`: it reports the context invoking an operation would require, without invoking it or causing side effects. It resolves the named `operation` (or `binding`) to a concrete binding and returns that binding's `ContextRequiredDetails`, or `null` when requirements cannot be determined without invoking. Returning `null` is always conformant, so the operation is always implementable. Like `prepareBinding` it is advisory — the reactive `CONTEXT_REQUIRED` from `invokeOperation` is authoritative — and supplying `context` narrows the result to what is still unsatisfied.
+`prepareOperation` resolves the named operation or binding with invocation's
+selection rules and offers the selected binding optional advance preparation.
+It follows the [binding preparation contract](../binding-invoker/README.md#preparebinding-optional-preparation):
+the binding chooses useful setup, which may perform I/O, but never executes the
+requested operation. It returns known missing `ContextRequiredDetails` or `null`;
+required preparation failures are errors. Optional acceleration uses the
+binding's valid normal fallback. Null does not certify readiness or success.
+
+An early call is optional and does not resolve context, prompt or automatically
+retry. A runtime may also prepare before ordinary invocation and stop on a
+returned error. Preparation does not pin a future binding selection, retain an
+invocation, or create a separate resource lifetime. The application discards
+results for obsolete selections or context. Live challenges retain their
+requested-operation boundary; preparation carries no general idempotency claim.
 
 ## What an operation invoker must NOT do
 

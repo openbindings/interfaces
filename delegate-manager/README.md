@@ -66,7 +66,9 @@ Passing an OBI by value does not make all of its dependencies or source
 artifacts self-contained, offline, trusted, or immutable. References *inside*
 the OBI retain their ordinary semantics. Do not invent a document base from a
 display name or previously fetched URL. Missing reference context or an
-unresolved schema cannot be silently treated as compatibility.
+unresolved schema is reported as what it is: neither compatibility nor a
+contradiction. Admission proceeds on the provider's correspondence claim and
+refuses only on a contradiction the comparison establishes.
 
 ## Role discovery and expected interfaces
 
@@ -110,9 +112,11 @@ requirements that shape comparison cannot prove. Admission may therefore also
 require separately established application-specific qualifications. A structural
 match never proves durability, behavior, availability, or security.
 
-The manager must establish the claimed compatibility before enrollment; an
-indeterminate required comparison is not success. No particular comparison
-algorithm is mandated by this interface. Each interface keeps its own schema
+A provider's name or alias correspondence is its compatibility claim. The
+manager proceeds on that claim and refuses admission only on a contradiction
+its comparison establishes; a comparison it cannot decide leaves the claim
+standing and is reported as such, never counted as a failed check. No
+particular comparison algorithm is mandated by this interface. Each interface keeps its own schema
 graph and reference environment during comparison. Unknown binding support is
 not the same question as shape compatibility.
 
@@ -416,10 +420,11 @@ The following costs remain explicit rather than claimed solved:
   but are expensive for large collections. A paged/targeted capability can be
   designed separately when there is a real large-registry consumer; it must not
   silently weaken this operation's completeness promise.
-- Whole-alternative compatibility is required before admission; the particular
-  comparison procedure and role-specific operational qualifications remain
-  implementation concerns. Comparison indeterminacy must not be admitted as
-  success.
+- Admission requires whole-alternative correspondence with no established
+  contradiction; the particular comparison procedure and role-specific
+  operational qualifications remain implementation concerns. A comparison the
+  manager cannot decide leaves the claim standing; it is reported, not counted
+  as a contradiction.
 
 None of these tradeoffs requires moving application-specific selection into
 the manager. Implementations must qualify their behavior independently.

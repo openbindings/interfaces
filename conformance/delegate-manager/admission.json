@@ -517,7 +517,7 @@
       }
     },
     {
-      "id": "required-output-unspecified",
+      "id": "required-output-unspecified-admitted",
       "roles": [
         {
           "id": "A",
@@ -553,7 +553,7 @@
         "A"
       ],
       "expected": {
-        "admitted": false
+        "admitted": true
       }
     },
     {

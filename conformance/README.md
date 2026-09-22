@@ -101,6 +101,13 @@ key, and the expected route-to-one status. Available cases additionally pin the
 provider and binding identity; ambiguous cases pin the provider-versus-
 realization stage; unavailable cases pin ordered stable assessment codes.
 
+A name or alias correspondence is the provider's compatibility claim (core
+§5.1 calls it the correspondence claim). The policy sets a candidate aside only
+when the comparison profile proves a contradiction of that claim
+(`contract_incompatible`); a differing keyword the profile cannot read leaves
+the claim standing, so there is no indeterminate composition state and the
+profile's evidence rides the resolved route for inspection.
+
 The policy is an SDK convention rather than a Core specification semantic.
 Putting it here prevents the two reference SDKs from drifting while keeping
 third-party policies free to make different, explicitly identified decisions.

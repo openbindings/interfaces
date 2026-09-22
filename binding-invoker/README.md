@@ -38,7 +38,7 @@ surfaces is `listed ⊆ supported`: every listed identifier MUST receive
 `supported: true` from `checkBindingSpecs`.
 
 This advisory/authoritative division already has a precedent in this contract:
-`prepareBinding` is advisory pre-flight, while the live `CONTEXT_REQUIRED`
+`preflightBinding` is advisory pre-flight, while the live `CONTEXT_REQUIRED`
 challenge is authoritative. The same division now applies on the
 binding-specification-support axis.
 
@@ -182,42 +182,9 @@ select that alternative, exactly as for any other family.
 
 Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An invoker may surface an artifact-defined scheme as an extension requirement only when it knows how the resulting context will be applied faithfully. If the invoker cannot represent or apply a prerequisite, it refuses before dispatch rather than emitting a satisfiable-looking challenge or attempting the interaction without it.
 
-### prepareBinding (optional preparation)
+### preflightBinding
 
-`prepareBinding` gives a binding an opportunity to get ready for a possible
-invocation and report known missing context. A caller may ask early when an
-operation becomes likely. The binding chooses useful work, including I/O,
-description retrieval, connection establishment or reusable analysis, and owns
-retained resources under its existing bounded retention and cleanup policy.
-It may do nothing. Invocation works without an earlier preparation call.
-
-Preparation does not execute the requested operation, emit its results, consume
-its input stream, or spend an approval for it. There is no universal guarantee
-of no external setup effects or idempotency. Reading a description or opening
-a connection is distinct from dispatching the requested operation. An operation
-request made to probe for requirements cannot claim to be preparation or safe
-to redo merely because it returned an authentication error.
-
-The result remains `ContextRequiredDetails` or `null`. Supplied context narrows
-the result to known unmet requirements. `null` also covers unknown requirements
-or no useful preparation; it never certifies readiness or future success.
-Required setup/discovery failures are errors, not successful unknown results.
-Optional acceleration uses the binding's normal valid fallback so it adds no
-new prerequisite. A runtime that calls preparation before ordinary invocation
-may stop on its error; implementations must choose work appropriate there too.
-
-Explicit preparation does not resolve requirements, prompt, obtain new authority
-or retry. The application chooses what to do with the result. Live context
-challenges remain authoritative, under the requested-operation boundary above.
-Repeated or concurrent preparation and invocation are valid. Results may become
-stale; callers discard results for obsolete operation, binding or context
-selections before resolving them. Preparation does not pin later selection.
-
-Cancellation bounds the call's work cooperatively. Reusable state may outlive
-it with its existing owner; there is no preparation handle or detached per-call
-task. Reuse respects source, target, context scope and non-durable values. If
-there is no suitable bounded owner and cleanup path, acquisition belongs to
-invocation. These are implementation obligations, not a sandbox around hooks.
+`preflightBinding` tells a binding that an invocation of this selection may follow, and lets it report context requirements it can already identify from the source and the supplied context. The result is a `ContextRequiredDetails` in the same shape a `CONTEXT_REQUIRED` challenge carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the governing binding specification's, and anything else a binding does in response is that specification's to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction. The binding specification governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
 
 ## Unsuccessful completion
 

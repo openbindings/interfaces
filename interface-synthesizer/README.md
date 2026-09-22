@@ -28,7 +28,7 @@ may treat it as if it answers the support question. The one law connecting the
 surfaces is `listed ⊆ supported`: every listed identifier MUST receive
 `supported: true` from `checkBindingSpecs`.
 
-The binding-invoker contract already uses this division: `prepareBinding` is
+The binding-invoker contract already uses this division: `preflightBinding` is
 advisory pre-flight while the live `CONTEXT_REQUIRED` challenge is
 authoritative. The same division now applies on the
 binding-specification-support axis.

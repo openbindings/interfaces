@@ -38,7 +38,7 @@ surfaces is `listed ⊆ supported`: every listed identifier MUST receive
 `supported: true` from `checkBindingSpecs`.
 
 This advisory/authoritative division already has a precedent in this contract:
-`prepareBinding` is advisory pre-flight, while the live `CONTEXT_REQUIRED`
+`preflightBinding` is advisory pre-flight, while the live `CONTEXT_REQUIRED`
 challenge is authoritative. The same division now applies on the
 binding-specification-support axis.
 
@@ -112,7 +112,7 @@ Interactive resolution is deliberately outside this contract. An in-process impl
 
 A binding often needs context the caller has not supplied: credentials, an approval, a configuration value. The OBI document does not declare these. Instead the invoker discovers them at call time and asks for them, so the same mechanism works for every binding family and for prerequisites beyond auth.
 
-When a binding cannot proceed because required context is missing, `invokeBinding` emits a terminal `error` frame with code `CONTEXT_REQUIRED` and a `ContextRequiredDetails` payload, **before** any `output` frame and **before** any observable side effect on the target. That pre-execution guarantee is what makes resolve-and-retry safe for non-idempotent operations.
+When a binding cannot proceed because required context is missing, `invokeBinding` emits a terminal `error` frame with code `CONTEXT_REQUIRED` and a `ContextRequiredDetails` payload, **before** any `output` frame and **before** any observable effect of the requested operation on the target. That pre-execution guarantee is what makes resolve-and-retry safe for non-idempotent operations.
 
 `ContextRequiredDetails` carries:
 
@@ -182,9 +182,9 @@ select that alternative, exactly as for any other family.
 
 Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An invoker may surface an artifact-defined scheme as an extension requirement only when it knows how the resulting context will be applied faithfully. If the invoker cannot represent or apply a prerequisite, it refuses before dispatch rather than emitting a satisfiable-looking challenge or attempting the interaction without it.
 
-### prepareBinding (preflight)
+### preflightBinding
 
-`prepareBinding` lets a tool ask for a binding's requirements **before** invoking, returning a `ContextRequiredDetails` (or `null` when none are known statically). The operation is always implementable — returning `null` is the conformant answer whenever requirements cannot be determined without invoking, so no capability prevents a service from carrying it (correspondence remains per-operation, as for every contract operation). It is advisory: a target may only reveal requirements via a live `CONTEXT_REQUIRED`, so the reactive challenge is authoritative. Supplying `context` on the input narrows the result to what is still unsatisfied. This gives good UX (prompt for auth before the user acts) without putting auth metadata in the OBI document.
+`preflightBinding` tells a binding that an invocation of this selection may follow, and lets it report context requirements it can already identify from the source and the supplied context. The result is a `ContextRequiredDetails` in the same shape a `CONTEXT_REQUIRED` challenge carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the governing binding specification's, and anything else a binding does in response is that specification's to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction. The binding specification governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
 
 ## Unsuccessful completion
 
@@ -224,11 +224,11 @@ cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
-| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. A refusal with a resolution path: like `ERR_REFUSED`, it guarantees no observable side effect occurred. |
+| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. A refusal with a resolution path: like `ERR_REFUSED`, it guarantees no observable effect of the requested operation occurred. |
 | `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
 | `ERR_CANCELLED` | The caller cancelled the invocation. |
-| `ERR_REFUSED` | Unsuccessful completion carrying the guarantee that **no observable interaction side effect occurred** — the invocation was refused before dispatch. Every "refuses before dispatch" rule in a governing binding specification surfaces portably as this code (or as `CONTEXT_REQUIRED` when the refusal carries a resolution path). An implementation MUST NOT emit it unless the guarantee holds; a caller may treat it as safe to retry once the refusal's cause is addressed. |
+| `ERR_REFUSED` | Unsuccessful completion carrying the guarantee that **no observable effect of the requested operation occurred** — the invocation was refused before dispatch. Every "refuses before dispatch" rule in a governing binding specification surfaces portably as this code (or as `CONTEXT_REQUIRED` when the refusal carries a resolution path). An implementation MUST NOT emit it unless the guarantee holds; a caller may treat it as safe to retry once the refusal's cause is addressed. |
 | `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: the caller MUST treat the interaction as possibly dispatched. |
 
 The operation-invoker interface and each governing binding specification own
@@ -241,7 +241,7 @@ no portable category, retry disposition, or protocol-status mapping. Retry and s
 policy belong to the caller and SDK layer. Binding specifications prove many
 refusals to happen **before dispatch**, and that boundary fact is carried
 portably by the code space itself: `ERR_REFUSED` (and its special case
-`CONTEXT_REQUIRED`) guarantees no observable side effect occurred, while
+`CONTEXT_REQUIRED`) guarantees no observable effect of the requested operation occurred, while
 `ERR_EXECUTION_FAILED` makes no dispatch-state claim and MUST be treated as
 possibly dispatched. Codes may encode interaction-boundary facts of this
 kind — whether dispatch occurred — and never cause, blame, or protocol

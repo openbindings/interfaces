@@ -48,9 +48,9 @@ The frame protocol and **every normative frame rule** are identical to [`binding
 
 ## Context is forwarded, not reinterpreted
 
-The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` error from that invocation propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution failure is a local runtime failure, not a declined challenge, and an unchanged resolver result does not trigger another attempt.
+The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` challenge from that invocation that the implementation does not resolve propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution failure is a local runtime failure, not a declined challenge, and an unchanged resolver result does not trigger another attempt.
 
-The contract does not prescribe where resolution runs or whether context is stored. A monolithic runtime may compose selection, resolution, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
+The contract does not prescribe where resolution runs, what triggers it, or whether context is stored. A monolithic runtime may compose selection, resolution, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
 
 `CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any observable operation side effect**, so a new attempt restarts a call that never happened. A binding may re-challenge after supplied context proves unusable only while its governing rules can still prove that boundary; a native failure status is not sufficient evidence by itself. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
 
@@ -86,9 +86,9 @@ failures relay unchanged. Any other implementation code remains non-portable
 under this interface; in particular, this list is not a general failure
 vocabulary for bindings or protocols.
 
-### prepareOperation (preflight)
+### preflightOperation
 
-`prepareOperation` is the by-reference counterpart to `prepareBinding`: it reports the context invoking an operation would require, without invoking it or causing side effects. It resolves the named `operation` (or `binding`) to a concrete binding and returns that binding's `ContextRequiredDetails`, or `null` when requirements cannot be determined without invoking. Returning `null` is always conformant, so the operation is always implementable. Like `prepareBinding` it is advisory — the reactive `CONTEXT_REQUIRED` from `invokeOperation` is authoritative — and supplying `context` narrows the result to what is still unsatisfied.
+`preflightOperation` resolves the named operation or binding with invocation's selection rules and preflights the selected binding under the [binding-invoker contract](../binding-invoker/README.md#preflightbinding). A resolution failure completes with this interface's own resolution code and is not the binding's answer. Preflight does not pin a later selection.
 
 ## What an operation invoker must NOT do
 

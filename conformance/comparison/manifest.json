@@ -45,6 +45,38 @@
       "findings": []
     },
     {
+      "path": "profile/identity-nested-pattern-differs-indeterminate.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "indeterminate",
+      "findings": [
+        "outside-profile"
+      ]
+    },
+    {
+      "path": "profile/identity-nested-pattern-sibling-compatible.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "profile/identity-nested-pattern-sibling-incompatible.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "maximum"
+      ]
+    },
+    {
+      "path": "profile/identity-pattern-compatible.json",
+      "mode": "subsume",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
       "path": "profile/outside-profile-candidate-output-indeterminate.json",
       "mode": "subsume",
       "direction": "output",
@@ -93,6 +125,22 @@
       "findings": [
         "type"
       ]
+    },
+    {
+      "path": "structural/identity-pattern-difference-incompatible.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "pattern"
+      ]
+    },
+    {
+      "path": "structural/identity-pattern-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
     },
     {
       "path": "structural/normalize-allof-flatten-identical.json",

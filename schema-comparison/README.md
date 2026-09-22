@@ -57,7 +57,7 @@ $schema  format  discriminator  nullable*
 
 Keys prefixed `x-` are extensions and are stripped.
 
-**Everything else fails closed.** A schema using any other keyword (`pattern`, `not`, `if`/`then`/`else`, `patternProperties`, `multipleOf`, `uniqueItems`, `prefixItems`, ...) is *outside the profile*: normalization refuses it with an outside-profile error, and the comparison outcome is **indeterminate** — "this profile cannot decide", never "incompatible". Consumers surface indeterminate distinctly, as a verdict alongside compatible and incompatible (the corpus verdict vocabulary carries it).
+**Everything else fails closed, at positions that differ.** A schema using any other keyword (`pattern`, `not`, `if`/`then`/`else`, `patternProperties`, `multipleOf`, `uniqueItems`, `prefixItems`, ...) is *outside the profile* at that position. Normalization retains the keyword and marks the position; the refusal is decided at comparison time, after the identity rule (Directional subsumption, rule 0): two normalized sub-schemas that are structurally identical are compatible at that position in both directions whatever keywords they carry, because a schema stands in for itself. Only a position that is **not** identical and carries an outside-profile keyword on either side yields **indeterminate** — "this profile cannot decide", never "incompatible". Consumers surface indeterminate distinctly, as a verdict alongside compatible and incompatible (the corpus verdict vocabulary carries it).
 
 `items` is compared as 2020-12 `items` only — one schema applied to every element. The tuple form (`prefixItems`) is outside the profile.
 
@@ -66,7 +66,7 @@ Keys prefixed `x-` are extensions and are stripped.
 Comparison operates on **normalized** schemas. Two normalized schemas are structurally identical when their values are equal under the exact value rules below, except that arrays at schema `oneOf`/`anyOf` keyword positions compare as multisets of structurally identical normalized variants: order is irrelevant, multiplicity is retained. This exception applies only at schema keyword positions, never inside `const` or `enum` instance data. It does not identify a `oneOf` schema with an `anyOf` schema. No canonical byte serialization is required, and structural identity is not general schema equivalence. Steps, in order:
 
 1. **`nullable` conversion** (OpenAPI 3.0 interop). `{"type": "string", "nullable": true}` becomes `{"type": ["null", "string"]}` before anything else — it is structural, so it must survive annotation stripping. A `type` array already containing `"null"` is left as is; `nullable: false` (or `nullable` without a `type`) is stripped.
-2. **Profile keyword check.** Any key that is not in scope, not an annotation, and not `x-`-prefixed fails closed (outside profile).
+2. **Profile keyword marking.** Any key that is not in scope, not an annotation, and not `x-`-prefixed is retained verbatim and marks the schema as outside the profile at that position. The refusal is deferred to comparison, where the identity rule runs first (see The profile boundary). An `allOf` whose sibling keywords or any branch carry an outside-profile keyword is not merged: the branches are normalized individually and the `allOf` array is retained in authored order, so identity remains decidable and any non-identical comparison at that position fails closed.
 3. **`$ref` inlining.** A `$ref` is resolved and replaced by its (normalized) target, equivalent to inlining. Fragment-only refs (`#/schemas/Foo`) resolve against the containing document root the caller supplies (in OpenBindings use, the interface document — named schemas live in the document's top-level `schemas` map). External refs resolve only if the caller supplies a fetcher, relative refs only against a caller-supplied base; otherwise resolution fails. Reference **cycles** are detected and fail — the profile does not compare recursive schemas.
 4. **Stripping.** Annotations, `$defs` (dead weight once refs are inlined), and `x-` extensions are removed.
 5. **`allOf` flattening.** Each branch is first normalized in full — these steps apply recursively, so a `$ref` branch is resolved and profile-checked exactly as step 3 requires, and a nested `allOf` inside a branch flattens before its parent merges. The schema's own sibling keywords (everything beside `allOf` that survives stripping) form one additional branch. All normalized branches then merge into a single schema (rules below): the sibling branch first, then the declared branches in order. The order is observable: `enum` intersection preserves the first branch's value order in the normalized form. `oneOf`/`anyOf` in a normalized branch fails closed, whether written inline, carried by a resolved `$ref`, or among the sibling keywords. The merged result is normalized again.
@@ -107,6 +107,8 @@ After normalizing both sides, per-keyword rules run in a fixed order; the **firs
 
 ### Rule order
 
+0. **Identity.** If the target and candidate sub-schemas at this position are structurally identical after normalization (Normalization, above), the position is compatible in both directions, whatever keywords it carries, and the walk does not descend into it. A schema always stands in for itself.
+0a. **Outside the profile.** If the position is not identical and either side carries an outside-profile keyword at this position, the position is indeterminate with the finding `outside-profile`; no further rule runs there.
 1. Top rules (empty schema, above)
 2. `type`
 3. `const` / `enum`
@@ -176,6 +178,8 @@ The profile deliberately reports **no finding** in these situations:
 
 Consumer-level *finding suppression* — downgrading a reported finding by rule, with an audit trail — is a consumer policy on top of the report and is outside this profile.
 
+**Identical mode.** Whole-document identity (the corpus's `identical` mode) compares normalized schemas structurally, outside-profile keywords included: identical documents are compatible and differing documents are incompatible, with the first differing keyword as the finding. Identity never yields indeterminate, because sameness is decidable for any keyword.
+
 ## Conformance corpus
 
 The shared corpus lives at [`../conformance/comparison/`](../conformance/comparison/): a `manifest.json` plus fixture files in four categories (`profile/`, `structural/`, `subsumption/`, `suppression/`), and the manifest's `exactValues` pack carrying JSON-text documents so fixture decoding cannot round their numbers. Both packs test this same profile, not different precision modes. Both reference SDK harnesses consume the corpus unmodified (locate convention: `OB_INTERFACES_CORPUS`, else the sibling-checkout path — see [`../conformance/README.md`](../conformance/README.md)). Where this prose and the corpus disagree, the prose governs. Implementation gaps must remain visible; a partial passing run is not whole-profile qualification.
@@ -188,4 +192,4 @@ The shared corpus lives at [`../conformance/comparison/`](../conformance/compari
 
 ## Versioning
 
-This is profile version **0.1**, written against OpenBindings spec **0.2.0**. Pre-launch it is a working draft amendable in place, per this repository's convention; after launch, semantic changes ship as a new profile version. The keyword subset is intentionally conservative — widening the profile (e.g., deciding `pattern` containment) is a version bump, never a silent extension.
+This is profile version **0.1**, written against OpenBindings spec **0.2.0**. The identity rule (rule 0) and comparison-time fail-closed were added in place on 2026-09-22 under the pre-launch convention; they widen what the profile decides without changing any verdict the earlier text produced for non-identical positions. Pre-launch it is a working draft amendable in place, per this repository's convention; after launch, semantic changes ship as a new profile version. The keyword subset is intentionally conservative — widening the profile (e.g., deciding `pattern` containment) is a version bump, never a silent extension.

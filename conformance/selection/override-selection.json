@@ -1,6 +1,6 @@
 {
   "cluster": "override-selection",
-  "description": "Consumer override: context.configuration.selection is an ordered list of binding keys, the first invocable entry winning. An entry is invocable when it is defined on the interface, targets the resolved operation, and its governing binding specification is supported; entries failing any of those are skipped. When no listed entry is invocable, the default policy applies.",
+  "description": "Caller choice: selection is an ordered list of binding keys, the first invocable entry winning. Every listed key must name a binding of the resolved operation; a key that does not is ERR_BINDING_NOT_FOUND. Entries whose governing binding specification the invoker cannot act on are passed over. When no listed entry is invocable, the list fails with ERR_BINDING_NOT_FOUND and never falls back to an unlisted binding.",
   "tests": [
     {
       "description": "the override displaces the default policy: a listed key wins over the policy's preferred candidate",
@@ -41,7 +41,7 @@
       "expected": { "binding": "getThing.rest" }
     },
     {
-      "description": "a listed key that is not defined on the interface is skipped; the next invocable entry wins",
+      "description": "a listed key that names no binding is an error, even when a later entry is invocable",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },
@@ -57,10 +57,10 @@
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
       "selection": ["getThing.nope", "getThing.rpc"],
-      "expected": { "binding": "getThing.rpc" }
+      "expected": { "error": true, "kind": "unknown-binding" }
     },
     {
-      "description": "a listed key that targets a different operation is skipped; the next invocable entry wins",
+      "description": "a listed key that names another operation's binding is an error, even when a later entry is invocable",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {}, "listThings": {} },
@@ -77,7 +77,7 @@
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
       "selection": ["listThings.rest", "getThing.rpc"],
-      "expected": { "binding": "getThing.rpc" }
+      "expected": { "error": true, "kind": "unknown-binding" }
     },
     {
       "description": "a listed key whose governing binding specification is unsupported is skipped; the next invocable entry wins",
@@ -99,27 +99,7 @@
       "expected": { "binding": "getThing.rest" }
     },
     {
-      "description": "no listed entry is invocable: several remaining candidates still require a choice",
-      "document": {
-        "openbindings": "0.2.0",
-        "operations": { "getThing": {}, "listThings": {} },
-        "sources": {
-          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
-          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
-        },
-        "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get", "preference": 5 },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "preference": 9 },
-          "listThings.rest": { "operation": "listThings", "source": "rest", "selector": "#/paths/~1things/get" }
-        }
-      },
-      "operation": "getThing",
-      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
-      "selection": ["getThing.nope", "listThings.rest"],
-      "expected": { "error": true, "kind": "ambiguous" }
-    },
-    {
-      "description": "an empty override list makes no choice: several remaining candidates still require one",
+      "description": "every listed key is checked: one that names no binding is an error even after the entry that would win",
       "document": {
         "openbindings": "0.2.0",
         "operations": { "getThing": {} },
@@ -128,14 +108,54 @@
           "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get", "preference": 5 },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "preference": 9 }
+          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing" }
         }
       },
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
-      "selection": [],
-      "expected": { "error": true, "kind": "ambiguous" }
+      "selection": ["getThing.rpc", "getThing.nope"],
+      "expected": { "error": true, "kind": "unknown-binding" }
+    },
+    {
+      "description": "no listed entry is invocable: the list fails rather than falling back to the sole remaining candidate",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1"],
+      "selection": ["getThing.rpc"],
+      "expected": { "error": true, "kind": "no-candidate" }
+    },
+    {
+      "description": "no listed entry is invocable while several unlisted candidates are: not found, not a request to choose",
+      "document": {
+        "openbindings": "0.2.0",
+        "operations": { "getThing": {} },
+        "sources": {
+          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
+          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" },
+          "cli": { "bindingSpec": "openbindings.usage@1", "location": "https://example.com/things/things.usage.kdl" }
+        },
+        "bindings": {
+          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" },
+          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing" },
+          "getThing.cli": { "operation": "getThing", "source": "cli", "selector": "things get" }
+        }
+      },
+      "operation": "getThing",
+      "supported": ["openbindings.openapi@1", "openbindings.usage@1"],
+      "selection": ["getThing.rpc"],
+      "expected": { "error": true, "kind": "no-candidate" }
     },
     {
       "description": "the override selects a deprecated key even when a non-deprecated candidate exists: first-invocable-wins applies no tiering",

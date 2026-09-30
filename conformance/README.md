@@ -9,7 +9,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 | Contract rule family | Coverage |
 |---|---|
 | binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`binding-spec-support/`). |
-| operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
+| operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
@@ -38,7 +38,7 @@ Covers the operation-invoker contract's selection rules — its README's "Select
 
 - **Candidate set**: the operation's bindings whose governing binding specification the invoker can act on, by exact identifier (`default-supported.json`).
 - **Automatic resolution**: a sole invocable candidate is selected; several are refused without consulting preference, deprecation, or ordering metadata (`automatic-resolution.json`).
-- **Ordered caller choice**: `context.configuration.selection` selects its first invocable listed binding; an ineffective list does not authorize an invented fallback (`override-selection.json`).
+- **Ordered caller choice**: `selection` selects its first invocable listed binding; a listed key that names no binding of the operation, or a list with no invocable entry, is `ERR_BINDING_NOT_FOUND`, never a fallback (`override-selection.json`).
 - **Explicit `binding` key**: bypasses other resolution; unknown key is an error (`explicit-binding.json`).
 - **Failure**: no invocable binding uses `ERR_BINDING_NOT_FOUND`; ambiguity uses `ERR_BINDING_SELECTION_REQUIRED`.
 
@@ -57,7 +57,6 @@ One file per rule-cluster, validated by [`selection/fixture.schema.json`](select
       "operation": "getThing",
       "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
       "selection": ["getThing.rpc"],
-      "binding": "getThing.rpc",
       "expected": { "binding": "getThing.rpc" }
     }
   ]
@@ -69,9 +68,9 @@ Field semantics:
 - `document`: a complete, **valid** OpenBindings interface document, embedded inline. Harnesses run it through their implementation's real document validation before selecting; a document that fails validation is a corpus defect, never an expected outcome.
 - `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-12).
 - `supported`: the notional invoker's supported set — the exact binding-specification identifiers it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" specification is a real candidate identifier absent from this set, never an invented one.
-- `selection` (optional): the ordered `context.configuration.selection` caller choice. Absent or empty makes no choice; if no listed entry is invocable, sole-candidate/ambiguity resolution still applies.
+- `selection` (optional): the invocation input's ordered `selection`, a nonempty list of binding keys. Every key must name one of the operation's bindings; the first invocable one wins; a list with no invocable entry is an error, never a fallback. Never present together with `binding`.
 - `binding` (optional): the explicit binding key, the wire contract's binding-addressed form. On the wire `operation` and `binding` are mutually exclusive (the operation is *derived* from an explicit binding); the fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario, with the invariant `document.bindings[binding].operation` = the resolved operation (vacuous for unknown-key fixtures).
-- `expected`: either `{ "binding": "<key>" }` or `{ "error": true, "kind": "unknown-binding" | "no-candidate" | "ambiguous" }`. The first two errors use `ERR_BINDING_NOT_FOUND`; ambiguity uses `ERR_BINDING_SELECTION_REQUIRED`.
+- `expected`: either `{ "binding": "<key>" }` or `{ "error": true, "kind": "unknown-binding" | "no-candidate" | "ambiguous" }`. `unknown-binding` is a named key (explicit or listed) that names no binding of the operation; `no-candidate` is no invocable binding among those allowed. Both use `ERR_BINDING_NOT_FOUND`; ambiguity uses `ERR_BINDING_SELECTION_REQUIRED`.
 
 ### Determinism claim
 

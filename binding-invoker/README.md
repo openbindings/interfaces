@@ -98,7 +98,7 @@ Context is an opaque object, but these well-known field names provide cross-invo
 | `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
 | `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
 | `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
-| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name (the operation-invoker's `selection` point; a family's decode point; …); consulted at the first tier of each point's order |
+| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name (a family's decode point, for example); consulted at the first tier of each point's order |
 
 Implementations and callers may add fields for session state, consent, or other family-specific needs. Consumers ignore fields they do not understand unless the governing binding specification says otherwise.
 

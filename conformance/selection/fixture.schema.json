@@ -28,6 +28,7 @@
       "items": {
         "type": "object",
         "required": ["description", "document", "operation", "supported", "expected"],
+        "not": { "required": ["binding", "selection"] },
         "additionalProperties": false,
         "properties": {
           "description": {
@@ -53,13 +54,14 @@
           },
           "selection": {
             "type": "array",
-            "items": { "type": "string" },
-            "description": "The context.configuration.selection caller choice: an ordered list of binding keys, the first invocable entry winning. When none is invocable, the sole-candidate or ambiguity rule applies. Absent means no ordered choice; an empty list makes no choice."
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1,
+            "description": "The invocation input's ordered selection: binding keys in the caller's preference order, the first invocable entry winning. Every key must name a binding of the operation; a key that does not, or a list with no invocable entry, is ERR_BINDING_NOT_FOUND, never a fallback. Absent means no ordered choice. Never present together with binding."
           },
           "binding": {
             "type": "string",
             "minLength": 1,
-            "description": "Explicit binding key: the wire contract's binding-addressed form. Other resolution and any configured selection list are bypassed; the named binding is used even if deprecated, and an unknown key is an error."
+            "description": "Explicit binding key: the wire contract's binding-addressed form. Other resolution is bypassed; the named binding is used even if deprecated, and an unknown key is an error. Never present together with selection."
           },
           "expected": {
             "description": "The selection outcome: either the key of the selected binding, or an error.",
@@ -83,11 +85,11 @@
                 "properties": {
                   "error": {
                     "const": true,
-                    "description": "Binding resolution fails. Unknown explicit bindings and empty candidate sets use ERR_BINDING_NOT_FOUND; ambiguity uses ERR_BINDING_SELECTION_REQUIRED."
+                    "description": "Binding resolution fails. Unknown named bindings and empty candidate sets use ERR_BINDING_NOT_FOUND; ambiguity uses ERR_BINDING_SELECTION_REQUIRED."
                   },
                   "kind": {
                     "enum": ["unknown-binding", "no-candidate", "ambiguous"],
-                    "description": "Which rule failed: 'unknown-binding' (undefined explicit key), 'no-candidate' (no invocable binding), or 'ambiguous' (several invocable bindings and no effective caller choice)."
+                    "description": "Which rule failed: 'unknown-binding' (an explicit or listed key that names no binding of the operation), 'no-candidate' (no invocable binding among those allowed), or 'ambiguous' (several invocable bindings and no caller choice)."
                   }
                 }
               }

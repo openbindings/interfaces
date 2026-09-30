@@ -31,12 +31,12 @@ When it receives an `OperationInvocationInput` (carried by the `open` frame), it
 1. **Resolves the key.** An `operation` key resolves to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it.
 2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose governing binding specification the invoker can act on. The contract follows caller policy and binding-specification authority without inventing a ranking:
    - an explicit `binding` key is used directly;
-   - when `context.configuration.selection` supplies an ordered list, the first invocable listed binding is used;
-   - without an effective caller choice, a sole invocable candidate is used;
+   - when the caller supplies an ordered `selection`, the first listed binding the invoker can act on is used. The list passes over only what the invoker cannot act on, the one fact a caller may not know. Every listed key must name one of the operation's bindings, and the list never falls back to a binding it does not name: a key that names no binding of the operation, or a list with none the invoker can act on, fails with `ERR_BINDING_NOT_FOUND`;
+   - without `binding` or `selection`, a sole invocable candidate is used;
    - zero candidates fail with `ERR_BINDING_NOT_FOUND`;
    - several candidates fail with `ERR_BINDING_SELECTION_REQUIRED`.
 
-   `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or ordered selection list.
+   `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or an ordered selection.
 3. **Validates and transforms.** Input values are validated against the operation's input schema, outputs against its output schema (where declared), and the binding's input/output transforms are applied. This is the layer the binding invoker lacks. Validating is a claim, and the claim carries the core's semantics ([OBI-T-16](https://github.com/openbindings/spec/blob/main/openbindings.md#103-tool-rules)): success only against the complete statically reachable schema graph, `format` as annotation, per value — a mismatch is `ERR_OPERATION_VALIDATION_FAILED`, an unresolvable schema graph is reported distinctly, and neither is ever papered over with partial validation.
 4. **Drives the binding invocation,** forwarding caller context down. It preserves the binding invoker's *frame sequence* — the same `output` / `input_closed` / terminal shape, one-for-one — but the output *payloads* it relays are the values after the operation's output transform and output-schema validation have run (step 3 is applied to this stream, not bypassed). An unsuccessful terminal frame remains unsuccessful, interface-owned data such as a `CONTEXT_REQUIRED` challenge remains intact, and an opaque application-authored failure value in `data` is relayed unchanged without protocol reinterpretation, output transformation, or output-schema validation. Binding-native evidence does not cross this boundary. The frames this layer may add are terminal ones of its own mechanics, such as `ERR_OPERATION_VALIDATION_FAILED` when an output fails the schema claim. "Relayed" means the envelope and ordering are the binding's; the carried values are this layer's transformed, validated ones.
 
@@ -55,15 +55,11 @@ The contract does not prescribe where resolution runs, what triggers it, or whet
 `CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any observable operation side effect**, so a new attempt restarts a call that never happened. A binding may re-challenge after supplied context proves unusable only while its governing rules can still prove that boundary; a native failure status is not sufficient evidence by itself. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
 
 One well-known context field rides through this layer: **`configuration`**, an
-object keyed by configuration-point name. This interface defines only its
-`selection` point: an array of binding-key strings in caller preference order.
-The first listed key that exists, belongs to the resolved operation, and is
-governed by a binding specification the invoker can act on is the caller's
-choice. A non-array value, a list containing a non-string, or a list with no
-invocable entry supplies no effective choice; the sole-candidate/ambiguity
-rules still apply. Binding specifications may define other configuration
-points. Each defining specification owns the value's meaning and consultation
-rules.
+object keyed by configuration-point name. This interface defines no
+configuration point; binding specifications define them, and each defining
+specification owns the value's meaning and consultation rules. Choosing a
+binding is not configuration: it is the caller's instruction for one call,
+carried by `binding` or `selection` in the invocation input.
 
 ## Operation-invoker-owned errors
 

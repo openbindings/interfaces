@@ -162,7 +162,7 @@ than interpreted as weights or silently discarded.
 
 Without `id`, the manager allocates a new non-reused ID. A repeat call without
 an ID is another enrollment, not an implicit refresh or deduplication. Therefore
-the operation has no `idempotent` declaration. After an uncertain result,
+the contract does not promise idempotence for enrollment. After an uncertain result,
 listing can help investigation but **cannot reliably correlate the request**:
 identical registrations are allowed and another caller may have enrolled one.
 A caller needing safe retries must use a separately specified native request

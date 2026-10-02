@@ -53,6 +53,9 @@ jobs:
       - name: Validate Delegate Manager documents and fixtures
         run: node delegate-manager/verification.mjs
 
+      - name: Check core and kind-content contract alignment
+        run: node .github/scripts/check-core-alignment.mjs
+
       - name: Validate comparison corpus against its schemas
         run: |
           ajv validate -s conformance/comparison/manifest.schema.json -d conformance/comparison/manifest.json --spec=draft2020

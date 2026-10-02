@@ -9,7 +9,7 @@
 # otherwise the file is fetched from GitHub. CI runs --check.
 set -euo pipefail
 
-SPEC_REF="main"
+SPEC_REF="release/0.2"
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 vendored="$repo_root/.github/scripts/openbindings.schema.json"

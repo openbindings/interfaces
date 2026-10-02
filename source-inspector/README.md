@@ -31,12 +31,12 @@ The inventory boundary matches synthesis: a bindable target is a source interact
 
 ## Operation framing is optional
 
-`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it; an inspector that only knows the selector MAY return targets with just `selector` (and optionally `operationKey`). Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target under the binding specification and any disclosed implementation-defined completion. Such a completion may make this inspector useful for an underdefined specification, but the projection is not evidence that the completion belongs to the identifier's portable meaning.
+`BindableTarget.operation` is optional. An inspector that knows enough to suggest input/output schemas, tags, or a description SHOULD include it. Every target supplies the kind-owned binding `content` needed to realize it, preserving absence when the kind identifies that target without content. A present null is a value, not absence. The optional `operationKey` is only a suggestion; no generic string selector is required. Consumers MUST treat a missing `operation` as "framing not provided," not as an error. When framing is present, it MUST be a sound projection of the same target under the binding specification and any disclosed implementation-defined completion. Such a completion is not evidence that the completion belongs to the identifier's portable meaning. The input `source` is an OBI source: its `kind` selects the interpretation of its optional content and each target's content.
 
 ## Idempotency
 
-`inspectSource` is declared idempotent: inspection does not intentionally
+`inspectSource` promises idempotent behavior: inspection does not intentionally
 change the source or external state. For the same observed source state and
 implementation configuration, targets and ordering are stable. A live
-`location` may change between calls; idempotency does not make an external
+location interpreted from the source's kind-owned content may change between calls; idempotency does not make an external
 resource immutable.

@@ -23,40 +23,25 @@
         },
         "Source": {
             "type": "object",
-            "description": "A binding source (binding-specification identifier plus location or content), as an OpenBindings document carries it. Open to extension fields so a document's source entry forwards verbatim.",
+            "required": [
+                "kind"
+            ],
             "properties": {
-                "bindingSpec": {
+                "kind": {
                     "type": "string",
-                    "description": "Binding specification identifier governing this source."
-                },
-                "location": {
-                    "type": "string",
-                    "description": "Absolute address of the source, per its binding specification (core OBI-D-05)."
+                    "minLength": 1,
+                    "description": "The source's kind: exact, opaque, non-empty string used to select an interpretation of the source and its bindings (e.g., example.openapi@1). Never implicitly dereferenced; no version algebra."
                 },
                 "content": {
-                    "description": "Embedded source-artifact representation, per its binding specification."
+                    "description": "Optional source content, as any JSON value, read under the source's kind. The core assigns no meaning to its presence, absence, type, or members. Member presence is distinct from value: content carrying JSON null is a present member."
                 },
                 "description": {
                     "type": "string",
-                    "description": "Human-readable description for this source."
+                    "description": "Human-readable description of this source."
                 }
             },
-            "required": [
-                "bindingSpec"
-            ],
-            "anyOf": [
-                {
-                    "required": [
-                        "location"
-                    ]
-                },
-                {
-                    "required": [
-                        "content"
-                    ]
-                }
-            ],
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "An OBI source, carried by value. Its exact kind selects the interpretation of source and binding content; content may be absent or any JSON value, including null. The schema carries the source shape; core document conformance additionally governs allowed extension members."
         },
         "Operation": {
             "type": "object",
@@ -83,9 +68,8 @@
             "type": "object",
             "description": "A target admitted by the source's governing binding specification that can be framed as an OpenBindings operation. Any included framing is a sound projection of this same target.",
             "properties": {
-                "selector": {
-                    "type": "string",
-                    "description": "Selector string a conforming binding entry can use under the governing binding specification."
+                "content": {
+                    "description": "Kind-owned content for a binding that realizes this target. Absence means the binding omits content; null is a present value."
                 },
                 "operationKey": {
                     "type": "string",
@@ -95,9 +79,7 @@
                     "$ref": "#/schemas/Operation"
                 }
             },
-            "required": [
-                "selector"
-            ]
+            "additionalProperties": false
         },
         "InspectSourceInput": {
             "type": "object",
@@ -181,8 +163,7 @@
     },
     "operations": {
         "openbindings.source-inspector.listBindingSpecs": {
-            "description": "List the binding specifications this inspector can inspect, by exact identifier.",
-            "idempotent": true,
+            "description": "List the binding specifications this inspector can inspect, by exact identifier. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "output": {
                 "type": "array",
                 "items": {
@@ -191,8 +172,7 @@
             }
         },
         "openbindings.source-inspector.inspectSource": {
-            "description": "Inspect a binding source artifact and return targets admitted by its governing binding specification, optionally with sound operation framing. The result states whether enumeration is exhaustive and explains any partial result.",
-            "idempotent": true,
+            "description": "Inspect a binding source artifact and return targets admitted by its governing binding specification, optionally with sound operation framing. The result states whether enumeration is exhaustive and explains any partial result. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "$ref": "#/schemas/InspectSourceInput"
             },

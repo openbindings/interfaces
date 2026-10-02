@@ -20,7 +20,7 @@
         "dependencies": {
           "delivery": {
             "operation": "deliver",
-            "bindingSpecs": [
+            "kinds": [
               "example.local@1"
             ]
           }
@@ -51,7 +51,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "send"
                 }
@@ -61,7 +61,9 @@
               "send.local": {
                 "operation": "send",
                 "source": "local",
-                "selector": "send"
+                "content": {
+                  "selector": "send"
+                }
               }
             }
           }
@@ -120,7 +122,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -154,7 +156,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -217,7 +219,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -227,12 +229,16 @@
               "deliver.a": {
                 "operation": "deliver",
                 "source": "local",
-                "selector": "a"
+                "content": {
+                  "selector": "a"
+                }
               },
               "deliver.b": {
                 "operation": "deliver",
                 "source": "local",
-                "selector": "b"
+                "content": {
+                  "selector": "b"
+                }
               }
             }
           }
@@ -288,7 +294,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -352,7 +358,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -392,7 +398,7 @@
         "dependencies": {
           "delivery": {
             "operation": "deliver",
-            "bindingSpecs": [
+            "kinds": [
               "example.allowed@1"
             ]
           }
@@ -419,7 +425,7 @@
             },
             "sources": {
               "other": {
-                "bindingSpec": "example.other@1",
+                "kind": "example.other@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -483,7 +489,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }
@@ -517,7 +523,7 @@
             },
             "sources": {
               "local": {
-                "bindingSpec": "example.local@1",
+                "kind": "example.local@1",
                 "content": {
                   "handler": "deliver"
                 }

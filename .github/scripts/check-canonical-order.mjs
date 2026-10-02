@@ -19,16 +19,16 @@ import { readFileSync } from "node:fs";
 const CANON = {
   Interface: [
     "openbindings", "name", "version", "description",
-    "schemas", "operations", "sources", "bindings", "transforms",
+    "schemas", "operations", "sources", "bindings", "dependencies",
   ],
   Operation: [
     "description", "deprecated", "tags", "aliases",
-    "idempotent", "input", "output", "examples",
+    "input", "output", "examples",
   ],
-  Source: ["bindingSpec", "location", "content", "description"],
+  Source: ["kind", "content", "description"],
   BindingEntry: [
-    "operation", "source", "selector", "preference", "description",
-    "deprecated", "inputTransform", "outputTransform",
+    "operation", "source", "content", "description", "preference",
+    "idempotent", "deprecated",
   ],
   OperationExample: ["description", "input", "output"],
 };

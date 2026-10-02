@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "Software Descriptor",
     "version": "0.2.0",
-    "description": "Generic identity contract any software MAY implement. Defines the describe operation for self-identification \u2014 name, version, description, homepage, repository, maintainer. Implementations MAY return additional fields beyond the minimum.",
+    "description": "Generic identity contract any software MAY implement. Defines the describe operation for self-identification — name, version, description, homepage, repository, maintainer. Implementations MAY return additional fields beyond the minimum.",
     "schemas": {
         "SoftwareIdentity": {
             "type": "object",
@@ -40,8 +40,7 @@
     },
     "operations": {
         "openbindings.software-descriptor.describe": {
-            "description": "Return identity and metadata about this software.",
-            "idempotent": true,
+            "description": "Return identity and metadata about this software. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "output": {
                 "$ref": "#/schemas/SoftwareIdentity"
             }

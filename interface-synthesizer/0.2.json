@@ -45,7 +45,7 @@
             "properties": {
                 "bindingSpec": {
                     "type": "string",
-                    "description": "Binding specification identifier governing this source."
+                    "description": "Exact binding-specification identifier for this authoring request; emitted OBI sources use this token as kind. This is an interface-owned input field."
                 },
                 "name": {
                     "type": "string",
@@ -60,11 +60,11 @@
                 },
                 "outputLocation": {
                     "type": "string",
-                    "description": "Location to reference in the output."
+                    "description": "Artifact location to encode in the emitted source's kind-owned content, if the binding specification supports that carriage."
                 },
                 "embed": {
                     "type": "boolean",
-                    "description": "If true, embed content inline in the output."
+                    "description": "If true, preserve a complete source representation in the emitted source's kind-owned content, or refuse if its binding specification cannot represent that carriage."
                 },
                 "description": {
                     "type": "string",
@@ -139,7 +139,7 @@
                 "sourceRef": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Stable source-local identifier for the interaction unit. It need not be a conformant binding selector when the unit is excluded or invalid."
+                    "description": "Stable source-local identifier for the interaction unit; independent of the shape of any emitted binding content."
                 },
                 "scope": {
                     "type": "string",
@@ -169,10 +169,6 @@
                     "type": "string",
                     "description": "Emitted binding key. Required when status is represented or lossy, except on a dependency unit, which carries no emitted binding identity."
                 },
-                "bindingSelector": {
-                    "type": "string",
-                    "description": "Emitted binding selector. Required when status is represented or lossy; the empty string denotes a binding-specification-defined omitted selector. A dependency unit carries none."
-                },
                 "reasonCode": {
                     "type": "string",
                     "minLength": 1,
@@ -198,6 +194,9 @@
                     "type": "object",
                     "description": "Family-specific structured evidence.",
                     "additionalProperties": true
+                },
+                "bindingContent": {
+                    "description": "Exact kind-owned content of the emitted binding. Present exactly when that binding's content is present, including null. A dependency entry carries none."
                 }
             },
             "required": [
@@ -211,26 +210,38 @@
                     "properties": {
                         "status": {
                             "const": "represented"
+                        },
+                        "scope": {
+                            "enum": [
+                                "target",
+                                "alternative",
+                                "projection"
+                            ]
                         }
                     },
                     "required": [
                         "sourceKey",
                         "operationKey",
-                        "bindingKey",
-                        "bindingSelector"
+                        "bindingKey"
                     ]
                 },
                 {
                     "properties": {
                         "status": {
                             "const": "lossy"
+                        },
+                        "scope": {
+                            "enum": [
+                                "target",
+                                "alternative",
+                                "projection"
+                            ]
                         }
                     },
                     "required": [
                         "sourceKey",
                         "operationKey",
                         "bindingKey",
-                        "bindingSelector",
                         "reasonCode",
                         "message"
                     ]
@@ -243,14 +254,61 @@
                                 "invalid",
                                 "implementation-unsupported"
                             ]
+                        },
+                        "scope": {
+                            "enum": [
+                                "target",
+                                "alternative",
+                                "projection"
+                            ]
                         }
                     },
                     "required": [
                         "reasonCode",
                         "message"
                     ]
+                },
+                {
+                    "properties": {
+                        "scope": {
+                            "const": "dependency"
+                        },
+                        "status": {
+                            "enum": [
+                                "represented"
+                            ]
+                        },
+                        "sourceKey": false,
+                        "operationKey": false,
+                        "bindingKey": false,
+                        "bindingContent": false
+                    }
+                },
+                {
+                    "properties": {
+                        "scope": {
+                            "const": "dependency"
+                        },
+                        "status": {
+                            "enum": [
+                                "excluded",
+                                "invalid",
+                                "lossy",
+                                "implementation-unsupported"
+                            ]
+                        },
+                        "sourceKey": false,
+                        "operationKey": false,
+                        "bindingKey": false,
+                        "bindingContent": false
+                    },
+                    "required": [
+                        "reasonCode",
+                        "message"
+                    ]
                 }
-            ]
+            ],
+            "additionalProperties": false
         },
         "SynthesisCoverage": {
             "type": "object",
@@ -343,8 +401,7 @@
     },
     "operations": {
         "openbindings.interface-synthesizer.listBindingSpecs": {
-            "description": "Return an advisory glance at binding specifications this synthesizer can name, for display, documentation, and pickers. Presence is a support warrant, and every listed identifier MUST receive supported: true from checkBindingSpecs. Absence carries no information and MUST NOT be treated as a negative support decision.",
-            "idempotent": true,
+            "description": "Return an advisory glance at binding specifications this synthesizer can name, for display, documentation, and pickers. Presence is a support warrant, and every listed identifier MUST receive supported: true from checkBindingSpecs. Absence carries no information and MUST NOT be treated as a negative support decision. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "output": {
                 "type": "array",
                 "items": {
@@ -353,8 +410,7 @@
             }
         },
         "openbindings.interface-synthesizer.checkBindingSpecs": {
-            "description": "Authoritatively determine support for exact, opaque binding-specification identifier tokens. This is the only operation a consumer may use to make a support decision such as source acceptance, refusal, or delegation. The result contains one verdict per unique input token in first-occurrence order. supported is always a strict boolean; true warrants that this implementation implements the specification the exact string denotes, as published. The result is deterministic for a given implementation version and the operation is side-effect free. An internal pattern may compress the warranted set but MUST NOT extend it: an implementation never answers true for a specification it has not implemented and never matches future revisions by prefix or regular expression. Future optional verdict fields may annotate a verdict but never qualify or soften supported.",
-            "idempotent": true,
+            "description": "Authoritatively determine support for exact, opaque binding-specification identifier tokens. This is the only operation a consumer may use to make a support decision such as source acceptance, refusal, or delegation. The result contains one verdict per unique input token in first-occurrence order. supported is always a strict boolean; true warrants that this implementation implements the specification the exact string denotes, as published. The result is deterministic for a given implementation version and the operation is side-effect free. An internal pattern may compress the warranted set but MUST NOT extend it: an implementation never answers true for a specification it has not implemented and never matches future revisions by prefix or regular expression. Future optional verdict fields may annotate a verdict but never qualify or soften supported. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -379,8 +435,7 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterface": {
-            "description": "Synthesize a creation-time-sound OpenBindings interface, optionally from binding source artifacts. Every emitted binding resolves to a supported target and admits a faithful invocation path. For every accepted source input, represent every callable target admitted by its governing binding revision; an implementation may refuse an unsupported artifact as a whole but MUST refuse instead of silently returning a partial interface when one admitted target cannot be represented faithfully.",
-            "idempotent": true,
+            "description": "Synthesize a creation-time-sound OpenBindings interface, optionally from binding source artifacts. Every emitted binding resolves to a supported target and admits a faithful invocation path. For every accepted source input, represent every callable target admitted by its governing binding revision; an implementation may refuse an unsupported artifact as a whole but MUST refuse instead of silently returning a partial interface when one admitted target cannot be represented faithfully. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"
             },
@@ -389,8 +444,7 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterfaceWithCoverage": {
-            "description": "Synthesize a creation-time-sound OpenBindings interface and return durable dispositions plus an explicit exhaustiveness claim for the source interaction units considered by the same call. The result distinguishes binding-specification exclusions, invalid source units, lossy projections, and implementation gaps. Coverage is evidence that consumers may verify independently, not proof.",
-            "idempotent": true,
+            "description": "Synthesize a creation-time-sound OpenBindings interface and return durable dispositions plus an explicit exhaustiveness claim for the source interaction units considered by the same call. The result distinguishes binding-specification exclusions, invalid source units, lossy projections, and implementation gaps. Coverage is evidence that consumers may verify independently, not proof. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"
             },

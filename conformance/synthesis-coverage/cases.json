@@ -2,7 +2,7 @@
   "format": "openbindings.interface-synthesis-coverage-cases@1",
   "tests": [
     {
-      "description": "complete represented evidence links input source, emitted source, binding, operation, and selector",
+      "description": "complete represented evidence links input source, emitted source, binding, operation, and binding content",
       "interface": {
         "openbindings": "0.2.0",
         "operations": {
@@ -10,15 +10,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "selector": "#/paths/~1users~1{id}/get"
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
           }
         }
       },
@@ -31,7 +35,9 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.api",
-          "bindingSelector": "#/paths/~1users~1{id}/get"
+          "bindingContent": {
+            "selector": "#/paths/~1users~1{id}/get"
+          }
         }
       ],
       "exhaustive": true,
@@ -47,8 +53,10 @@
         "operations": {},
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         }
       },
@@ -78,15 +86,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "selector": "#/paths/~1users~1{id}/get"
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
           }
         }
       },
@@ -99,7 +111,9 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.api",
-          "bindingSelector": "#/paths/~1users~1{id}/get"
+          "bindingContent": {
+            "selector": "#/paths/~1users~1{id}/get"
+          }
         }
       ],
       "exhaustive": false,
@@ -117,15 +131,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "selector": "#/paths/~1users~1{id}/get"
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
           }
         }
       },
@@ -138,7 +156,9 @@
           "status": "represented",
           "operationKey": "getUser",
           "bindingKey": "getUser.missing",
-          "bindingSelector": "#/paths/~1users~1{id}/get"
+          "bindingContent": {
+            "selector": "#/paths/~1users~1{id}/get"
+          }
         }
       ],
       "exhaustive": true,
@@ -156,15 +176,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "getUser.api": {
             "operation": "getUser",
             "source": "api",
-            "selector": "#/paths/~1users~1{id}/get"
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
           }
         }
       },
@@ -194,15 +218,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi-3.1@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi-3.1@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "createJob.api": {
             "operation": "createJob",
             "source": "api",
-            "selector": "#/paths/~1jobs/post"
+            "content": {
+              "selector": "#/paths/~1jobs/post"
+            }
           }
         },
         "dependencies": {
@@ -220,7 +248,9 @@
           "status": "represented",
           "operationKey": "createJob",
           "bindingKey": "createJob.api",
-          "bindingSelector": "#/paths/~1jobs/post"
+          "bindingContent": {
+            "selector": "#/paths/~1jobs/post"
+          }
         },
         {
           "sourceIndex": 0,
@@ -253,15 +283,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi-3.1@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi-3.1@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "createJob.api": {
             "operation": "createJob",
             "source": "api",
-            "selector": "#/paths/~1jobs/post"
+            "content": {
+              "selector": "#/paths/~1jobs/post"
+            }
           }
         },
         "dependencies": {
@@ -279,7 +313,9 @@
           "status": "represented",
           "operationKey": "createJob",
           "bindingKey": "createJob.api",
-          "bindingSelector": "#/paths/~1jobs/post"
+          "bindingContent": {
+            "selector": "#/paths/~1jobs/post"
+          }
         },
         {
           "sourceIndex": 0,
@@ -288,7 +324,9 @@
           "status": "represented",
           "operationKey": "onJobDone",
           "bindingKey": "createJob.api",
-          "bindingSelector": "#/paths/~1jobs/post"
+          "bindingContent": {
+            "selector": "#/paths/~1jobs/post"
+          }
         }
       ],
       "exhaustive": true,
@@ -307,15 +345,19 @@
         },
         "sources": {
           "api": {
-            "bindingSpec": "openbindings.openapi-3.1@1",
-            "location": "https://example.com/openapi.json"
+            "kind": "openbindings.openapi-3.1@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
           }
         },
         "bindings": {
           "createJob.api": {
             "operation": "createJob",
             "source": "api",
-            "selector": "#/paths/~1jobs/post"
+            "content": {
+              "selector": "#/paths/~1jobs/post"
+            }
           }
         },
         "dependencies": {
@@ -333,7 +375,9 @@
           "status": "represented",
           "operationKey": "createJob",
           "bindingKey": "createJob.api",
-          "bindingSelector": "#/paths/~1jobs/post"
+          "bindingContent": {
+            "selector": "#/paths/~1jobs/post"
+          }
         }
       ],
       "exhaustive": true,

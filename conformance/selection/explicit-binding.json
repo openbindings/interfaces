@@ -7,76 +7,186 @@
       "description": "an explicit binding key resolves a choice that would otherwise be ambiguous",
       "document": {
         "openbindings": "0.2.0",
-        "operations": { "getThing": {} },
+        "operations": {
+          "getThing": {}
+        },
         "sources": {
-          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
-          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+          "rest": {
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/things/openapi.json"
+            }
+          },
+          "rpc": {
+            "kind": "openbindings.grpc@1",
+            "content": {
+              "location": "https://example.com/things/things.protoset"
+            }
+          }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get", "preference": 100 },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "preference": 1 }
+          "getThing.rest": {
+            "operation": "getThing",
+            "source": "rest",
+            "content": {
+              "selector": "#/paths/~1things~1{id}/get"
+            },
+            "preference": 100
+          },
+          "getThing.rpc": {
+            "operation": "getThing",
+            "source": "rpc",
+            "content": {
+              "selector": "things.v1.Things/GetThing"
+            },
+            "preference": 1
+          }
         }
       },
       "operation": "getThing",
-      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "supported": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
       "binding": "getThing.rpc",
-      "expected": { "binding": "getThing.rpc" }
+      "expected": {
+        "binding": "getThing.rpc"
+      }
     },
     {
       "description": "an explicit binding key selects a deprecated binding: deprecation never disqualifies an explicit choice",
       "document": {
         "openbindings": "0.2.0",
-        "operations": { "getThing": {} },
+        "operations": {
+          "getThing": {}
+        },
         "sources": {
-          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
-          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+          "rest": {
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/things/openapi.json"
+            }
+          },
+          "rpc": {
+            "kind": "openbindings.grpc@1",
+            "content": {
+              "location": "https://example.com/things/things.protoset"
+            }
+          }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing", "deprecated": true }
+          "getThing.rest": {
+            "operation": "getThing",
+            "source": "rest",
+            "content": {
+              "selector": "#/paths/~1things~1{id}/get"
+            }
+          },
+          "getThing.rpc": {
+            "operation": "getThing",
+            "source": "rpc",
+            "content": {
+              "selector": "things.v1.Things/GetThing"
+            },
+            "deprecated": true
+          }
         }
       },
       "operation": "getThing",
-      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "supported": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
       "binding": "getThing.rpc",
-      "expected": { "binding": "getThing.rpc" }
+      "expected": {
+        "binding": "getThing.rpc"
+      }
     },
     {
       "description": "an explicit binding key that is not defined on the interface is an error",
       "document": {
         "openbindings": "0.2.0",
-        "operations": { "getThing": {} },
+        "operations": {
+          "getThing": {}
+        },
         "sources": {
-          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" }
+          "rest": {
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/things/openapi.json"
+            }
+          }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" }
+          "getThing.rest": {
+            "operation": "getThing",
+            "source": "rest",
+            "content": {
+              "selector": "#/paths/~1things~1{id}/get"
+            }
+          }
         }
       },
       "operation": "getThing",
-      "supported": ["openbindings.openapi@1"],
+      "supported": [
+        "openbindings.openapi@1"
+      ],
       "binding": "getThing.nope",
-      "expected": { "error": true, "kind": "unknown-binding" }
+      "expected": {
+        "error": true,
+        "kind": "unknown-binding"
+      }
     },
     {
       "description": "an explicit binding key bypasses a configured selection list",
       "document": {
         "openbindings": "0.2.0",
-        "operations": { "getThing": {} },
+        "operations": {
+          "getThing": {}
+        },
         "sources": {
-          "rest": { "bindingSpec": "openbindings.openapi@1", "location": "https://example.com/things/openapi.json" },
-          "rpc": { "bindingSpec": "openbindings.grpc@1", "location": "https://example.com/things/things.protoset" }
+          "rest": {
+            "kind": "openbindings.openapi@1",
+            "content": {
+              "location": "https://example.com/things/openapi.json"
+            }
+          },
+          "rpc": {
+            "kind": "openbindings.grpc@1",
+            "content": {
+              "location": "https://example.com/things/things.protoset"
+            }
+          }
         },
         "bindings": {
-          "getThing.rest": { "operation": "getThing", "source": "rest", "selector": "#/paths/~1things~1{id}/get" },
-          "getThing.rpc": { "operation": "getThing", "source": "rpc", "selector": "things.v1.Things/GetThing" }
+          "getThing.rest": {
+            "operation": "getThing",
+            "source": "rest",
+            "content": {
+              "selector": "#/paths/~1things~1{id}/get"
+            }
+          },
+          "getThing.rpc": {
+            "operation": "getThing",
+            "source": "rpc",
+            "content": {
+              "selector": "things.v1.Things/GetThing"
+            }
+          }
         }
       },
       "operation": "getThing",
-      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
-      "selection": ["getThing.rest"],
+      "supported": [
+        "openbindings.openapi@1",
+        "openbindings.grpc@1"
+      ],
+      "selection": [
+        "getThing.rest"
+      ],
       "binding": "getThing.rpc",
-      "expected": { "binding": "getThing.rpc" }
+      "expected": {
+        "binding": "getThing.rpc"
+      }
     }
   ]
 }

@@ -252,12 +252,13 @@ check('removal is ID-addressed', () => valid(unregister, { id: record.id }));
 check('old location-addressed removal is rejected', () => invalid(unregister, { location: 'https://example.invalid/obi.json' }));
 check('successful removal returns null', () => valid(unregisterOutput, null));
 check('removal output rejects invented success object', () => invalid(unregisterOutput, { removed: true }));
-check('reads, preference setting, and removal claim idempotence; enrollment does not', () => {
-  assert.equal(op('listRoles').idempotent, true);
-  assert.equal(op('listDelegates').idempotent, true);
-  assert.equal(op('unregisterDelegate').idempotent, true);
-  assert.equal(op('setDelegatePreference').idempotent, true);
-  assert.equal(op('registerDelegate').idempotent, undefined);
+check('idempotence is a behavioral promise, not an obsolete operation member', () => {
+  for (const name of ['listRoles', 'listDelegates', 'unregisterDelegate', 'setDelegatePreference']) {
+    assert.match(op(name).description, /idempotent/i);
+  }
+  for (const operation of Object.values(document.operations)) {
+    assert.equal(Object.hasOwn(operation, 'idempotent'), false);
+  }
 });
 check('baseline still has its locator-based input', () => assert(
   original.operations['openbindings.delegate-manager.registerDelegate'].input.properties.location,

@@ -26,6 +26,28 @@ This repository has no git tags and no CHANGELOG, by design: the append-only ver
 
 > **Pre-launch status:** the project has not yet cut its first release, so the current version files are still working drafts and may be amended in place. The append-only rule (and its CI enforcement) arms at launch.
 
+## Core 0.2 alignment
+
+These drafts target the `release/0.2` core document model. Sources carry an
+exact `kind` and optional kind-owned `content`; bindings carry their own
+optional kind-owned `content`. Absence and JSON null remain distinct at both
+levels. A binding invoker receives the source and binding content by value;
+an operation invoker forwards them from the selected OBI binding. Locations,
+selectors and value adaptations have only the meaning their kind gives them.
+
+The support operations retain their interface-owned `bindingSpec` vocabulary:
+their tokens identify the binding specifications this optional contract asks
+an implementation to support. When selecting an OBI binding, that token is its
+source's `kind`. Core itself does not require that every kind have a published
+specification. The synthesizer's authoring controls are also interface-owned,
+not additional OBI fields.
+
+Idempotence promises are stated in operation descriptions and the interface
+prose. These unbound contracts carry no operation-level `idempotent` member.
+Concrete bindings make their own core `idempotent` claims; an implementation
+that claims correspondence must also meet the interface's behavioral promises.
+Neither those promises nor a core claim independently authorizes retries.
+
 ## Interfaces
 
 Each interface lives in its own directory, with one file per version. The major.minor segment of the filename is the interface's **own contract version** (its `version` field), which is independent of the `openbindings` spec version the file targets: a brand-new contract starts at `0.1.json` even though it is written against spec 0.2.0, while a previously-published contract that takes a breaking change advances to `0.2.json` (see Immutability above).
@@ -34,7 +56,7 @@ Interface **names** carry no `openbindings.` prefix: the `name` field is a label
 
 - `software-descriptor/0.2.json` — base software descriptor contract. Defines the canonical `describe` operation and `SoftwareIdentity` schema for self-identifying software. Generic capability.
 - `binding-invoker/0.1.json` — binding invoker contract. Defines `listBindingSpecs`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings governed by specific binding specifications (`openbindings.openapi@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
-- `operation-invoker/0.1.json` — operation invoker contract. The by-reference peer of `binding-invoker`: `invokeOperation` resolves an operation (or binding) key against an OBI, requires a caller choice when several invocable bindings remain, validates and applies transforms, then performs binding invocation; `preflightOperation` is the preflight. Same frame protocol as `invokeBinding`, with the resolution/validation/transform semantics on top.
+- `operation-invoker/0.1.json` — operation invoker contract. The by-reference peer of `binding-invoker`: `invokeOperation` resolves an operation (or binding) key against an OBI, requires a caller choice when several invocable bindings remain, validates declared value contracts, then performs kind-governed binding invocation; `preflightOperation` is the preflight. Same frame protocol as `invokeBinding`, with the resolution and validation semantics on top.
 - `interface-synthesizer/0.2.json` — interface synthesizer contract. Defines strict OBI synthesis and synthesis with durable, verifiable coverage evidence for components that derive OBIs from existing source artifacts.
 - `source-inspector/0.1.json` — source inspector contract. Defines `listBindingSpecs` and `inspectSource` for components that inspect source artifacts and return bindable targets, an exhaustiveness claim, and evidence explaining partial enumeration. (New for spec 0.2.0; first contract version 0.1.0.)
 - `document-store/0.1.json` — generic store of named JSON documents (`get`/`set`/`delete` over an opaque key and a whole JSON object, in the document-database sense). Generic capability; a runtime may use one to hold binding context, but the store knows nothing about context. (Replaces the spec-0.1.0 `context-store`, which baked the context meaning into the store.)
@@ -67,7 +89,7 @@ They compose rather than overlap:
 
 - **source-inspector** and **interface-synthesizer** sit at authoring time: an inspector reports the bindable targets in a raw artifact, and a synthesizer turns an artifact into an OBI.
 - **binding-invoker** invokes a binding by value. When required context is absent, it raises `CONTEXT_REQUIRED` before output or effects. A surrounding runtime may resolve the challenge, may persist durable values in a **document-store** or elsewhere, and may start a new attempt. The interface requires no store or process architecture.
-- **operation-invoker** is binding-invoker's by-reference peer: hand it an OBI and an operation (or binding) key and it resolves the key, refuses unresolved choice among several invocable bindings, validates and transforms, and performs binding invocation. An implementation may compose an actual binding-invoker component or fuse the same semantics.
+- **operation-invoker** is binding-invoker's by-reference peer: hand it an OBI and an operation (or binding) key and it resolves the key, refuses unresolved choice among several invocable bindings, validates declared value contracts, and performs kind-governed binding invocation. An implementation may compose an actual binding-invoker component or fuse the same semantics.
 - **software-descriptor** is a universal add-on any of the above MAY also implement, so tooling can ask "what is this?" uniformly.
 - **delegate-manager** manages by-value OBI registrations for explicit application-owned roles. A role advertises complete accepted interfaces; admission establishes correspondence for one whole alternative and refuses only on a contradiction its comparison establishes. The application owns eligibility, scoped configuration and selection. Registration does not authorize secret disclosure or enroll unrequested capabilities.
 - **token-provider** is the supply half of the credential seam whose demand half lives in binding-invoker and operation-invoker: those contracts define how a runtime discovers that an invocation *needs* a credential (`CONTEXT_REQUIRED`, the `auth.*` requirement families, the `BindingContext` credential shapes); token-provider names the operations that *produce* one. Neither half references the other — the contract is adoptable by services that have never heard of the invoker pattern — but a runtime may compose them, turning one operation's outputs into other operations' prerequisites (the ob CLI's token-provider pinning does exactly this). Composition carries one non-negotiable rule, stated in the contract and its README: correspondence tells a runtime *which* operation on a provider mints, never *whether* to send it a credential — the recipient of a secret is always explicit caller configuration, never a key match, a delegate registration, or a discovery result.

@@ -11,8 +11,7 @@
     },
     "operations": {
         "openbindings.document-store.get": {
-            "description": "Retrieve the document stored under a key. Returns null when no entry exists for the key.",
-            "idempotent": true,
+            "description": "Retrieve the document stored under a key. Returns null when no entry exists for the key. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -39,8 +38,7 @@
             }
         },
         "openbindings.document-store.set": {
-            "description": "Store a document under a key, replacing any existing document for that key in full. The value is always a JSON object, so no entry ever holds null and get's null uniformly means \"no entry\"; to remove an entry, use delete(key).",
-            "idempotent": true,
+            "description": "Store a document under a key, replacing any existing document for that key in full. The value is always a JSON object, so no entry ever holds null and get's null uniformly means \"no entry\"; to remove an entry, use delete(key). This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -64,7 +62,6 @@
         },
         "openbindings.document-store.delete": {
             "description": "Remove the entry stored under a key. Idempotent: deleting a key with no entry succeeds.",
-            "idempotent": true,
             "input": {
                 "type": "object",
                 "properties": {

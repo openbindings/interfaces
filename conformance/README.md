@@ -67,7 +67,7 @@ One file per rule-cluster, validated by [`selection/fixture.schema.json`](select
 Field semantics:
 
 - `document`: a complete, **valid** OpenBindings interface document, embedded inline. Harnesses run it through their implementation's real document validation before selecting; a document that fails validation is a corpus defect, never an expected outcome.
-- `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-12).
+- `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-07).
 - `supported`: the notional invoker's supported set — the exact binding-specification identifiers it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" specification is a real candidate identifier absent from this set, never an invented one.
 - `selection` (optional): the ordered `context.configuration.selection` caller choice. Absent or empty makes no choice; if no listed entry is invocable, sole-candidate/ambiguity resolution still applies.
 - `binding` (optional): the explicit binding key, the wire contract's binding-addressed form. On the wire `operation` and `binding` are mutually exclusive (the operation is *derived* from an explicit binding); the fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario, with the invariant `document.bindings[binding].operation` = the resolved operation (vacuous for unknown-key fixtures).
@@ -81,7 +81,7 @@ Resolution is deterministic without imposing a preference policy: explicit calle
 
 Covers the format-neutral invariants of the interface-synthesizer contract's `synthesizeInterfaceWithCoverage` operation:
 
-- represented evidence names an operation, binding, source, and binding selector that agree with one another in the emitted OBI;
+- represented evidence names an operation, binding, source, and binding content that agree with one another in the emitted OBI;
 - non-represented evidence carries a stable reason code and explanation;
 - `fullyRepresented` is derived rather than asserted: it is true only for exhaustive evidence with no upstream-valid exclusion, lossy projection, or implementation gap;
 - non-exhaustive evidence never claims full representation.
@@ -172,7 +172,7 @@ Each fixture file embeds a **left** (target/contract) and **right** (candidate) 
 
 Field semantics:
 
-- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-12), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
+- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-07), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
 - `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
 - Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified, and the slot's comparison is skipped (the profile's suppression rule).
 - `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).

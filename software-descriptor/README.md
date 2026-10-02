@@ -27,4 +27,4 @@ Implementations MAY return additional fields beyond these. Consumers that do not
 
 ## Idempotency
 
-`describe` is declared idempotent. The output MAY change across releases of the software, but for a given build it MUST be stable.
+`describe` promises idempotent behavior. The output MAY change across releases of the software, but for a given build it MUST be stable. This unbound interface states the promise in prose; a concrete binding carries its own core `idempotent` claim.

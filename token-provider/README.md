@@ -153,11 +153,11 @@ adoption is normal and honest.
 - `introspect` evaluates acceptance at processing time; it is a
   point-in-time answer, not a lease, and distributed providers are not
   required to be linearizable about very recent revocations.
-- `mint` carries no idempotency marking deliberately: it is safe to retry
-  (the credential is never consumed) but each retry mints a distinct live
-  token, so neither `idempotent: true` nor `false` would be honest. Retry
-  freely; expect distinct tokens.
-- `refresh` is marked `idempotent: false` and means it: retrying middleware
+- `mint` is safe to retry under this contract's renewal guarantees: the
+  credential is never consumed, but each retry mints a distinct live token.
+  Retry policy follows that specific behavior, not an operation-level
+  `idempotent` member; core defines that member only on concrete bindings.
+- `refresh` does not promise idempotence: retrying middleware
   that re-presents a refresh token after an ambiguous outcome is the
   reuse-detection family-kill trigger.
 

@@ -86,8 +86,7 @@
     },
     "operations": {
         "openbindings.delegate-manager.listRoles": {
-            "description": "Return a complete, internally consistent snapshot of the roles the application currently advertises in this manager's scope. Role identifiers must be unique. Empty when no roles are offered. Expected interfaces are returned by value. Listing does not invoke providers, fetch a provider document, create roles, or register anything. Implementations must not silently truncate this result; inability to produce the complete result is an unsuccessful invocation.",
-            "idempotent": true,
+            "description": "Return a complete, internally consistent snapshot of the roles the application currently advertises in this manager's scope. Role identifiers must be unique. Empty when no roles are offered. Expected interfaces are returned by value. Listing does not invoke providers, fetch a provider document, create roles, or register anything. Implementations must not silently truncate this result; inability to produce the complete result is an unsuccessful invocation. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "output": {
                 "type": "object",
                 "properties": {
@@ -137,8 +136,7 @@
             }
         },
         "openbindings.delegate-manager.listDelegates": {
-            "description": "Return a complete, internally consistent snapshot of registrations in this manager's scope, including their actual retained interface values and complete explicit rolePreferences. When role is supplied, include only registrations whose recorded roles contain that exact identifier; the filter does not alter their returned role sets or preference maps. A filter need not name a currently advertised role, so old enrollments remain discoverable after role changes. Empty when none match. Registration identifiers must be unique. Order is unspecified and does not imply preference. Listing reports recorded enrollment and caller preferences, not a live eligibility or invocation decision. Implementations must not silently truncate the result; inability to produce the complete result is an unsuccessful invocation.",
-            "idempotent": true,
+            "description": "Return a complete, internally consistent snapshot of registrations in this manager's scope, including their actual retained interface values and complete explicit rolePreferences. When role is supplied, include only registrations whose recorded roles contain that exact identifier; the filter does not alter their returned role sets or preference maps. A filter need not name a currently advertised role, so old enrollments remain discoverable after role changes. Empty when none match. Registration identifiers must be unique. Order is unspecified and does not imply preference. Listing reports recorded enrollment and caller preferences, not a live eligibility or invocation decision. Implementations must not silently truncate the result; inability to produce the complete result is an unsuccessful invocation. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -167,7 +165,6 @@
         },
         "openbindings.delegate-manager.setDelegatePreference": {
             "description": "Set or clear the explicit preference of one existing registration in one of its recorded roles. The registration ID must exist and the exact role must be in its recorded role set; otherwise fail without mutation, even when clearing. A number sets that role's explicit preference; null removes its explicit entry, restoring effective zero. Preserve every other preference, the interface value, and all role memberships. The mutation is atomic with respect to enrollment, removal, and other preference changes; it must not recreate a removed registration or leave a preference for a removed role. This operation may edit an existing membership whose role is no longer advertised, but does not reactivate the role or confer eligibility. Higher means stronger caller preference within this role and manager scope; it does not mandate selection, authorize invocation, select a binding, retry work, or migrate state. The application must follow its documented role policy for interpreting preferences. No provider work is invoked by this operation. Repeating the same set or clear is idempotent; no stale-write protection is implied.",
-            "idempotent": true,
             "input": {
                 "type": "object",
                 "properties": {
@@ -205,8 +202,7 @@
             }
         },
         "openbindings.delegate-manager.unregisterDelegate": {
-            "description": "Ensure that the registration identified by id is absent from this manager's scope, removing all its recorded role memberships and preferences together. An absent id succeeds. Removal must prevent the record from being offered by subsequent registration lookups; it does not promise cancellation of in-flight work, revocation of upstream credentials, deletion or migration of provider data, or removal of another registration that carries the same interface. Those effects require separately defined application lifecycle behavior. To retain some roles, re-enroll the existing id with the desired nonempty role set instead.",
-            "idempotent": true,
+            "description": "Ensure that the registration identified by id is absent from this manager's scope, removing all its recorded role memberships and preferences together. An absent id succeeds. Removal must prevent the record from being offered by subsequent registration lookups; it does not promise cancellation of in-flight work, revocation of upstream credentials, deletion or migration of provider data, or removal of another registration that carries the same interface. Those effects require separately defined application lifecycle behavior. To retain some roles, re-enroll the existing id with the desired nonempty role set instead. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries.",
             "input": {
                 "type": "object",
                 "properties": {

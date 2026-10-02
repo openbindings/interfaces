@@ -90,8 +90,8 @@ Binding specifications govern **interpretation and faithful correspondence**: th
 
 - **Operations.** Each callable target in the source becomes one operation. The operation key SHOULD be stable across regenerations: derive it from a source-level identifier (OpenAPI `operationId`, gRPC method name, GraphQL field name) rather than from positional ordering.
 - **Schemas.** Resolve `$ref` pointers when the source artifact uses them, so the produced OBI is self-contained. Cycle-protect when the artifact permits cyclical type references.
-- **Sources.** Echo the input source's `bindingSpec`, `location`, and source description faithfully; use `name` as the output source key and `outputLocation` as the location written to the result. A local-path authoring convenience may normalize that path to the binding specification's invocable address form. When `embed` is true, preserve a complete accepted source representation as `content` or refuse the request — never ignore the directive or construct a partial discovery pin. Co-present input `content` is authoritative and remains the same JSON value in the result.
-- **Bindings.** Each binding entry MUST carry a `selector` that the corresponding binding invoker can resolve back to the source artifact, in the selector form the governing binding specification defines (a JSON Pointer under `openbindings.openapi@1`, a fully-qualified method name under `openbindings.grpc@1`).
+- **Sources.** The authoring request's `bindingSpec` becomes the emitted source's exact `kind`; `name` selects its key and `description` its description. The request's `location`, `content`, `outputLocation` and `embed` are authoring controls owned by this interface. Encode the requested artifact carriage inside the emitted source's `content` as the governing kind defines; they are not additional core source members. A local path may be normalized to the kind's invocable address form. When `embed` is true, preserve a complete accepted source representation or refuse — never silently ignore the directive or emit a partial discovery pin. Co-present input `content` is authoritative; embedding preserves that artifact's JSON value within the kind-defined carrier. Refuse a carriage directive the kind cannot represent rather than inventing a universal envelope.
+- **Bindings.** Each binding's kind-owned `content`, or its absence, MUST identify a target the corresponding binding invoker can realize. A selector is used only where that kind defines one, inside its own content representation. No core `selector`, `inputTransform`, `outputTransform` or document `transforms` member is emitted. Any required adaptation is expressed under the kind's definition.
 - **Aliases (optional).** A synthesizer MAY add operation `aliases` to claim correspondence with a shared contract (for example, a well-known operation name a consumer can target across providers). The name is author-asserted and carries no verification semantics.
 
 ## Creation-time soundness
@@ -181,19 +181,19 @@ represented without a lossy or unsupported disposition; the value is derived
 from the entries and MUST NOT contradict them. Exclusion can therefore be
 honest and exhaustive without being described as full upstream coverage.
 
-A `represented` entry identifies the emitted source key, operation key,
-binding key, and binding selector. These redundant links are intentional evidence:
-they let a consumer verify that the input source, output source, binding, and
-operation form one path without guessing from naming conventions.
-`bindingSelector` is the empty string when the governing binding specification
-identifies that target by an omitted `selector` (for example the root command in
-`openbindings.usage@1`); empty and absent are not conflated.
+A `represented` entry identifies the emitted source key, operation key and
+binding key. Its `bindingContent` is present exactly when the emitted binding's
+`content` is present and holds that same JSON value; null, empty strings and
+absence remain distinct. These redundant links let a consumer verify one path
+without guessing a kind's selector conventions. `sourceRef` remains a stable,
+source-local identifier for the observed interaction unit, independent of the
+shape of binding content.
 An `excluded`, `invalid`, or `implementation-unsupported` entry identifies the
-source unit even when no conformant binding selector exists. A `lossy` entry MUST
-also identify its emitted source, operation, binding, and selector: loss is a
-property of a usable represented path, and tooling must be able to connect the
-limitation to that path without inference. Stable family-namespaced reason
-codes support corpus measurement; prose messages are diagnostic.
+source unit even when no usable binding content can be formed. A `lossy` entry
+MUST identify its emitted source, operation, binding and binding content by the
+same rule: loss is a property of a represented path. Dependency-scope entries
+carry no emitted binding identity or `bindingContent`. Stable family-namespaced
+reason codes support corpus measurement; prose messages are diagnostic.
 
 The coverage report is evidence, not proof: a consumer may independently
 compare the source, report, and OBI, and an untrusted synthesizer can still make
@@ -215,7 +215,7 @@ A synthesizer SHOULD produce byte-stable output for byte-stable input. That mean
 
 ## Idempotency
 
-Both operations are declared idempotent: calling them does not intentionally
+Both synthesis operations promise idempotent behavior: calling them does not intentionally
 change source or external state. For embedded content, the same input and
 implementation configuration produce the same semantic result. A live
 `location` may resolve to different content over time; idempotency does not

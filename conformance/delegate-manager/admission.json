@@ -213,15 +213,15 @@
               "openbindings": "0.2.0",
               "operations": {
                 "example.read": {
+                  "aliases": [
+                    "legacy.read"
+                  ],
                   "input": {
                     "type": "string"
                   },
                   "output": {
                     "type": "string"
-                  },
-                  "aliases": [
-                    "legacy.read"
-                  ]
+                  }
                 }
               }
             }

@@ -3,7 +3,10 @@
   "$id": "https://openbindings.com/interfaces/conformance/synthesis-coverage/fixture.schema.json",
   "title": "Interface-Synthesizer Coverage Evidence Cases",
   "type": "object",
-  "required": ["format", "tests"],
+  "required": [
+    "format",
+    "tests"
+  ],
   "additionalProperties": false,
   "properties": {
     "format": {
@@ -14,32 +17,90 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["description", "interface", "entries", "exhaustive", "expected"],
+        "required": [
+          "description",
+          "interface",
+          "entries",
+          "exhaustive",
+          "expected"
+        ],
         "additionalProperties": false,
         "properties": {
-          "description": { "type": "string", "minLength": 1 },
-          "interface": { "type": "object" },
-          "entries": { "type": "array" },
-          "exhaustive": { "type": "boolean" },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interface": {
+            "type": "object"
+          },
+          "entries": {
+            "type": "array"
+          },
+          "exhaustive": {
+            "type": "boolean"
+          },
           "expected": {
             "type": "object",
-            "required": ["valid"],
+            "required": [
+              "valid"
+            ],
             "additionalProperties": false,
             "properties": {
-              "valid": { "type": "boolean" },
-              "fullyRepresented": { "type": "boolean" },
-              "errorContains": { "type": "string", "minLength": 1 }
+              "valid": {
+                "type": "boolean"
+              },
+              "fullyRepresented": {
+                "type": "boolean"
+              },
+              "errorContains": {
+                "type": "string",
+                "minLength": 1
+              }
             },
             "allOf": [
               {
                 "if": {
-                  "properties": { "valid": { "const": true } },
-                  "required": ["valid"]
+                  "properties": {
+                    "valid": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "valid"
+                  ]
                 },
-                "then": { "required": ["fullyRepresented"] },
-                "else": { "required": ["errorContains"] }
+                "then": {
+                  "required": [
+                    "fullyRepresented"
+                  ]
+                },
+                "else": {
+                  "required": [
+                    "errorContains"
+                  ]
+                }
               }
             ]
+          },
+          "limitation": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              },
+              "details": {
+                "type": "object"
+              }
+            }
           }
         }
       }

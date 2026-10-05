@@ -1,45 +1,45 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openbindings.com/interfaces/conformance/binding-spec-support/fixture.schema.json",
-  "title": "Binding-Specification Support Query Cases",
+  "$id": "https://openbindings.com/interfaces/conformance/kind-support/fixture.schema.json",
+  "title": "Kind Support Query Cases",
   "type": "object",
   "required": ["format", "tests"],
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "openbindings.binding-spec-support-cases@1"
+      "const": "openbindings.kind-support-cases@1"
     },
     "tests": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["description", "warranted", "listed", "bindingSpecs", "expected"],
+        "required": ["description", "warranted", "listed", "kinds", "expected"],
         "additionalProperties": false,
         "properties": {
           "description": { "type": "string", "minLength": 1 },
           "warranted": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "type": "string" }
+            "items": { "type": "string", "minLength": 1 }
           },
           "listed": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "type": "string" }
+            "items": { "type": "string", "minLength": 1 }
           },
-          "bindingSpecs": {
+          "kinds": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": { "type": "string", "minLength": 1 }
           },
           "expected": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["bindingSpec", "supported"],
+              "required": ["kind", "supported"],
               "additionalProperties": false,
               "properties": {
-                "bindingSpec": { "type": "string" },
+                "kind": { "type": "string", "minLength": 1 },
                 "supported": { "type": "boolean" }
               }
             }

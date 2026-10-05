@@ -1,5 +1,5 @@
 {
-  "format": "openbindings.binding-spec-support-cases@1",
+  "format": "openbindings.kind-support-cases@1",
   "tests": [
     {
       "description": "exact matching refuses unknown and prefix-adjacent tokens while preserving first-occurrence order",
@@ -11,7 +11,7 @@
         "openbindings.openapi@1",
         "openbindings.grpc@1"
       ],
-      "bindingSpecs": [
+      "kinds": [
         "openbindings.openapi@1",
         "openbindings.openapi",
         "openbindings.openapi@10",
@@ -20,19 +20,19 @@
       ],
       "expected": [
         {
-          "bindingSpec": "openbindings.openapi@1",
+          "kind": "openbindings.openapi@1",
           "supported": true
         },
         {
-          "bindingSpec": "openbindings.openapi",
+          "kind": "openbindings.openapi",
           "supported": false
         },
         {
-          "bindingSpec": "openbindings.openapi@10",
+          "kind": "openbindings.openapi@10",
           "supported": false
         },
         {
-          "bindingSpec": "openbindings.grpc@1",
+          "kind": "openbindings.grpc@1",
           "supported": true
         }
       ]
@@ -43,7 +43,7 @@
         "openbindings.openapi@1"
       ],
       "listed": [],
-      "bindingSpecs": [],
+      "kinds": [],
       "expected": []
     },
     {
@@ -55,13 +55,34 @@
       "listed": [
         "openbindings.openapi@1"
       ],
-      "bindingSpecs": [
+      "kinds": [
         "openbindings.openapi@1"
       ],
       "expected": [
         {
-          "bindingSpec": "openbindings.openapi@1",
+          "kind": "openbindings.openapi@1",
           "supported": true
+        }
+      ]
+    },
+    {
+      "description": "a private code-defined kind is supported without a published defining document",
+      "warranted": [
+        "acme.private@1"
+      ],
+      "listed": [],
+      "kinds": [
+        "acme.private@1",
+        "ACME.private@1"
+      ],
+      "expected": [
+        {
+          "kind": "acme.private@1",
+          "supported": true
+        },
+        {
+          "kind": "ACME.private@1",
+          "supported": false
         }
       ]
     }

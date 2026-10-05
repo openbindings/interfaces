@@ -8,7 +8,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 
 | Contract rule family | Coverage |
 |---|---|
-| binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`binding-spec-support/`). |
+| binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
@@ -17,10 +17,10 @@ The corpus is reference material, not part of any contract: each contract's pros
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
 | Other contracts (binding-invoker resolution, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
-## Binding-specification support (`binding-spec-support/`)
+## Kind support (`kind-support/`)
 
-Covers the shared `checkBindingSpecs` semantics in binding-invoker 0.1 and
-interface-synthesizer 0.2. Each case declares the implementation's exact
+Covers the shared `checkKindSupport` semantics in binding-invoker 0.1 and
+interface-synthesizer 0.2 and source-inspector 0.1. Each case declares the implementation's exact
 `warranted` set, its advisory `listed` subset, the input tokens, and the
 ordered verdicts. The fixtures pin empty input, first-occurrence
 deduplication, exact-match refusal of prefix-adjacent tokens, strict boolean
@@ -81,7 +81,7 @@ Resolution is deterministic without imposing a preference policy: explicit calle
 
 Covers the format-neutral invariants of the interface-synthesizer contract's `synthesizeInterfaceWithCoverage` operation:
 
-- represented evidence names an operation, binding, source, and binding content that agree with one another in the emitted OBI;
+- represented evidence names operation, binding and source keys that agree with one another in the emitted OBI;
 - non-represented evidence carries a stable reason code and explanation;
 - `fullyRepresented` is derived rather than asserted: it is true only for exhaustive evidence with no upstream-valid exclusion, lossy projection, or implementation gap;
 - non-exhaustive evidence never claims full representation.
@@ -196,3 +196,33 @@ Same convention as the spec corpus: a harness looks for a **sibling checkout** o
 ## Versioning
 
 Selection fixtures are authored against **operation-invoker contract 0.1**, synthesis-coverage fixtures against **interface-synthesizer contract 0.2**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
+
+## Carried values (`carried-values/`)
+
+The contract-boundary corpus separates schema acceptance from the normative
+unknown-member refusal rule. The automated repository check does not implement
+invocation or claim runtime conformance; implementations replay the cases to
+verify refusal before work. Coverage examples use `example.coverage@1` as a
+private harness kind: their invented content and exclusions claim no OpenAPI
+binding-specification meaning.
+
+## Coverage harness kind
+
+`example.coverage@1` is a fixture-only kind. Its source-local references are the
+literal `sourceRef` strings in `synthesis-coverage/cases.json`; the target bindings
+use their corresponding `content.selector` values. This private definition
+excludes the target unit `#/webhooks/onEvent/post` and the dependency unit
+`#/webhooks/jobFailed/post`. Those exclusions deliberately exercise kind-owned
+policy, not an OpenAPI exclusion or an unresolved schema. All other illustrated
+units are admitted. A production reader cannot infer an OpenAPI rule from them.
+
+Positive coverage fixtures are checked against the published `SynthesisCoverage`
+schema. Correspondence negatives (missing emitted binding or dependency evidence)
+remain portable obligations for runtime adapters; schema acceptance is not proof
+of the accounting semantics.
+
+The CI extractor validates and checks canonical member order for complete OBIs
+in selection, comparison, synthesis coverage, composition and Delegate Manager
+admission/examples. `delegate-manager/legacy-location-draft.json` is an explicit
+historical input, excluded from current-core checks and retained for the baseline
+comparison. Arbitrary JSON inside kind content is not recursively treated as OBI.

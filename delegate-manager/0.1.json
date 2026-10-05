@@ -65,7 +65,7 @@
                 },
                 "interface": {
                     "$ref": "#/schemas/OpenBindingsInterface",
-                    "description": "The complete supplied OBI value retained for this registration. Preserve its declared values, including extensions and the schema, source, binding, and transform graphs; textual formatting is not significant. The manager must not replace it with a summary, locator, or silently refreshed remote document. Retaining this value does not freeze resources or services it references."
+                    "description": "The complete supplied OBI value retained for this registration. Preserve its declared values, including extensions and the schema, source, and binding graphs; textual formatting is not significant. The manager must not replace it with a summary, locator, or silently refreshed remote document. Retaining this value does not freeze resources or services it references."
                 },
                 "roles": {
                     "$ref": "#/schemas/DelegateRoleIds",

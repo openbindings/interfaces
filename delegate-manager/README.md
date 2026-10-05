@@ -433,3 +433,7 @@ See [examples.json](examples.json) for actual carried OBI values and
 [management-example.mjs](management-example.mjs) for the worked management
 sequence. These example values are specifications, not evidence of a running role-aware
 delegate manager.
+
+The bound provider example uses `example.delegate-provider@1`, a private harness
+kind. Its content demonstrates registration carriage and does not claim OpenAPI
+interpretation or an executable protocol adapter.

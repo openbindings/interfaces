@@ -72,34 +72,97 @@ const invoker = contracts.get('binding-invoker');
 const invocation = compile(invoker, invoker.schemas.BindingInvocationInput);
 const inspector = contracts.get('source-inspector');
 const target = compile(inspector, inspector.schemas.BindableTarget);
+const synthesizer = contracts.get('interface-synthesizer');
+const synthesisSource = compile(synthesizer, synthesizer.schemas.SynthesizeInterfaceSource);
 const absent = Symbol('absent');
-for (const sourceContent of [absent, null, false, 0, '', [], { location: 'https://example.invalid/artifact' }]) {
-  for (const bindingContent of [absent, null, false, 0, '', [], { selector: 'target' }]) {
-    const source = { kind: 'example.test@1' };
+for (const sourceContent of [absent, null, false, 0, '', [], { resource: 'local' }]) {
+  for (const bindingContent of [absent, null, false, 0, '', [], { target: 'native' }]) {
+    const source = { kind: 'example.carried-values@1' };
     if (sourceContent !== absent) source.content = sourceContent;
-    const request = { source }, found = {};
-    if (bindingContent !== absent) request.content = found.content = bindingContent;
-    accepts(invocation, request);
-    accepts(target, found);
+    const binding = {};
+    if (bindingContent !== absent) binding.content = bindingContent;
+    accepts(invocation, { source, binding });
+    accepts(target, { sourceRef: 'target', binding });
+    accepts(synthesisSource, { name: 's', source });
   }
 }
-accepts(invocation, { source: { bindingSpec: 'example.test@1', location: 'https://example.invalid' }, selector: 'old' }, false);
-accepts(invocation, { source: { kind: 'example.test@1' }, selector: 'old' }, false);
-accepts(invocation, { source: { kind: '' } }, false);
-accepts(target, { selector: 'old' }, false);
+for (const request of [
+  { source: { kind: 'k' } },
+  { source: { kind: 'k' }, content: null },
+  { source: { kind: 'k' }, binding: null },
+  { source: { kind: 'k' }, binding: {}, selector: 'legacy' },
+  { source: { kind: '' }, binding: {} },
+  { source: { kind: 'k' }, binding: { preference: 0.5 } },
+  { source: { kind: 'k' }, binding: { deprecated: 'yes' } },
+]) accepts(invocation, request, false);
+accepts(invocation, { source: { kind: 'k', 'x-source': true }, binding: { operation: 'op', source: 's', 'x-binding': null } });
+accepts(target, {}, false);
+accepts(target, { sourceRef: 'target' }, false);
+accepts(target, { binding: {} }, false);
+accepts(synthesisSource, { bindingSpec: 'k', content: {} }, false);
+accepts(synthesisSource, { source: { kind: 'k' }, embed: true }, false);
 
-const synthesizer = contracts.get('interface-synthesizer');
+// Open carriers are required by the comparison profile. Unknown-member refusal
+// is a behavioral producer/consumer rule, not a schema-validation promise. Keep
+// witnesses in a reusable corpus and separately exercise the known namespace.
+const carriedCases = read('conformance/carried-values/cases.json');
+const sourceKeys = new Set(['kind', 'content', 'description']);
+const bindingKeys = new Set(['operation', 'source', 'content', 'idempotent', 'preference', 'description', 'deprecated']);
+for (const test of carriedCases.tests) {
+  const document = contracts.get(test.interface);
+  const validate = compile(document, document.schemas[test.schema]);
+  accepts(validate, test.value, test.schemaValid);
+  const carrier = test.carrier === 'source' ? test.value.source : test.value.binding;
+  const keys = test.carrier === 'source' ? sourceKeys : bindingKeys;
+  const allowed = carrier && typeof carrier === 'object' && !Array.isArray(carrier)
+    && Object.keys(carrier).every(key => keys.has(key) || key.startsWith('x-'));
+  const producerKeysValid = test.schema !== 'BindableTarget' || (!Object.hasOwn(carrier, 'operation') && !Object.hasOwn(carrier, 'source'));
+  assert.equal(Boolean(allowed) && test.schemaValid && producerKeysValid, test.allowedByCarriedValuesRule, test.description);
+}
+for (const name of ['binding-invoker', 'source-inspector', 'interface-synthesizer']) {
+  const doc = contracts.get(name);
+  assert(doc.description.includes('MUST refuse a call carrying any other member'));
+  const check = doc.operations[`openbindings.${name}.checkKindSupport`];
+  const list = doc.operations[`openbindings.${name}.listSupportedKinds`];
+  assert(check && list);
+  assert(check.description.includes("MUST have no side effects"));
+  const input = compile(doc, check.input), output = compile(doc, check.output);
+  accepts(input, { kinds: [] });
+  accepts(input, { kinds: ['acme.private@1', 'acme.private@1'] });
+  accepts(input, { kinds: [''] }, false);
+  accepts(input, { bindingSpecs: ['k'] }, false);
+  accepts(output, [{ kind: 'acme.private@1', supported: true }]);
+  accepts(output, [{ kind: 'k', supported: 'partial' }], false);
+}
+// Literal portable cases remain separate from this small consistency oracle.
+for (const test of read('conformance/kind-support/cases.json').tests) {
+  const warranted = new Set(test.warranted);
+  assert(test.listed.every(kind => warranted.has(kind)), test.description);
+  assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
+}
+const coverageReport = compile(synthesizer, synthesizer.schemas.SynthesisCoverage);
+let positiveCoverage = 0;
+for (const test of read('conformance/synthesis-coverage/cases.json').tests) {
+  if (!test.expected.valid) continue; // Other negatives concern runtime correspondence, not shape.
+  const report = { entries: test.entries, exhaustive: test.exhaustive, fullyRepresented: test.expected.fullyRepresented };
+  if (test.limitation) report.limitation = test.limitation;
+  accepts(coverageReport, report);
+  positiveCoverage++;
+}
+assert(positiveCoverage > 0, 'no positive coverage fixtures checked');
 const coverage = compile(synthesizer, synthesizer.schemas.SynthesisCoverageEntry);
 const represented = { sourceIndex: 0, sourceRef: 'unit', scope: 'target', status: 'represented', sourceKey: 's', operationKey: 'op', bindingKey: 'b' };
-for (const content of [absent, null, false, 0, '', [], { selector: 'target' }]) {
-  const entry = { ...represented };
-  if (content !== absent) entry.bindingContent = content;
-  accepts(coverage, entry);
+accepts(coverage, represented);
+accepts(coverage, { ...represented, 'x-note': 'an implementation extension' });
+accepts(coverage, { ...represented, status: 'lossy' }, false);
+accepts(coverage, { ...represented, status: 'lossy', reasonCode: 'example.loss', message: 'A projection is incomplete.' });
+for (const scope of ['target', 'dependency']) {
+  const excluded = { sourceIndex: 0, sourceRef: 'unit', scope, status: 'excluded', reasonCode: 'example.exclusion', message: 'A kind-owned exclusion.' };
+  accepts(coverage, excluded, false);
+  accepts(coverage, { ...excluded, rule: 'example.kind@1 section 4' });
 }
 const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented' };
 accepts(coverage, dependency);
-accepts(coverage, { ...dependency, bindingContent: null }, false);
-accepts(coverage, { ...represented, bindingSelector: 'old' }, false);
-accepts(coverage, { ...represented, status: 'lossy' }, false);
-accepts(coverage, { ...represented, status: 'lossy', reasonCode: 'example.loss', message: 'A projection is incomplete.' });
-console.log(`core-alignment: ${contracts.size} conformant structural documents, ${compiled} contracts compile; kind/content boundary controls pass`);
+accepts(coverage, { ...dependency, bindingKey: 'b' }, false);
+accepts(coverage, { ...dependency, status: 'lossy', reasonCode: 'example.loss', message: 'A dependency projection is incomplete.' });
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; carrier, presence, support and coverage controls pass`);

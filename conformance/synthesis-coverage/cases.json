@@ -2,7 +2,7 @@
   "format": "openbindings.interface-synthesis-coverage-cases@1",
   "tests": [
     {
-      "description": "complete represented evidence links input source, emitted source, binding, operation, and binding content",
+      "description": "complete represented evidence links input source, emitted source, binding, operation",
       "interface": {
         "openbindings": "0.2.0",
         "operations": {
@@ -10,7 +10,7 @@
         },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -34,10 +34,7 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
-          "bindingKey": "getUser.api",
-          "bindingContent": {
-            "selector": "#/paths/~1users~1{id}/get"
-          }
+          "bindingKey": "getUser.api"
         }
       ],
       "exhaustive": true,
@@ -47,13 +44,13 @@
       }
     },
     {
-      "description": "an exhaustive binding-specification exclusion is honest but not fully represented",
+      "description": "an exhaustive kind exclusion is honest but not fully represented",
       "interface": {
         "openbindings": "0.2.0",
         "operations": {},
         "sources": {
           "api": {
-            "kind": "openbindings.openapi@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -66,9 +63,9 @@
           "sourceRef": "#/webhooks/onEvent/post",
           "scope": "target",
           "status": "excluded",
-          "reasonCode": "openapi.reverse_direction",
-          "rule": "OAPI-D-03",
-          "message": "reverse-direction interaction is outside this binding revision"
+          "reasonCode": "example.excluded",
+          "rule": "example.coverage@1: conformance/README.md#coverage-harness-kind",
+          "message": "The illustrative kind explicitly excludes this webhook unit."
         }
       ],
       "exhaustive": true,
@@ -86,7 +83,7 @@
         },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -110,16 +107,17 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
-          "bindingKey": "getUser.api",
-          "bindingContent": {
-            "selector": "#/paths/~1users~1{id}/get"
-          }
+          "bindingKey": "getUser.api"
         }
       ],
       "exhaustive": false,
       "expected": {
         "valid": true,
         "fullyRepresented": false
+      },
+      "limitation": {
+        "code": "example.inventory-incomplete",
+        "message": "The producer could not inspect the complete declared inventory."
       }
     },
     {
@@ -131,7 +129,7 @@
         },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -155,10 +153,7 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "getUser",
-          "bindingKey": "getUser.missing",
-          "bindingContent": {
-            "selector": "#/paths/~1users~1{id}/get"
-          }
+          "bindingKey": "getUser.missing"
         }
       ],
       "exhaustive": true,
@@ -176,7 +171,7 @@
         },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -216,9 +211,14 @@
           "createJob": {},
           "onJobDone": {}
         },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi-3.1@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -232,11 +232,6 @@
               "selector": "#/paths/~1jobs/post"
             }
           }
-        },
-        "dependencies": {
-          "jobDone": {
-            "operation": "onJobDone"
-          }
         }
       },
       "entries": [
@@ -247,10 +242,7 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "createJob",
-          "bindingKey": "createJob.api",
-          "bindingContent": {
-            "selector": "#/paths/~1jobs/post"
-          }
+          "bindingKey": "createJob.api"
         },
         {
           "sourceIndex": 0,
@@ -263,8 +255,9 @@
           "sourceRef": "#/webhooks/jobFailed/post",
           "scope": "dependency",
           "status": "excluded",
-          "reasonCode": "openapi.inbound_dependency_excluded",
-          "message": "the inbound operation declares no resolvable request contract"
+          "reasonCode": "example.excluded",
+          "message": "The illustrative kind explicitly excludes this webhook unit.",
+          "rule": "example.coverage@1: conformance/README.md#coverage-harness-kind"
         }
       ],
       "exhaustive": true,
@@ -281,9 +274,14 @@
           "createJob": {},
           "onJobDone": {}
         },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi-3.1@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -297,11 +295,6 @@
               "selector": "#/paths/~1jobs/post"
             }
           }
-        },
-        "dependencies": {
-          "jobDone": {
-            "operation": "onJobDone"
-          }
         }
       },
       "entries": [
@@ -312,10 +305,7 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "createJob",
-          "bindingKey": "createJob.api",
-          "bindingContent": {
-            "selector": "#/paths/~1jobs/post"
-          }
+          "bindingKey": "createJob.api"
         },
         {
           "sourceIndex": 0,
@@ -323,10 +313,7 @@
           "scope": "dependency",
           "status": "represented",
           "operationKey": "onJobDone",
-          "bindingKey": "createJob.api",
-          "bindingContent": {
-            "selector": "#/paths/~1jobs/post"
-          }
+          "bindingKey": "createJob.api"
         }
       ],
       "exhaustive": true,
@@ -336,16 +323,21 @@
       }
     },
     {
-      "description": "an emitted dependency with no represented dependency entry is rejected",
+      "description": "an emitted dependency with no represented or lossy dependency entry is rejected",
       "interface": {
         "openbindings": "0.2.0",
         "operations": {
           "createJob": {},
           "onJobDone": {}
         },
+        "dependencies": {
+          "jobDone": {
+            "operation": "onJobDone"
+          }
+        },
         "sources": {
           "api": {
-            "kind": "openbindings.openapi-3.1@1",
+            "kind": "example.coverage@1",
             "content": {
               "location": "https://example.com/openapi.json"
             }
@@ -359,10 +351,53 @@
               "selector": "#/paths/~1jobs/post"
             }
           }
+        }
+      },
+      "entries": [
+        {
+          "sourceIndex": 0,
+          "sourceKey": "api",
+          "sourceRef": "#/paths/~1jobs/post",
+          "scope": "target",
+          "status": "represented",
+          "operationKey": "createJob",
+          "bindingKey": "createJob.api"
+        }
+      ],
+      "exhaustive": true,
+      "expected": {
+        "valid": false,
+        "errorContains": "for 1 emitted dependencies"
+      }
+    },
+    {
+      "description": "a lossy dependency counts as emitted while disclosing its incomplete contract",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "createJob": {},
+          "onJobDone": {}
         },
         "dependencies": {
           "jobDone": {
             "operation": "onJobDone"
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.coverage@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        },
+        "bindings": {
+          "createJob.api": {
+            "operation": "createJob",
+            "source": "api",
+            "content": {
+              "selector": "#/paths/~1jobs/post"
+            }
           }
         }
       },
@@ -374,16 +409,21 @@
           "scope": "target",
           "status": "represented",
           "operationKey": "createJob",
-          "bindingKey": "createJob.api",
-          "bindingContent": {
-            "selector": "#/paths/~1jobs/post"
-          }
+          "bindingKey": "createJob.api"
+        },
+        {
+          "sourceIndex": 0,
+          "sourceRef": "dependency:lossy",
+          "scope": "dependency",
+          "status": "lossy",
+          "reasonCode": "example.loss",
+          "message": "The dependency contract is a lossy projection."
         }
       ],
       "exhaustive": true,
       "expected": {
-        "valid": false,
-        "errorContains": "for 1 emitted dependencies"
+        "valid": true,
+        "fullyRepresented": false
       }
     }
   ]

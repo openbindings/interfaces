@@ -31,16 +31,20 @@ This repository has no git tags and no CHANGELOG, by design: the append-only ver
 These drafts target the `release/0.2` core document model. Sources carry an
 exact `kind` and optional kind-owned `content`; bindings carry their own
 optional kind-owned `content`. Absence and JSON null remain distinct at both
-levels. A binding invoker receives the source and binding content by value;
+levels. A binding invoker receives the full source and binding objects by value;
 an operation invoker forwards them from the selected OBI binding. Locations,
 selectors and value adaptations have only the meaning their kind gives them.
 
-The support operations retain their interface-owned `bindingSpec` vocabulary:
-their tokens identify the binding specifications this optional contract asks
-an implementation to support. When selecting an OBI binding, that token is its
-source's `kind`. Core itself does not require that every kind have a published
-specification. The synthesizer's authoring controls are also interface-owned,
-not additional OBI fields.
+Support is per exact kind and per job. The three kind-facing interfaces expose
+`listSupportedKinds` and `checkKindSupport`; no published defining document is
+required. A defining document is whatever written definition a kind's publisher
+provides, if any. The project's kinds follow its binding-specification publisher
+policy; other publishers choose their own.
+
+Advisory list operations may share a local operation only when the listed kinds
+are supported for every adopted job. Check operations may share one only when
+their answers are identical for every adopted job. An invoker that cannot
+synthesize the same kind must answer through distinct checks.
 
 Idempotence promises are stated in operation descriptions and the interface
 prose. These unbound contracts carry no operation-level `idempotent` member.
@@ -55,10 +59,10 @@ Each interface lives in its own directory, with one file per version. The major.
 Interface **names** carry no `openbindings.` prefix: the `name` field is a label, not an identifier, and an OBI carries no identity of its own (a contract is addressed by its canonical URL above). Operation **keys** are fully qualified as `openbindings.<interface>.<operation>` (for example `openbindings.binding-invoker.invokeBinding`); the rationale is in Authoring conventions.
 
 - `software-descriptor/0.2.json` — base software descriptor contract. Defines the canonical `describe` operation and `SoftwareIdentity` schema for self-identifying software. Generic capability.
-- `binding-invoker/0.1.json` — binding invoker contract. Defines `listBindingSpecs`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings governed by specific binding specifications (`openbindings.openapi@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
+- `binding-invoker/0.1.json` — binding invoker contract. Defines `listSupportedKinds`, `checkKindSupport`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings whose sources have kinds they can act on (`openbindings.openapi-3.1@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
 - `operation-invoker/0.1.json` — operation invoker contract. The by-reference peer of `binding-invoker`: `invokeOperation` resolves an operation (or binding) key against an OBI, requires a caller choice when several invocable bindings remain, validates declared value contracts, then performs kind-governed binding invocation; `preflightOperation` is the preflight. Same frame protocol as `invokeBinding`, with the resolution and validation semantics on top.
 - `interface-synthesizer/0.2.json` — interface synthesizer contract. Defines strict OBI synthesis and synthesis with durable, verifiable coverage evidence for components that derive OBIs from existing source artifacts.
-- `source-inspector/0.1.json` — source inspector contract. Defines `listBindingSpecs` and `inspectSource` for components that inspect source artifacts and return bindable targets, an exhaustiveness claim, and evidence explaining partial enumeration. (New for spec 0.2.0; first contract version 0.1.0.)
+- `source-inspector/0.1.json` — source inspector contract. Defines `listSupportedKinds`, `checkKindSupport`, and `inspectSource` for components that inspect source artifacts and return bindable targets, an exhaustiveness claim, and evidence explaining partial enumeration. (New for spec 0.2.0; first contract version 0.1.0.)
 - `document-store/0.1.json` — generic store of named JSON documents (`get`/`set`/`delete` over an opaque key and a whole JSON object, in the document-database sense). Generic capability; a runtime may use one to hold binding context, but the store knows nothing about context. (Replaces the spec-0.1.0 `context-store`, which baked the context meaning into the store.)
 - `delegate-manager/0.1.json` — role-scoped Delegate Manager: discover application responsibilities and accepted interface values; enroll a complete OBI for explicit roles; list full registrations; express per-role preference; unregister by manager-assigned ID. Registration establishes candidacy, not trust, invocation, or provider selection.
 - `token-provider/0.1.json` — token provider contract. Defines `mint`, `refresh`, `introspect`, and `revoke` for services that produce, examine, and end short-lived bearer tokens — an OAuth 2.0 token endpoint, a secrets vault, a cloud CLI, and a venue's token service can all carry these names. Tokens are the contract's subject matter, so the credentials and tokens acted on are ordinary operation inputs and outputs (see the authoring conventions), each marked secret; possession-based (acting on tokens the caller does not hold — by identifier, listing, administration — is outside the contract); bearer-shaped permanently, with non-bearer credential kinds reserved for a future sibling contract. (Discovered during the Panjir venue's authentication build; the project's first consumer-side stake — the ob CLI's token-provider pinning is the flagship consumer, and Panjir is implementation #1 by alias.)
@@ -94,7 +98,7 @@ They compose rather than overlap:
 - **delegate-manager** manages by-value OBI registrations for explicit application-owned roles. A role advertises complete accepted interfaces; admission establishes correspondence for one whole alternative and refuses only on a contradiction its comparison establishes. The application owns eligibility, scoped configuration and selection. Registration does not authorize secret disclosure or enroll unrequested capabilities.
 - **token-provider** is the supply half of the credential seam whose demand half lives in binding-invoker and operation-invoker: those contracts define how a runtime discovers that an invocation *needs* a credential (`CONTEXT_REQUIRED`, the `auth.*` requirement families, the `BindingContext` credential shapes); token-provider names the operations that *produce* one. Neither half references the other — the contract is adoptable by services that have never heard of the invoker pattern — but a runtime may compose them, turning one operation's outputs into other operations' prerequisites (the ob CLI's token-provider pinning does exactly this). Composition carries one non-negotiable rule, stated in the contract and its README: correspondence tells a runtime *which* operation on a provider mints, never *whether* to send it a credential — the recipient of a secret is always explicit caller configuration, never a key match, a delegate registration, or a discovery result.
 
-A service claims correspondence with one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can correspond to several of these interfaces at once without the adopted names colliding — a service that lists supported binding specifications for binding invocation, interface synthesis, and source inspection carries all three of `openbindings.binding-invoker.listBindingSpecs`, `openbindings.interface-synthesizer.listBindingSpecs`, and `openbindings.source-inspector.listBindingSpecs` on its one local operation. The name is author-asserted; the spec attaches no verification or trust semantics to it.
+A service claims correspondence with one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can correspond to several of these interfaces at once without the adopted names colliding — a service with a shared advisory list supported for all three jobs may carry `openbindings.binding-invoker.listSupportedKinds`, `openbindings.interface-synthesizer.listSupportedKinds`, and `openbindings.source-inspector.listSupportedKinds` on its one local operation. The name is author-asserted; the spec attaches no verification or trust semantics to it.
 
 Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
 
@@ -118,17 +122,16 @@ should check:
    defines each; the spellings are reserved and no other authority may
    redefine them.
 2. **[operation-invoker](operation-invoker/)** owns the codes its resolution,
-   validation, and transform mechanics require: `ERR_OPERATION_NOT_FOUND`,
+   and validation mechanics require: `ERR_OPERATION_NOT_FOUND`,
    `ERR_BINDING_NOT_FOUND`, `ERR_BINDING_SELECTION_REQUIRED`,
    `ERR_UNKNOWN_SOURCE`, `ERR_OPERATION_VALIDATION_FAILED`,
-   `ERR_SCHEMA_UNRESOLVED`, `ERR_TRANSFORM_ERROR`.
-3. **The governing binding specification** may define codes for the sources it
-   governs, with the same standing. No `openbindings.*` binding-specification
+   `ERR_SCHEMA_UNRESOLVED`.
+3. **A kind's defining document** may define codes for sources of that kind, with the same standing. No `openbindings.*` binding-specification
    candidate currently defines one; a specification that does so defines the
    code in its own text, and this registry gains a citation, not a copy.
 
 Two generic spellings are deliberately **left open** by the owned set so that
-binding specifications and implementations can use them without collision:
+kinds and implementations can use them without collision:
 `ERR_PROTOCOL` (frame mechanics use the narrower `ERR_FRAME_PROTOCOL`) and
 `ERR_VALIDATION_FAILED` (operation-schema mismatch uses the narrower
 `ERR_OPERATION_VALIDATION_FAILED`).
@@ -171,7 +174,7 @@ outside-profile keyword.
 
 Every operation key in these interfaces is `openbindings.` followed by the interface name and the operation's short name: `openbindings.binding-invoker.invokeBinding`, `openbindings.document-store.get`, `openbindings.software-descriptor.describe`, and so on. The short name alone (`invokeBinding`, `get`) is used in prose for readability, but the qualified form is the operation's actual key and the name a corresponding document adopts.
 
-The keys carry the `openbindings.` project prefix deliberately, and it does two things. **Uniqueness:** interface-qualification alone (`binding-invoker.listBindingSpecs`) prevents collisions *within* a single document — a bare `listBindingSpecs` would collide across the three interfaces that define it — but it does not distinguish this project's `document-store` from another publisher's identically-named one, since a bare `document-store.get` from two authors is the same string. The project prefix makes the key globally unique, so `openbindings.document-store.get` never coincides with anyone else's. **Provenance:** an operation key travels apart from its document — adopted into another service's operation identifiers, written to a log, indexed by a registry — and once it has moved, the document's source URL no longer accompanies it. The prefix carries *who minted this contract, and where to find it* inline with the name, which a co-located URL cannot once the string has left home. This is the reverse-DNS bargain (Java packages, MIME `vnd.`): one convention buys uniqueness, attribution, and a discovery pointer, and it privileges no one — every publisher qualifies under its own token, so a third party would write `acme.document-store.get`. The prefix is still author-asserted; the spec attaches no trust semantics to it. The interface **name** carries no prefix because the name is only a label, not an identifier. The spec advises contract authors to choose operation names with a high likelihood of global uniqueness but prescribes no scheme; project-qualification is how this project meets that advice, and third parties may meet it however they like.
+The keys carry the `openbindings.` project prefix deliberately, and it does two things. **Uniqueness:** interface-qualification alone (`binding-invoker.listSupportedKinds`) prevents collisions *within* a single document — a bare `listSupportedKinds` would collide across the three interfaces that define it — but it does not distinguish this project's `document-store` from another publisher's identically-named one, since a bare `document-store.get` from two authors is the same string. The project prefix makes the key globally unique, so `openbindings.document-store.get` never coincides with anyone else's. **Provenance:** an operation key travels apart from its document — adopted into another service's operation identifiers, written to a log, indexed by a registry — and once it has moved, the document's source URL no longer accompanies it. The prefix carries *who minted this contract, and where to find it* inline with the name, which a co-located URL cannot once the string has left home. This is the reverse-DNS bargain (Java packages, MIME `vnd.`): one convention buys uniqueness, attribution, and a discovery pointer, and it privileges no one — every publisher qualifies under its own token, so a third party would write `acme.document-store.get`. The prefix is still author-asserted; the spec attaches no trust semantics to it. The interface **name** carries no prefix because the name is only a label, not an identifier. The spec advises contract authors to choose operation names with a high likelihood of global uniqueness but prescribes no scheme; project-qualification is how this project meets that advice, and third parties may meet it however they like.
 
 Schemas used as operation **outputs** (or nested inside output schemas) SHOULD NOT use `additionalProperties: false`. Published interfaces describe **minimum** requirements: implementations MUST provide at least the listed fields, but they MAY return additional fields beyond those described. Open output schemas allow these interfaces to evolve additively in future versions without breaking strict-compatibility consumers.
 
@@ -186,7 +189,7 @@ What a concrete manifestation additionally requires to *perform* it —
 authentication of the caller, deployment configuration — is a prerequisite
 of that manifestation, not part of the operation's contract, and does not
 appear in its schemas. How prerequisites are supplied belongs to other
-layers: the governing binding specification, and whatever machinery a
+layers: the source's kind, and whatever machinery a
 consuming runtime uses (the binding-invoker contract's context negotiation
 is one such mechanism, not a layer of the model). An operation that lists
 documents behind an authenticated surface takes no credential input: the
@@ -202,7 +205,7 @@ invisible in the one place adopters and compatibility checks can see it.
 
 ### Schemas are intentionally self-contained per interface
 
-Each interface in this directory is a self-contained document. Schemas are defined locally in each file rather than referenced across files via `$ref`, even when sibling interfaces use the same shape (e.g., `BindingSpecInfo` appears in binding-invoker, interface-synthesizer, and source-inspector).
+Each interface in this directory is a self-contained document. Schemas are defined locally in each file rather than referenced across files via `$ref`, even when sibling interfaces use the same shape (e.g., `SupportedKind` appears in binding-invoker, interface-synthesizer, and source-inspector).
 
 The OpenBindings spec does not normatively define cross-document `$ref` resolution between these interface files. Self-containment means a tool can read and validate any one interface file without resolving external references.
 

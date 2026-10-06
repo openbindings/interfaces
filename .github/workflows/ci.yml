@@ -44,8 +44,8 @@ jobs:
       - name: Validate synthesis coverage fixtures
         run: ajv validate -s conformance/synthesis-coverage/fixture.schema.json -d conformance/synthesis-coverage/cases.json --spec=draft2020
 
-      - name: Validate binding-spec support fixtures
-        run: ajv validate -s conformance/binding-spec-support/fixture.schema.json -d conformance/binding-spec-support/cases.json --spec=draft2020
+      - name: Validate kind support fixtures
+        run: ajv validate -s conformance/kind-support/fixture.schema.json -d conformance/kind-support/cases.json --spec=draft2020
 
       - name: Validate runtime composition fixtures
         run: ajv validate -s conformance/composition/fixture.schema.json -d conformance/composition/cases.json --spec=draft2020
@@ -101,30 +101,7 @@ jobs:
         # drift for corpus-only changes without an SDK checkout.
         run: |
           mkdir -p "$RUNNER_TEMP/fixture-docs"
-          node -e '
-            const fs = require("fs");
-            let n = 0;
-            for (const f of fs.readdirSync("conformance/selection")) {
-              if (!f.endsWith(".json") || f === "fixture.schema.json") continue;
-              const file = JSON.parse(fs.readFileSync("conformance/selection/" + f, "utf8"));
-              for (const t of file.tests) {
-                fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + f.replace(/\.json$/, "") + "-" + n++ + ".json", JSON.stringify(t.document));
-              }
-            }
-            const coverage = JSON.parse(fs.readFileSync("conformance/synthesis-coverage/cases.json", "utf8"));
-            for (const t of coverage.tests) {
-              fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/synthesis-coverage-" + n++ + ".json", JSON.stringify(t.interface));
-            }
-            const m = JSON.parse(fs.readFileSync("conformance/comparison/manifest.json", "utf8"));
-            for (const e of m.files) {
-              const fix = JSON.parse(fs.readFileSync("conformance/comparison/" + e.path, "utf8"));
-              for (const side of ["left", "right"]) {
-                fs.writeFileSync(process.env.RUNNER_TEMP + "/fixture-docs/" + e.path.replace(/[\/]/g, "-").replace(/\.json$/, "") + "-" + side + ".json", JSON.stringify(fix[side]));
-                n++;
-              }
-            }
-            console.log("extracted " + n + " embedded documents");
-          '
+          node .github/scripts/extract-fixture-documents.mjs "$RUNNER_TEMP/fixture-docs"
           for f in "$RUNNER_TEMP"/fixture-docs/*.json; do
             echo "validating embedded document $f"
             ajv validate -s .github/scripts/openbindings.schema.json -d "$f" --spec=draft2020 -c ajv-formats
@@ -133,7 +110,7 @@ jobs:
       - name: Check canonical field ordering
         # The checker skips any document written against an older openbindings
         # version than the newest among the inputs (none at present).
-        run: node .github/scripts/check-canonical-order.mjs */[0-9]*.json
+        run: node .github/scripts/check-canonical-order.mjs */[0-9]*.json "$RUNNER_TEMP"/fixture-docs/*.json
 
       - name: Check shared schemas stay identical
         # Same-named schemas are duplicated by hand across contracts

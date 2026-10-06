@@ -361,7 +361,7 @@ themselves. Neither selection nor preference adjustment invokes provider work
 to find out which side-effecting call succeeds.
 
 In particular, the current Operation Invoker interface is not a universal
-catalogue of supported binding specifications. A role requiring support queries
+catalogue of supported kinds. A role requiring support queries
 must advertise the appropriate additional operations in its expected interface
 and implement that consumption. Neither generic role data nor a static OBI
 assertion supplies a live capability check automatically. Evaluating candidates
@@ -433,3 +433,7 @@ See [examples.json](examples.json) for actual carried OBI values and
 [management-example.mjs](management-example.mjs) for the worked management
 sequence. These example values are specifications, not evidence of a running role-aware
 delegate manager.
+
+The bound provider example uses `example.delegate-provider@1`, a private harness
+kind. Its content demonstrates registration carriage and does not claim OpenAPI
+interpretation or an executable protocol adapter.

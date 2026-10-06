@@ -1,0 +1,307 @@
+{
+  "format": "openbindings.carried-values-cases@1",
+  "description": "Contract schemas remain open for x- extensions within the comparison profile. allowedByCarriedValuesRule separately records the normative refusal rule; this corpus is not a runtime conformance claim.",
+  "tests": [
+    {
+      "description": "legacy binding selector refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "selector": "deploy"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "legacy source location refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "location": "file:///x"
+        },
+        "binding": {}
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "legacy bindingSpec source member refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "bindingSpec": "k"
+        },
+        "binding": {}
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "extensions survive the full binding carrier",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "operation": "op",
+          "source": "s",
+          "x-target": "keep"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    },
+    {
+      "description": "explicit null content is carried",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "content": null
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    },
+    {
+      "description": "absent content is carried as empty binding",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {}
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    },
+    {
+      "description": "wrong typed binding member is refused",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "operation": 1
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": false,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "missing binding refuses the whole input before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": false,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "top-level legacy selector refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {},
+        "selector": "legacy"
+      },
+      "carrier": "binding",
+      "schemaValid": false,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "wrong idempotent type refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "idempotent": "yes"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": false,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "wrong preference type refuses before work",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "preference": 0.5
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": false,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "unknown unprefixed binding member refuses",
+      "interface": "binding-invoker",
+      "schema": "BindingInvocationInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1"
+        },
+        "binding": {
+          "confidence": 1
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "unknown source member refuses for source-inspector",
+      "interface": "source-inspector",
+      "schema": "InspectSourceInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "confidence": 1
+        }
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "source extension and null content survive for source-inspector",
+      "interface": "source-inspector",
+      "schema": "InspectSourceInput",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "content": null,
+          "x-evidence": true
+        }
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    },
+    {
+      "description": "unknown source member refuses for interface-synthesizer",
+      "interface": "interface-synthesizer",
+      "schema": "SynthesizeInterfaceSource",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "confidence": 1
+        }
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "source extension and null content survive for interface-synthesizer",
+      "interface": "interface-synthesizer",
+      "schema": "SynthesizeInterfaceSource",
+      "value": {
+        "source": {
+          "kind": "example.carried-values@1",
+          "content": null,
+          "x-evidence": true
+        }
+      },
+      "carrier": "source",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    },
+    {
+      "description": "inspector producer binding {'confidence': 1}",
+      "interface": "source-inspector",
+      "schema": "BindableTarget",
+      "value": {
+        "sourceRef": "target",
+        "binding": {
+          "confidence": 1
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "inspector producer binding {'operation': 'op'}",
+      "interface": "source-inspector",
+      "schema": "BindableTarget",
+      "value": {
+        "sourceRef": "target",
+        "binding": {
+          "operation": "op"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "inspector producer binding {'source': 's'}",
+      "interface": "source-inspector",
+      "schema": "BindableTarget",
+      "value": {
+        "sourceRef": "target",
+        "binding": {
+          "source": "s"
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": false
+    },
+    {
+      "description": "inspector producer binding {'content': None, 'x-evidence': True}",
+      "interface": "source-inspector",
+      "schema": "BindableTarget",
+      "value": {
+        "sourceRef": "target",
+        "binding": {
+          "content": null,
+          "x-evidence": true
+        }
+      },
+      "carrier": "binding",
+      "schemaValid": true,
+      "allowedByCarriedValuesRule": true
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "cluster": "default-supported",
-  "description": "Candidate-set formation: the candidate set is the operation's bindings whose governing binding specification the invoker can act on, by exact identifier. Unsupported bindings are excluded before sole-candidate or ambiguity resolution; no invocable binding fails with ERR_BINDING_NOT_FOUND.",
+  "description": "Candidate-set formation: the candidate set is the operation's bindings whose sources have kinds the invoker can act on, by exact identifier. Unsupported bindings are excluded before sole-candidate or ambiguity resolution; no invocable binding fails with ERR_BINDING_NOT_FOUND.",
   "tests": [
     {
       "description": "an unsupported binding is skipped, leaving the supported binding as the sole candidate",
@@ -11,7 +11,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -44,7 +44,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "binding": "getThing.rest"
@@ -77,7 +77,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "error": true,
@@ -94,7 +94,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "error": true,
@@ -111,7 +111,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -130,7 +130,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "error": true,
@@ -146,7 +146,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -179,7 +179,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "binding": "getThing.rest"

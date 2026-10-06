@@ -152,7 +152,7 @@
         },
         "sources": {
             "api": {
-                "kind": "openbindings.openapi-3.1@1",
+                "kind": "example.delegate-provider@1",
                 "content": {
                     "openapi": "3.1.2",
                     "info": {

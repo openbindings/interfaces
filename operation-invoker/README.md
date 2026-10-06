@@ -31,12 +31,12 @@ When it receives an `OperationInvocationInput` (carried by the `open` frame), it
 1. **Resolves the name or key.** An `operation` name resolves across the flat key-and-alias namespace (OBI-T-07) to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it. Bindings are found by the resolved operation key, not the alias used to reach it.
 2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose sources have kinds the invoker can act on. The contract follows caller policy and the source's kind without inventing a ranking:
    - an explicit `binding` key is used directly;
-   - when `context.configuration.selection` supplies an ordered list, the first invocable listed binding is used;
-   - without an effective caller choice, a sole invocable candidate is used;
+   - when the caller supplies an ordered `selection`, the first listed binding the invoker can act on is used. The list passes over only what the invoker cannot act on, the one fact a caller may not know. Every listed key must name one of the operation's bindings, and the list never falls back to a binding it does not name: a key that names no binding of the operation, or a list with none the invoker can act on, fails with `ERR_BINDING_NOT_FOUND`;
+   - without `binding` or `selection`, a sole invocable candidate is used;
    - zero candidates fail with `ERR_BINDING_NOT_FOUND`;
    - several candidates fail with `ERR_BINDING_SELECTION_REQUIRED`.
 
-   `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or ordered selection list.
+   `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or an ordered selection.
 3. **Validates declared value contracts.** Each input value is checked before forwarding and each successful output value before relaying, where that side declares a schema. Claims follow [OBI-T-08](https://github.com/openbindings/spec/blob/release/0.2/openbindings.md#103-tool-rules): applicable JSON Schema semantics, `format` as annotation where assertion is optional, Unicode pattern semantics, and the OBI reference environment. An established mismatch is `ERR_OPERATION_VALIDATION_FAILED`; a check that cannot give a verdict is `ERR_SCHEMA_UNRESOLVED`. Neither permits forwarding that value as validated. An absent schema states no contract: values on that side are forwarded without a validation claim. Core does not mandate a whole-graph readiness strategy.
 4. **Drives the binding invocation,** forwarding the selected source, the full binding object with content presence preserved, and caller context. The binding invoker applies any kind-defined adaptation. The operation invoker preserves the binding invoker's frame ordering and operation-value payloads, subject to step 3's validation. An unsuccessful terminal frame remains unsuccessful; `CONTEXT_REQUIRED` details and opaque application failure data are relayed unchanged without output-schema validation. This layer may terminate with its own resolution or validation failure, but does not apply a second transformation.
 
@@ -55,14 +55,11 @@ The contract does not prescribe where resolution runs, what triggers it, or whet
 `CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any observable operation side effect**, so a new attempt restarts a call that never happened. A binding may re-challenge after supplied context proves unusable only while its governing rules can still prove that boundary; a native failure status is not sufficient evidence by itself. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
 
 One well-known context field rides through this layer: **`configuration`**, an
-object keyed by configuration-point name. This interface defines only its
-`selection` point: an array of binding-key strings in caller preference order.
-The first listed key that exists, belongs to the resolved operation, and is
-read under a source kind the invoker can act on is the caller's
-choice. A non-array value, a list containing a non-string, or a list with no
-invocable entry supplies no effective choice; the sole-candidate/ambiguity
-rules still apply. Kinds may define other configuration points. The authority defining each
-point owns its value's meaning and consultation rules.
+object keyed by configuration-point name. This interface defines no
+configuration point; kinds define them, and the authority defining each point
+owns its value's meaning and consultation rules. Choosing a binding is not
+configuration: it is the caller's instruction for one call, carried by
+`binding` or `selection` in the invocation input.
 
 ## Operation-invoker-owned errors
 
@@ -71,8 +68,8 @@ This interface owns only the codes required by its resolution and validation mec
 | Code | Meaning |
 |---|---|
 | `ERR_OPERATION_NOT_FOUND` | The requested operation key or alias does not resolve. |
-| `ERR_BINDING_NOT_FOUND` | The explicit binding does not exist, or no invocable binding remains for the operation. |
-| `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied no effective choice. |
+| `ERR_BINDING_NOT_FOUND` | The explicit binding, or a key in `selection`, names no binding of the operation, or no invocable binding remains among those allowed. |
+| `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied neither `binding` nor `selection`. |
 | `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |
 | `ERR_OPERATION_VALIDATION_FAILED` | An input or output value violates the operation's governing schema. |
 | `ERR_SCHEMA_UNRESOLVED` | A schema check on a value cannot give a verdict, so that value cannot be forwarded as validated. |

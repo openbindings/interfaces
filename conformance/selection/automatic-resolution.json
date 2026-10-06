@@ -1,6 +1,6 @@
 {
   "cluster": "automatic-resolution",
-  "description": "Without an effective caller choice, a sole invocable binding is selected and several invocable bindings are refused. Preference, deprecation, key order, source order, and implementation order do not invent a choice.",
+  "description": "Without `binding` or `selection`, a sole invocable binding is selected and several invocable bindings are refused. Preference, deprecation, key order, source order, and implementation order do not invent a choice.",
   "tests": [
     {
       "description": "a sole invocable binding is selected even when deprecated and negatively preferred",

@@ -153,8 +153,7 @@ assert(positiveCoverage > 0, 'no positive coverage fixtures checked');
 const coverage = compile(synthesizer, synthesizer.schemas.SynthesisCoverageEntry);
 const represented = { sourceIndex: 0, sourceRef: 'unit', scope: 'target', status: 'represented', sourceKey: 's', operationKey: 'op', bindingKey: 'b' };
 accepts(coverage, represented);
-accepts(coverage, { ...represented, bindingContent: null }, false);
-accepts(coverage, { ...represented, bindingSelector: 'legacy' }, false);
+accepts(coverage, { ...represented, 'x-note': 'an implementation extension' });
 accepts(coverage, { ...represented, status: 'lossy' }, false);
 accepts(coverage, { ...represented, status: 'lossy', reasonCode: 'example.loss', message: 'A projection is incomplete.' });
 for (const scope of ['target', 'dependency']) {

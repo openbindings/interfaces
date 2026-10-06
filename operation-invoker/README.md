@@ -75,7 +75,7 @@ This interface owns only the codes required by its resolution and validation mec
 | `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied no effective choice. |
 | `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |
 | `ERR_OPERATION_VALIDATION_FAILED` | An input or output value violates the operation's governing schema. |
-| `ERR_SCHEMA_UNRESOLVED` | The complete statically reachable governing schema graph cannot be established, so validation cannot be claimed. |
+| `ERR_SCHEMA_UNRESOLVED` | A schema check on a value cannot give a verdict, so that value cannot be forwarded as validated. |
 
 These outcomes are code-only: this interface defines no `data` for them.
 Binding-invoker-owned failures and failures owned by the source kind's defining

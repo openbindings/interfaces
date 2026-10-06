@@ -59,7 +59,7 @@ Each interface lives in its own directory, with one file per version. The major.
 Interface **names** carry no `openbindings.` prefix: the `name` field is a label, not an identifier, and an OBI carries no identity of its own (a contract is addressed by its canonical URL above). Operation **keys** are fully qualified as `openbindings.<interface>.<operation>` (for example `openbindings.binding-invoker.invokeBinding`); the rationale is in Authoring conventions.
 
 - `software-descriptor/0.2.json` — base software descriptor contract. Defines the canonical `describe` operation and `SoftwareIdentity` schema for self-identifying software. Generic capability.
-- `binding-invoker/0.1.json` — binding invoker contract. Defines `listSupportedKinds`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings governed by specific binding specifications (`openbindings.openapi@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
+- `binding-invoker/0.1.json` — binding invoker contract. Defines `listSupportedKinds`, `checkKindSupport`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings whose sources have kinds they can act on (`openbindings.openapi-3.1@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
 - `operation-invoker/0.1.json` — operation invoker contract. The by-reference peer of `binding-invoker`: `invokeOperation` resolves an operation (or binding) key against an OBI, requires a caller choice when several invocable bindings remain, validates declared value contracts, then performs kind-governed binding invocation; `preflightOperation` is the preflight. Same frame protocol as `invokeBinding`, with the resolution and validation semantics on top.
 - `interface-synthesizer/0.2.json` — interface synthesizer contract. Defines strict OBI synthesis and synthesis with durable, verifiable coverage evidence for components that derive OBIs from existing source artifacts.
 - `source-inspector/0.1.json` — source inspector contract. Defines `listSupportedKinds`, `checkKindSupport`, and `inspectSource` for components that inspect source artifacts and return bindable targets, an exhaustiveness claim, and evidence explaining partial enumeration. (New for spec 0.2.0; first contract version 0.1.0.)
@@ -131,7 +131,7 @@ should check:
    code in its own text, and this registry gains a citation, not a copy.
 
 Two generic spellings are deliberately **left open** by the owned set so that
-binding specifications and implementations can use them without collision:
+kinds and implementations can use them without collision:
 `ERR_PROTOCOL` (frame mechanics use the narrower `ERR_FRAME_PROTOCOL`) and
 `ERR_VALIDATION_FAILED` (operation-schema mismatch uses the narrower
 `ERR_OPERATION_VALIDATION_FAILED`).
@@ -189,7 +189,7 @@ What a concrete manifestation additionally requires to *perform* it —
 authentication of the caller, deployment configuration — is a prerequisite
 of that manifestation, not part of the operation's contract, and does not
 appear in its schemas. How prerequisites are supplied belongs to other
-layers: the governing binding specification, and whatever machinery a
+layers: the source's kind, and whatever machinery a
 consuming runtime uses (the binding-invoker contract's context negotiation
 is one such mechanism, not a layer of the model). An operation that lists
 documents behind an authenticated surface takes no credential input: the

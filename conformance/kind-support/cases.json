@@ -4,23 +4,23 @@
     {
       "description": "exact matching refuses unknown and prefix-adjacent tokens while preserving first-occurrence order",
       "warranted": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "listed": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "kinds": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.openapi",
-        "openbindings.openapi@10",
+        "openbindings.openapi-3.1@10",
         "openbindings.grpc@1",
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": [
         {
-          "kind": "openbindings.openapi@1",
+          "kind": "openbindings.openapi-3.1@1",
           "supported": true
         },
         {
@@ -28,7 +28,7 @@
           "supported": false
         },
         {
-          "kind": "openbindings.openapi@10",
+          "kind": "openbindings.openapi-3.1@10",
           "supported": false
         },
         {
@@ -40,7 +40,7 @@
     {
       "description": "empty input produces an empty verdict list",
       "warranted": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "listed": [],
       "kinds": [],
@@ -49,18 +49,18 @@
     {
       "description": "an advisory listing may omit support but every listed identifier is warranted",
       "warranted": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "listed": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "kinds": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": [
         {
-          "kind": "openbindings.openapi@1",
+          "kind": "openbindings.openapi-3.1@1",
           "supported": true
         }
       ]

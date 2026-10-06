@@ -24,7 +24,7 @@
     "tests": {
       "type": "array",
       "minItems": 1,
-      "description": "Test cases for this rule-cluster. Each case bundles an OBI document, an invocation addressing (operation, or operation plus explicit binding), the notional invoker's supported binding-specification set, and the expected selection outcome.",
+      "description": "Test cases for this rule-cluster. Each case bundles an OBI document, an invocation addressing (operation, or operation plus explicit binding), the notional invoker's supported kind set, and the expected selection outcome.",
       "items": {
         "type": "object",
         "required": ["description", "document", "operation", "supported", "expected"],
@@ -43,13 +43,13 @@
           "operation": {
             "type": "string",
             "minLength": 1,
-            "description": "The operation identifier the invocation addresses (a key or alias, resolved per OBI-T-12). When 'binding' is also present, this is the operation the binding derives to: the wire contract's OperationInvocationInput carries operation and binding mutually exclusively (the operation is derived from an explicit binding), and the fixture carries the derived operation so operation-keyed native APIs can drive the same scenario. Fixture invariant: document.bindings[binding].operation resolves to this operation (vacuous when the binding key is undefined)."
+            "description": "The operation identifier the invocation addresses (a key or alias, resolved per OBI-T-07). When 'binding' is also present, this is the operation the binding derives to: the wire contract's OperationInvocationInput carries operation and binding mutually exclusively (the operation is derived from an explicit binding), and the fixture carries the derived operation so operation-keyed native APIs can drive the same scenario. Fixture invariant: document.bindings[binding].operation resolves to this operation (vacuous when the binding key is undefined)."
           },
           "supported": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },
             "uniqueItems": true,
-            "description": "The notional invoker's supported set: exact binding-specification identifiers it can act on (natively or via a delegate). The candidate set is the operation's bindings whose source's governing binding specification appears here, by exact identifier."
+            "description": "The notional invoker's supported set: the exact kinds it can act on (natively or via a delegate). The candidate set is the operation's bindings whose source's kind appears here, by exact identifier."
           },
           "selection": {
             "type": "array",

@@ -245,7 +245,7 @@ The operation-invoker interface and each source's kind own
 the additional codes they explicitly define. Implementations may use further
 codes where those authorities are silent, but such codes are implementation
 behavior rather than portable contract meaning. Community convergence around
-an underdefined case is a reason to tighten the governing specification, not
+an underdefined case is a reason to tighten the kind's definition, not
 to infer a hidden universal taxonomy. This contract assigns additional codes
 no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
 policy belong to the caller and SDK layer. A kind's rules can establish many

@@ -1,6 +1,6 @@
 {
   "cluster": "override-selection",
-  "description": "Consumer override: context.configuration.selection is an ordered list of binding keys, the first invocable entry winning. An entry is invocable when it is defined on the interface, targets the resolved operation, and its governing binding specification is supported; entries failing any of those are skipped. When no listed entry is invocable, the default policy applies.",
+  "description": "Consumer override: context.configuration.selection is an ordered list of binding keys, the first invocable entry winning. An entry is invocable when it is defined on the interface, targets the resolved operation, and its source's kind is supported; entries failing any of those are skipped. When no listed entry is invocable, the default policy applies.",
   "tests": [
     {
       "description": "the override displaces the default policy: a listed key wins over the policy's preferred candidate",
@@ -11,7 +11,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -44,7 +44,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [
@@ -63,7 +63,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -96,7 +96,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [
@@ -116,7 +116,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -148,7 +148,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [
@@ -169,7 +169,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -208,7 +208,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [
@@ -220,7 +220,7 @@
       }
     },
     {
-      "description": "a listed key whose governing binding specification is unsupported is skipped; the next invocable entry wins",
+      "description": "a listed key whose source's kind is unsupported is skipped; the next invocable entry wins",
       "document": {
         "openbindings": "0.2.0",
         "operations": {
@@ -228,7 +228,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -259,7 +259,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "selection": [
         "getThing.rpc",
@@ -279,7 +279,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -319,7 +319,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [
@@ -340,7 +340,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -373,7 +373,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [],
@@ -391,7 +391,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -423,7 +423,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "selection": [

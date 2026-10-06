@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative binding-specification support queries, operation-invoker binding resolution, runtime interface composition, interface-synthesizer coverage evidence, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, interface-synthesizer coverage evidence, and schema-comparison semantics.
 
 The corpus is reference material, not part of any contract: each contract's prose (its README and versioned contract document) is the sole source of conformance, where prose and corpus disagree the prose governs, and a rule without fixtures is no less binding. This mirrors the stance of the spec repository's corpus (`openbindings/spec/conformance`), whose conventions this corpus follows.
 
@@ -8,7 +8,7 @@ The corpus is reference material, not part of any contract: each contract's pros
 
 | Contract rule family | Coverage |
 |---|---|
-| binding-invoker / interface-synthesizer: authoritative binding-specification support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
+| binding-invoker / interface-synthesizer: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `context.configuration.selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
@@ -26,7 +26,7 @@ ordered verdicts. The fixtures pin empty input, first-occurrence
 deduplication, exact-match refusal of prefix-adjacent tokens, strict boolean
 answers, and the law `listed ⊆ warranted`.
 
-The fixture's `warranted` array models the specifications the implementation
+The fixture's `warranted` array models the kinds the implementation
 has actually implemented; it is not a pattern language. A harness compares
 tokens by exact string equality. `listed` is deliberately allowed to omit
 warranted identifiers because absence from the advisory list carries no
@@ -36,7 +36,7 @@ information.
 
 Covers the operation-invoker contract's selection rules — its README's "Selects a binding" step and the `invokeOperation` operation's "Binding selection" rule in `operation-invoker/0.1.json`:
 
-- **Candidate set**: the operation's bindings whose governing binding specification the invoker can act on, by exact identifier (`default-supported.json`).
+- **Candidate set**: the operation's bindings whose sources have kinds the invoker can act on, by exact identifier (`default-supported.json`).
 - **Automatic resolution**: a sole invocable candidate is selected; several are refused without consulting preference, deprecation, or ordering metadata (`automatic-resolution.json`).
 - **Ordered caller choice**: `context.configuration.selection` selects its first invocable listed binding; an ineffective list does not authorize an invented fallback (`override-selection.json`).
 - **Explicit `binding` key**: bypasses other resolution; unknown key is an error (`explicit-binding.json`).
@@ -55,7 +55,7 @@ One file per rule-cluster, validated by [`selection/fixture.schema.json`](select
       "description": "specific scenario this case exercises",
       "document": { "openbindings": "0.2.0", "operations": { "getThing": {} }, "...": "..." },
       "operation": "getThing",
-      "supported": ["openbindings.openapi@1", "openbindings.grpc@1"],
+      "supported": ["openbindings.openapi-3.1@1", "openbindings.grpc@1"],
       "selection": ["getThing.rpc"],
       "binding": "getThing.rpc",
       "expected": { "binding": "getThing.rpc" }
@@ -68,7 +68,7 @@ Field semantics:
 
 - `document`: a complete, **valid** OpenBindings interface document, embedded inline. Harnesses run it through their implementation's real document validation before selecting; a document that fails validation is a corpus defect, never an expected outcome.
 - `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-07).
-- `supported`: the notional invoker's supported set — the exact binding-specification identifiers it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" specification is a real candidate identifier absent from this set, never an invented one.
+- `supported`: the notional invoker's supported set — the exact kinds it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi-3.1@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" kind is a real candidate identifier absent from this set, never an invented one.
 - `selection` (optional): the ordered `context.configuration.selection` caller choice. Absent or empty makes no choice; if no listed entry is invocable, sole-candidate/ambiguity resolution still applies.
 - `binding` (optional): the explicit binding key, the wire contract's binding-addressed form. On the wire `operation` and `binding` are mutually exclusive (the operation is *derived* from an explicit binding); the fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario, with the invariant `document.bindings[binding].operation` = the resolved operation (vacuous for unknown-key fixtures).
 - `expected`: either `{ "binding": "<key>" }` or `{ "error": true, "kind": "unknown-binding" | "no-candidate" | "ambiguous" }`. The first two errors use `ERR_BINDING_NOT_FOUND`; ambiguity uses `ERR_BINDING_SELECTION_REQUIRED`.
@@ -86,7 +86,7 @@ Covers the format-neutral invariants of the interface-synthesizer contract's `sy
 - `fullyRepresented` is derived rather than asserted: it is true only for exhaustive evidence with no upstream-valid exclusion, lossy projection, or implementation gap;
 - non-exhaustive evidence never claims full representation.
 
-[`synthesis-coverage/cases.json`](synthesis-coverage/cases.json) is validated by [`synthesis-coverage/fixture.schema.json`](synthesis-coverage/fixture.schema.json). The corpus does not define a binding family's interaction inventory. That inventory and its representation/exclusion rules belong to the governing binding specification and are exercised by the spec repository's synthesis scenarios.
+[`synthesis-coverage/cases.json`](synthesis-coverage/cases.json) is validated by [`synthesis-coverage/fixture.schema.json`](synthesis-coverage/fixture.schema.json). The corpus does not define a binding family's interaction inventory. That inventory and its representation/exclusion rules belong to the source's kind and are exercised by the spec repository's synthesis scenarios.
 
 Coverage evidence is a portable audit record, not a proof that consumers must trust. A consumer may independently inspect the source and compare it with the emitted OBI; the evidence makes that verification easier and makes omissions explicit.
 
@@ -96,7 +96,7 @@ Coverage evidence is a portable audit record, not a proof that consumers must tr
 [`composition/fixture.schema.json`](composition/fixture.schema.json), pins the
 observable decisions of `openbindings.reference-composition@1`. Each case
 contains a complete consumer OBI, application-owned provider registrations,
-the runtime binding specifications installed for each provider, one dependency
+the kinds each provider's runtime supports, one dependency
 key, and the expected route-to-one status. Available cases additionally pin the
 provider and binding identity; ambiguous cases pin the provider-versus-
 realization stage; unavailable cases pin ordered stable assessment codes.
@@ -203,8 +203,8 @@ The contract-boundary corpus separates schema acceptance from the normative
 unknown-member refusal rule. The automated repository check does not implement
 invocation or claim runtime conformance; implementations replay the cases to
 verify refusal before work. Coverage examples use `example.coverage@1` as a
-private harness kind: their invented content and exclusions claim no OpenAPI
-binding-specification meaning.
+private harness kind: their invented content and exclusions claim no meaning under
+any OpenAPI kind.
 
 ## Coverage harness kind
 

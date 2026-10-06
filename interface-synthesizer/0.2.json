@@ -308,8 +308,7 @@
                         "message"
                     ]
                 }
-            ],
-            "additionalProperties": false
+            ]
         },
         "SynthesisCoverage": {
             "type": "object",

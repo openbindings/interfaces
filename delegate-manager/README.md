@@ -361,7 +361,7 @@ themselves. Neither selection nor preference adjustment invokes provider work
 to find out which side-effecting call succeeds.
 
 In particular, the current Operation Invoker interface is not a universal
-catalogue of supported binding specifications. A role requiring support queries
+catalogue of supported kinds. A role requiring support queries
 must advertise the appropriate additional operations in its expected interface
 and implement that consumption. Neither generic role data nor a static OBI
 assertion supplies a live capability check automatically. Evaluating candidates

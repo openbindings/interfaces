@@ -46,7 +46,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -80,7 +80,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1",
+        "openbindings.openapi-3.1@1",
         "openbindings.grpc@1"
       ],
       "expected": {
@@ -97,7 +97,7 @@
         },
         "sources": {
           "rest": {
-            "kind": "openbindings.openapi@1",
+            "kind": "openbindings.openapi-3.1@1",
             "content": {
               "location": "https://example.com/things/openapi.json"
             }
@@ -122,7 +122,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi@1"
+        "openbindings.openapi-3.1@1"
       ],
       "expected": {
         "error": true,

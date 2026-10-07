@@ -66,7 +66,7 @@ One file per rule-cluster, validated by [`selection/fixture.schema.json`](select
 Field semantics:
 
 - `document`: a complete, **valid** OpenBindings interface document, embedded inline. Harnesses run it through their implementation's real document validation before selecting; a document that fails validation is a corpus defect, never an expected outcome.
-- `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-07).
+- `operation`: the operation identifier the invocation addresses (key or alias, resolved per OBI-T-06).
 - `supported`: the notional invoker's supported set — the exact kinds it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi-3.1@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" kind is a real candidate identifier absent from this set, never an invented one.
 - `selection` (optional): the invocation input's ordered `selection`, a nonempty list of binding keys. Every key must name one of the operation's bindings; the first invocable one wins; a list with no invocable entry is an error, never a fallback. Never present together with `binding`.
 - `binding` (optional): the explicit binding key, the wire contract's binding-addressed form. On the wire `operation` and `binding` are mutually exclusive (the operation is *derived* from an explicit binding); the fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario, with the invariant `document.bindings[binding].operation` = the resolved operation (vacuous for unknown-key fixtures).
@@ -171,7 +171,7 @@ Each fixture file embeds a **left** (target/contract) and **right** (candidate) 
 
 Field semantics:
 
-- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-07), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
+- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, OBI-T-06), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
 - `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
 - Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified, and the slot's comparison is skipped (the profile's suppression rule).
 - `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).

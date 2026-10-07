@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "description": "Operations pair by key or alias across the flat key+aliases namespace (OBI-T-07); a candidate-only operation is an addition and non-breaking.",
+  "description": "Operations pair by key or alias across the flat key+aliases namespace (OBI-T-06); a candidate-only operation is an addition and non-breaking.",
   "mode": "subsume",
   "options": {
     "profile": "OB-2020-12"

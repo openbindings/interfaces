@@ -44,7 +44,7 @@
           "operation": {
             "type": "string",
             "minLength": 1,
-            "description": "The operation identifier the invocation addresses (a key or alias, resolved per OBI-T-06). When 'binding' is also present, this is the operation the binding derives to: the wire contract's OperationInvocationInput carries operation and binding mutually exclusively (the operation is derived from an explicit binding), and the fixture carries the derived operation so operation-keyed native APIs can drive the same scenario. Fixture invariant: document.bindings[binding].operation resolves to this operation (vacuous when the binding key is undefined)."
+            "description": "The operation identifier the invocation addresses (a key or alias; core §5.1 defines which operation it identifies). When 'binding' is also present, this is the operation the binding derives to: the wire contract's OperationInvocationInput carries operation and binding mutually exclusively (the operation is derived from an explicit binding), and the fixture carries the derived operation so operation-keyed native APIs can drive the same scenario. Fixture invariant: document.bindings[binding].operation resolves to this operation (vacuous when the binding key is undefined)."
           },
           "supported": {
             "type": "array",

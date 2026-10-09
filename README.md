@@ -210,3 +210,11 @@ Each interface in this directory is a self-contained document. Schemas are defin
 The OpenBindings spec does not normatively define cross-document `$ref` resolution between these interface files. Self-containment means a tool can read and validate any one interface file without resolving external references.
 
 Shared-named schemas across interface files SHOULD be byte-identical and should be kept in sync manually when changes are made. Drift across interfaces is a quality concern for the OpenBindings project, not a runtime concern for consumers (each interface is checked independently against an implementation).
+
+## CI inputs
+
+Install the pinned schema tools with `npm ci --prefix .github`; their executables
+are in `.github/node_modules/.bin`. `bash .github/scripts/sync-schema.sh --check`
+compares the vendored schema with its declared full specification revision.
+Adopting a new revision updates the pin and schema together. Ordinary CI retains
+contract, fixture and publication-state checks without project-wide dispatch.

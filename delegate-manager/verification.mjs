@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Offline artifact checks only. This is NOT a Delegate Manager implementation.
-// Uses an installed Ajv 8, either resolvable locally or supplied by ajv-cli.
+// Uses the locked local Ajv installation: npm ci --prefix .github.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { managementExample } from './management-example.mjs';
 
@@ -18,15 +17,8 @@ const examples = read(resolve(here, 'examples.json'));
 // old/new comparison into a comparison of the new document with itself.
 const original = read(resolve(root, 'conformance/delegate-manager/legacy-location-draft.json'));
 const coreSchema = read(resolve(root, '.github/scripts/openbindings.schema.json'));
-const require = createRequire(import.meta.url);
-let Ajv2020;
-try {
-  Ajv2020 = require('ajv/dist/2020.js');
-} catch {
-  const globalRoot = execFileSync('npm', ['root', '--global'], { encoding: 'utf8' }).trim();
-  assert(isAbsolute(globalRoot), 'npm must return an absolute global package directory');
-  Ajv2020 = createRequire(resolve(globalRoot, 'ajv-cli/package.json'))('ajv/dist/2020.js');
-}
+const require = createRequire(resolve(root, '.github/package.json'));
+const Ajv2020 = require('ajv/dist/2020.js');
 const ajv = new Ajv2020({ strict: false, allErrors: true, validateFormats: false });
 const validateOBI = ajv.compile(coreSchema);
 let checks = 0;

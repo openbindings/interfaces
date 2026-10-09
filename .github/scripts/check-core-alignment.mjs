@@ -4,19 +4,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (name) => JSON.parse(readFileSync(resolve(root, name), 'utf8'));
-const require = createRequire(import.meta.url);
-let Ajv2020;
-try { Ajv2020 = require('ajv/dist/2020.js'); }
-catch {
-  const globalRoot = execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim();
-  Ajv2020 = createRequire(resolve(globalRoot, 'ajv-cli/package.json'))('ajv/dist/2020.js');
-}
+const require = createRequire(resolve(root, '.github/package.json'));
+const Ajv2020 = require('ajv/dist/2020.js');
 const ajv = new Ajv2020({ strict: false, allErrors: true, validateFormats: false });
 const core = ajv.compile(read('.github/scripts/openbindings.schema.json'));
 const contracts = new Map();

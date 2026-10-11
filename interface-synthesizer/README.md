@@ -259,3 +259,42 @@ implementation configuration produce the same semantic result. A live
 `location` may resolve to different content over time; idempotency does not
 pretend a mutable external resource is frozen. Deterministic ordering applies
 to each observed source state.
+
+## Checked correspondence and strict eligibility
+
+Strict success requires an exhaustive inventory with no
+`implementation-unsupported` disposition in any scope. This includes admitted
+alternatives and dependencies, as well as targets and projections. Sound `lossy`
+representation remains eligible; excluded and invalid units are not admitted
+omissions. A usable represented path with a projection limitation is `lossy`;
+changing a status solely to evade a strict refusal is not conformant.
+`fullyRepresented` is separately derived as `exhaustive` and every entry having
+status `represented` or `invalid`. All scopes participate in these rules.
+
+A represented or lossy dependency entry MUST name `dependencyKey`, identifying
+an existing key in the emitted `dependencies` map. Each emitted dependency has
+exactly one such entry. Counting entries alone is insufficient. Other scopes
+and non-emitted dependency dispositions MUST NOT carry `dependencyKey`.
+Dependency entries still carry no source, operation or binding key; a represented
+dependency entry carries no reason code. Lossy dependency entries include their
+reason code and message.
+
+Unit identity is the tuple `(sourceIndex, scope, sourceRef)`, compared exactly
+without normalization. Projection identity additionally includes its emitted
+`sourceKey`, `operationKey` and `bindingKey` when present, so one reusable
+projection reference may be reported against distinct paths. Duplicate or
+conflicting identity rows MUST be rejected, even in a non-exhaustive report.
+Distinct concerns on the same path use distinct projection references or one
+combined evidence entry. This does not make references global, or give a binding
+key the meaning of a source-local identifier.
+
+Omitted `sources` and `sources: []` both request the source-free skeleton, with
+no operations, sources, bindings or dependencies except permitted empty maps,
+and empty exhaustive coverage. Implementations of this role support that case.
+Every supplied source is preserved unchanged in the emitted interface, including
+a source with no targets; every emitted source corresponds to a supplied input.
+Distinct supplied names remain distinct keys. Equal values may share an emitted
+key when names permit, but every input index still receives complete accounting.
+A repeated explicit name attached to unequal source values is refused before
+work. Composition and generated naming strategy otherwise remain implementation
+decisions; unsupported compositions are refused rather than silently truncated.

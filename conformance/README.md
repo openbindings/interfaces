@@ -225,3 +225,8 @@ in selection, comparison, synthesis coverage, composition and Delegate Manager
 admission/examples. `delegate-manager/legacy-location-draft.json` is an explicit
 historical input, excluded from current-core checks and retained for the baseline
 comparison. Arbitrary JSON inside kind content is not recursively treated as OBI.
+
+Synthesis coverage fixtures also carry explicit request context for input-source
+correspondence, derived strict eligibility, and dependency-key correspondence.
+The Rust synthesis companion pins and executes these cases without requiring a
+sibling checkout. Schema controls remain distinct from runtime correspondence.

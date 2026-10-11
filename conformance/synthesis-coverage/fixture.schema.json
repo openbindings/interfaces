@@ -55,6 +55,9 @@
               "errorContains": {
                 "type": "string",
                 "minLength": 1
+              },
+              "strictEligible": {
+                "type": "boolean"
               }
             },
             "allOf": [
@@ -101,6 +104,9 @@
                 "type": "object"
               }
             }
+          },
+          "request": {
+            "type": "object"
           }
         }
       }

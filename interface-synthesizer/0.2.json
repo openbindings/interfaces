@@ -70,7 +70,7 @@
                     "items": {
                         "$ref": "#/schemas/SynthesizeInterfaceSource"
                     },
-                    "description": "Binding sources to synthesize from."
+                    "description": "Binding sources to synthesize from. Omission and an empty array both request a source-free skeleton. Every input is preserved as an unchanged emitted source; every emitted source corresponds to an input. Distinct supplied names remain distinct keys. Equal values may share a key where names permit; coverage still accounts for each input index. A repeated explicit name attached to unequal source values is refused before work."
                 },
                 "name": {
                     "type": "string",
@@ -94,7 +94,7 @@
         },
         "SynthesisCoverageEntry": {
             "type": "object",
-            "description": "Disposition of one source interaction unit, declared dependency, or separately tracked projection observed during synthesis. An interaction unit is an addressable target or independently selectable alternative whose omission would remove an upstream-permitted invocation path; a dependency is a source unit the synthesizer emitted as a consumption point in the interface's `dependencies` map rather than as a binding, so its omission would remove a declared consumption point rather than an invocation path; a projection records schema or semantic fidelity of a represented path. Every dependency the emitted interface declares in its `dependencies` map has exactly one represented or lossy dependency-scope entry, and a represented dependency entry carries no operation, binding, source key, or reason code.",
+            "description": "Disposition of one source interaction unit, declared dependency, or separately tracked projection observed during synthesis. An interaction unit is an addressable target or independently selectable alternative whose omission would remove an upstream-permitted invocation path; a dependency is a source unit the synthesizer emitted as a consumption point in the interface's `dependencies` map rather than as a binding, so its omission would remove a declared consumption point rather than an invocation path; a projection records schema or semantic fidelity of a represented path. Every dependency the emitted interface declares in its `dependencies` map has exactly one represented or lossy dependency-scope entry, and a represented dependency entry carries no operation, binding, source key, or reason code. A represented or lossy dependency entry MUST name its emitted dependencyKey; correspondence is a bijection with the emitted dependencies map. Unit identities compare exact sourceIndex, scope and sourceRef. Projection identity additionally includes sourceKey, operationKey and bindingKey when present; repeated or conflicting identities are rejected even for non-exhaustive reports.",
             "properties": {
                 "sourceIndex": {
                     "type": "integer",
@@ -165,6 +165,10 @@
                     "type": "object",
                     "description": "Kind-specific structured evidence.",
                     "additionalProperties": true
+                },
+                "dependencyKey": {
+                    "type": "string",
+                    "description": "Key of the emitted dependency. Required for represented/lossy dependency entries; forbidden on other entries. Each emitted dependency has exactly one such entry."
                 }
             },
             "required": [
@@ -185,7 +189,8 @@
                                 "alternative",
                                 "projection"
                             ]
-                        }
+                        },
+                        "dependencyKey": false
                     },
                     "required": [
                         "sourceKey",
@@ -204,7 +209,8 @@
                                 "alternative",
                                 "projection"
                             ]
-                        }
+                        },
+                        "dependencyKey": false
                     },
                     "required": [
                         "sourceKey",
@@ -225,7 +231,8 @@
                                 "alternative",
                                 "projection"
                             ]
-                        }
+                        },
+                        "dependencyKey": false
                     },
                     "required": [
                         "reasonCode",
@@ -247,7 +254,8 @@
                                 "alternative",
                                 "projection"
                             ]
-                        }
+                        },
+                        "dependencyKey": false
                     },
                     "required": [
                         "reasonCode",
@@ -266,8 +274,16 @@
                         },
                         "sourceKey": false,
                         "operationKey": false,
-                        "bindingKey": false
-                    }
+                        "bindingKey": false,
+                        "dependencyKey": {
+                            "type": "string",
+                            "description": "Key of the emitted dependency. Required for represented/lossy dependency entries; forbidden on other entries. Each emitted dependency has exactly one such entry."
+                        },
+                        "reasonCode": false
+                    },
+                    "required": [
+                        "dependencyKey"
+                    ]
                 },
                 {
                     "properties": {
@@ -279,7 +295,8 @@
                         },
                         "sourceKey": false,
                         "operationKey": false,
-                        "bindingKey": false
+                        "bindingKey": false,
+                        "dependencyKey": false
                     },
                     "required": [
                         "reasonCode",
@@ -295,17 +312,39 @@
                         "status": {
                             "enum": [
                                 "invalid",
-                                "lossy",
                                 "implementation-unsupported"
                             ]
                         },
                         "sourceKey": false,
                         "operationKey": false,
-                        "bindingKey": false
+                        "bindingKey": false,
+                        "dependencyKey": false
                     },
                     "required": [
                         "reasonCode",
                         "message"
+                    ]
+                },
+                {
+                    "properties": {
+                        "scope": {
+                            "const": "dependency"
+                        },
+                        "status": {
+                            "const": "lossy"
+                        },
+                        "sourceKey": false,
+                        "operationKey": false,
+                        "bindingKey": false,
+                        "dependencyKey": {
+                            "type": "string",
+                            "description": "Key of the emitted dependency. Required for represented/lossy dependency entries; forbidden on other entries. Each emitted dependency has exactly one such entry."
+                        }
+                    },
+                    "required": [
+                        "reasonCode",
+                        "message",
+                        "dependencyKey"
                     ]
                 }
             ]
@@ -326,7 +365,7 @@
                 },
                 "fullyRepresented": {
                     "type": "boolean",
-                    "description": "True when exhaustive is true and every upstream-valid interaction unit is represented without a lossy or unsupported disposition. MUST agree with entries."
+                    "description": "Derived as exhaustive AND every entry status is represented or invalid. Excluded, lossy and implementation-unsupported entries in any scope make it false. Invalid units are not upstream-valid units."
                 },
                 "limitation": {
                     "$ref": "#/schemas/CoverageLimitation"
@@ -493,7 +532,7 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterface": {
-            "description": "Synthesize a creation-time-sound OpenBindings interface, optionally from binding source artifacts. Every emitted binding resolves to a supported target and admits a faithful invocation path. For every accepted source input, represent every callable target admitted by its source's kind; an implementation may refuse an unsupported artifact as a whole but MUST refuse instead of silently returning a partial interface when one admitted target cannot be represented faithfully. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries. Every emitted source is exactly the corresponding supplied source, including extensions and content presence. When name is supplied, use it as the source key. Refuse a supplied openbindingsVersion outside the 0.2 line. The carried-values rule applies. After a caller substitutes source content, the resulting document and the validity of affected bindings are the caller's claim. If the complete admitted inventory cannot be established, strict synthesis MUST refuse instead of returning a partial interface.",
+            "description": "Synthesize a creation-time-sound OpenBindings interface, optionally from binding source artifacts. Every emitted binding resolves to a supported target and admits a faithful invocation path. For every accepted source input, represent every callable target admitted by its source's kind; an implementation may refuse an unsupported artifact as a whole but MUST refuse instead of silently returning a partial interface when one admitted target cannot be represented faithfully. This operation is idempotent: repeating it with the same input in context that does not change its intended effects produces no additional intended operation-level effects after the first application. This does not promise identical results or authorize retries. Every emitted source is exactly the corresponding supplied source, including extensions and content presence. When name is supplied, use it as the source key. Refuse a supplied openbindingsVersion outside the 0.2 line. The carried-values rule applies. After a caller substitutes source content, the resulting document and the validity of affected bindings are the caller's claim. If the complete admitted inventory cannot be established, strict synthesis MUST refuse instead of returning a partial interface. Strict success requires exhaustive coverage and no implementation-unsupported disposition in any scope, including dependencies, alternatives and projections. Sound lossy representation and invalid or kind-excluded units do not independently prohibit strict success. Strict eligibility is distinct from fullyRepresented.",
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"
             },

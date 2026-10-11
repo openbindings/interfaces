@@ -155,7 +155,7 @@ for (const scope of ['target', 'dependency']) {
   accepts(coverage, excluded, false);
   accepts(coverage, { ...excluded, rule: 'example.kind@1 section 4' });
 }
-const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented' };
+const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented', dependencyKey: 'jobDone' };
 accepts(coverage, dependency);
 accepts(coverage, { ...dependency, bindingKey: 'b' }, false);
 accepts(coverage, { ...dependency, status: 'lossy', reasonCode: 'example.loss', message: 'A dependency projection is incomplete.' });

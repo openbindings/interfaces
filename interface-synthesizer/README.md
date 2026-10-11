@@ -135,6 +135,13 @@ runtime prerequisites are available. A synthesizer MUST NOT emit an operation
 that the corresponding conforming binding invoker is statically guaranteed to
 refuse.
 
+Every emitted operation MUST be referenced by at least one emitted binding or
+dependency. Dependency-only operations remain permitted. This is a structural
+prerequisite for synthesis soundness, not proof of kind interpretation or truthful
+inventory, and does not require a binding-to-coverage bijection. It applies to both
+synthesis operations, including partial coverage results; it does not restrict
+unbound operation contracts in ordinary OpenBindings documents.
+
 For `synthesizeInterface`, the operation set is complete for the callable
 targets the source's kind admits in every source input the call
 accepts. An implementation may refuse an unsupported artifact or source
@@ -219,6 +226,20 @@ emitted source, operation and binding by key. The binding is read from the
 emitted interface; coverage does not duplicate its content. A dependency entry
 carries no emitted source, operation or binding key. Every emitted dependency
 has exactly one represented or lossy dependency-scope entry.
+
+`coverage.sourceKeys` MUST contain one emitted source key per supplied input, in
+original request order, including inputs with empty, excluded or dependency-only
+inventories. Its length MUST equal the input source count (zero when omitted).
+Each key MUST resolve to the unchanged corresponding input source and MUST equal
+its supplied `name`, when present. Equal inputs MAY share a key where names permit.
+For an unnamed input, any equal preserved emitted source is a valid mapping; its
+binding paths MAY use another equal emitted source. The array identifies preserved
+source values, not an exclusive assignment of bindings to source keys.
+
+Every entry's `sourceIndex` indexes this array, so source attribution survives
+persistence and handoff without the original request. Dependency entries still
+carry no `sourceKey`; their source is resolved through this report-level mapping.
+The mapping and entries MUST describe the same synthesis observation as the OBI.
 
 `sourceRef` identifies the unit within its input source. An implementation that
 also inspects uses the same identifier for a target-scope unit in both products;

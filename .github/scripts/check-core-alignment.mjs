@@ -138,12 +138,19 @@ const coverageReport = compile(synthesizer, synthesizer.schemas.SynthesisCoverag
 let positiveCoverage = 0;
 for (const test of read('conformance/synthesis-coverage/cases.json').tests) {
   if (!test.expected.valid) continue; // Other negatives concern runtime correspondence, not shape.
-  const report = { entries: test.entries, exhaustive: test.exhaustive, fullyRepresented: test.expected.fullyRepresented };
+  const report = { sourceKeys: test.expected.sourceKeys, entries: test.entries, exhaustive: test.exhaustive, fullyRepresented: test.expected.fullyRepresented };
   if (test.limitation) report.limitation = test.limitation;
   accepts(coverageReport, report);
   positiveCoverage++;
 }
 assert(positiveCoverage > 0, 'no positive coverage fixtures checked');
+const emptyCoverage = { entries: [], exhaustive: true, fullyRepresented: true };
+accepts(coverageReport, emptyCoverage, false);
+for (const sourceKeys of [null, 'api', [null], ['']]) {
+  accepts(coverageReport, { ...emptyCoverage, sourceKeys }, false);
+}
+accepts(coverageReport, { ...emptyCoverage, sourceKeys: [] });
+accepts(coverageReport, { ...emptyCoverage, sourceKeys: ['api', 'api'] });
 const coverage = compile(synthesizer, synthesizer.schemas.SynthesisCoverageEntry);
 const represented = { sourceIndex: 0, sourceRef: 'unit', scope: 'target', status: 'represented', sourceKey: 's', operationKey: 'op', bindingKey: 'b' };
 accepts(coverage, represented);

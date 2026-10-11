@@ -227,6 +227,9 @@ historical input, excluded from current-core checks and retained for the baselin
 comparison. Arbitrary JSON inside kind content is not recursively treated as OBI.
 
 Synthesis coverage fixtures also carry explicit request context for input-source
-correspondence, derived strict eligibility, and dependency-key correspondence.
+correspondence, derived strict eligibility, dependency-key correspondence, durable
+`sourceKeys` mappings, and the binding-or-dependency requirement for generated
+operations. Positive cases pin the expected source mapping, including empty,
+reordered and equal inputs.
 The Rust synthesis companion pins and executes these cases without requiring a
 sibling checkout. Schema controls remain distinct from runtime correspondence.

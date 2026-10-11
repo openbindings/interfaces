@@ -73,6 +73,14 @@ The inventory boundary matches synthesis: a bindable target is a source interact
 ## Targets and optional operation framing
 
 Every target requires a stable, source-local `sourceRef` and a `binding` object.
+Within one `SourceInspection`, each `sourceRef` MUST occur at most once, compared
+by exact whole-string equality without normalization. Producers MUST NOT reuse an
+identifier for distinct target-scope units in the same observed source state.
+Consumers MUST reject duplicate identifiers, including repeated identical rows;
+they must not silently select, merge or deduplicate them. This does not make the
+identifier global or make it a source locator. Independently selectable targets
+reported as separate inventory entries require distinct identifiers.
+
 The binding preserves content presence and any permitted authoring metadata; the
 inspector MUST NOT include `operation`, `source`, or an unknown non-core,
 non-`x-` member in it. Consumers MUST reject a target violating either the

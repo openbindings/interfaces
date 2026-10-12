@@ -72,9 +72,9 @@ Context is an opaque object, but these well-known field names provide cross-invo
 | `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
 | `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
 | `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
-| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name (a kind's decode point, for example); consulted at the first tier of each point's order |
+| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name; each point's defining authority supplies its meaning and consultation rules |
 
-Implementations and callers may add fields for session state, consent, or other kind-specific needs. Consumers ignore fields they do not understand unless the source's kind says otherwise.
+Implementations and callers may add fields for session state, consent, or other kind-specific needs. Fields without a meaning defined by the interface or kind have implementation-specific interpretation; this guide adds no handling policy.
 
 **Security guidance.** Credential fields contain secrets; other context can be
 sensitive too. Consumers should avoid disclosure through logs, diagnostics and

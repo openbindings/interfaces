@@ -141,6 +141,26 @@ for (const doc of contracts.values()) {
 }
 assert(exampleValues > 0, 'no public operation examples checked');
 
+// Inspection framing is portable into an authored OBI. Exercise the carried
+// resource example under different author-assigned keys, without fetching.
+for (const framing of inspector.schemas.Operation.examples ?? []) {
+  accepts(compile(inspector, inspector.schemas.Operation), framing);
+  for (const key of ['echo', 'author.renamed']) {
+    const authored = { openbindings: '0.2.0', operations: { [key]: framing } };
+    assert(core(authored), JSON.stringify(core.errors));
+    const pointer = key.replaceAll('~', '~0').replaceAll('/', '~1');
+    // Ajv does not discover resource roots in OBI's non-schema `operations`
+    // map. Register this example's explicitly declared resource before lookup.
+    const validator = new Ajv2020({ strict: false });
+    validator.addSchema(framing.input);
+    const validate = validator.compile({
+      ...authored, $ref: `#/operations/${pointer}/input`,
+    });
+    accepts(validate, 'Hello');
+    accepts(validate, 42, false);
+  }
+}
+
 // These are schema shape controls, not a portable runtime trace format.
 // Ordering of internal transitions, close/cancel races and malformed-input
 // recovery belong to implementation tests, not these value-shape controls.

@@ -45,6 +45,36 @@ Omission of kind-excluded targets does not make an inventory incomplete; an
 implementation gap affecting an admitted target does. The flag is a producer
 claim, not independent evidence that enumeration was complete.
 
+### Schema references in framing
+
+Carried input and output schemas have the core schema and reference meanings
+that they will have in an authored OBI. The inspection response and source
+artifact supply no implicit schema resource or additional schema map. Portable
+framing identifies needed resources within the carried schemas or through
+absolute schema URIs; it does not rely on unspecified members of a future OBI.
+Framing is optional when those reference meanings cannot be supplied. This adds
+no inlining, bundling, validation or resource-acquisition procedure.
+
+For example, this operation fragment carries a schema resource whose reference
+keeps its meaning when the author places the operation into an OBI:
+
+```json
+{
+  "input": {
+    "$id": "urn:example:text-input",
+    "$defs": {"Text": {"type": "string"}},
+    "$ref": "#/$defs/Text"
+  }
+}
+```
+
+The reference is local to the resource named by `$id`. Without that `$id`, the
+same fragment would address the eventual OBI root, not the `input` schema.
+Likewise, `#/schemas/Request` without a declaring resource cannot stand in for
+an uncarried schema from the source artifact. The resource identifier here is
+illustrative; composition and resource acquisition remain author and consumer
+choices. The JSON interface includes this fragment in `schemas.Operation.examples`.
+
 ## Authoring use
 
 A CLI or browser can inspect a source, let its user choose targets and author

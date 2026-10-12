@@ -46,7 +46,7 @@
         },
         "Operation": {
             "type": "object",
-            "description": "Potential OpenBindings operation framing for a bindable target.",
+            "description": "Potential OpenBindings operation framing for a bindable target. Input and output schemas have the core schema and reference meanings they will have in an authored OBI. The inspection response and source artifact supply no implicit schema resource or additional schema map. Portable framing identifies needed resources within the carried schemas or through absolute schema URIs; it does not rely on unspecified members of a future OBI. A schema resource declared with $id can carry its own local references. Framing is optional when those reference meanings cannot be supplied. This describes the framing claim, not a required inlining, bundling, validation or resource-acquisition procedure.",
             "properties": {
                 "description": {
                     "type": "string"
@@ -63,7 +63,20 @@
                 "input": {},
                 "output": {}
             },
-            "additionalProperties": true
+            "additionalProperties": true,
+            "examples": [
+                {
+                    "input": {
+                        "$id": "urn:example:text-input",
+                        "$defs": {
+                            "Text": {
+                                "type": "string"
+                            }
+                        },
+                        "$ref": "#/$defs/Text"
+                    }
+                }
+            ]
         },
         "BindableTarget": {
             "type": "object",

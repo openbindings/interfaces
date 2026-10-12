@@ -24,6 +24,26 @@ This axis, not "binding vs operation," is the real distinction between the two i
 
 Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and any context the selected kind requires. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
 
+## Document admission
+
+Whole-document conformance proof is not an invocation prerequisite. An
+implementation MAY admit a nonconformant snapshot when the selected operation,
+binding, source, and applicable schemas can be interpreted under the core rules.
+It MUST NOT invent a resolution for missing or ambiguous names. Structurally
+uninterpretable requests MAY be refused before effects. Accepting a call or
+validating a value does not certify document conformance.
+
+Missing or ambiguous operation names produce `ERR_OPERATION_NOT_FOUND`. An
+explicit binding's `operation` must name a primary key, not merely an alias.
+Explicit bindings bypass candidate filtering: an unsupported kind is refused
+under the binding-invoker contract, without fallback. A selected explicit binding
+with no source produces `ERR_UNKNOWN_SOURCE`. Bindings without resolvable sources
+are outside the candidate set for automatic or ordered selection.
+
+Schema preparation may be deferred until an actual value needs checking. Zero
+values impose no instance check. A later validation failure preserves earlier
+relayed outputs and does not imply that no observable effects occurred.
+
 ## What an operation invoker does
 
 When it receives an `OperationInvocationInput` (carried by the `open` frame), it:
@@ -76,7 +96,7 @@ This interface owns only the codes required by its resolution and validation mec
 
 | Code | Meaning |
 |---|---|
-| `ERR_OPERATION_NOT_FOUND` | The requested operation key or alias does not resolve. |
+| `ERR_OPERATION_NOT_FOUND` | The requested operation key or alias is missing or ambiguous, or an explicit binding does not name a primary operation key. |
 | `ERR_BINDING_NOT_FOUND` | The explicit binding, or a key in `selection`, names no binding of the operation, or no invocable binding remains among those allowed. |
 | `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied neither `binding` nor `selection`. |
 | `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |

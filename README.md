@@ -10,6 +10,30 @@ This repository is **not the specification**. The normative specification and it
 
 The project publishes these under its own `openbindings.*` operation namespace exactly as any third party would publish theirs under its own; the spec privileges none of them.
 
+## Publication boundary
+
+These are voluntarily adopted operation descriptions. The schemas describe
+caller-facing values; prose explains the capability and the meaning of those
+values. Adopting a name is an author claim, not certification or a grant of
+authority over the implementation. Adoption remains per operation.
+
+The interface JSON carries the shapes, descriptions and examples needed to read
+the capability. Companion guides explain and illustrate that same interface;
+they do not add requirements. Example names, workflows and implementation choices
+are illustrative unless they are part of the interface's described meaning.
+
+The publications do not prescribe SDK types, internal algorithms, buffers,
+validation timing, duplicate recovery, naming strategies or process architecture.
+Descriptions of result fields and message sequences are not instructions for how
+to produce or consume them. A value outside a described shape does not become
+conformant merely because an implementation accepts or repairs it; the handling
+of that value is the implementation's decision.
+
+Before adding a field or semantic promise, identify what a caller needs it to
+understand. SDK convenience, a checker assertion or agreement among our own
+implementations is insufficient justification. Shared examples demonstrate
+interface shapes and meanings; SDK policy tests belong with the SDK.
+
 ## Canonical URLs
 
 Each interface is served at a stable URL on openbindings.com:
@@ -48,9 +72,9 @@ synthesize the same kind must answer through distinct checks.
 
 Idempotence promises are stated in operation descriptions and the interface
 prose. These unbound contracts carry no operation-level `idempotent` member.
-Concrete bindings make their own core `idempotent` claims; an implementation
-that claims correspondence must also meet the interface's behavioral promises.
-Neither those promises nor a core claim independently authorizes retries.
+Concrete bindings make their own core `idempotent` claims. Correspondence asserts
+the described capability; it does not verify behavior. Neither a description nor
+a core claim independently authorizes retries.
 
 ## Interfaces
 
@@ -59,7 +83,7 @@ Each interface lives in its own directory, with one file per version. The major.
 Interface **names** carry no `openbindings.` prefix: the `name` field is a label, not an identifier, and an OBI carries no identity of its own (a contract is addressed by its canonical URL above). Operation **keys** are fully qualified as `openbindings.<interface>.<operation>` (for example `openbindings.binding-invoker.invokeBinding`); the rationale is in Authoring conventions.
 
 - `software-descriptor/0.2.json` — base software descriptor contract. Defines the canonical `describe` operation and `SoftwareIdentity` schema for self-identifying software. Generic capability.
-- `binding-invoker/0.1.json` — binding invoker contract. Defines `listSupportedKinds`, `checkKindSupport`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings whose sources have kinds they can act on (`openbindings.openapi-3.1@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
+- `binding-invoker/0.1.json` — binding invoker contract. Defines `listSupportedKinds`, `checkKindSupport`, `invokeBinding`, and the `preflightBinding` preflight for components that invoke bindings whose sources have kinds they can act on (`openbindings.openapi-3.1@1`, `openbindings.mcp@1`, and the rest). `invokeBinding` is a typed bidirectional I/O operation: the caller streams `BindingInvokerInputFrame` messages in (`open`, `input`*, optional idempotent `close`) and the service streams `BindingInvokerOutputFrame` messages back (`output`/`input_closed`* terminated by `complete` or `error`). The frame protocol covers unary, server-streaming, client-streaming, and bidirectional bindings under one shape. (A new contract for spec 0.2.0, so its own version starts at 0.1.0; it supersedes the unrelated-by-shape `openbindings.binding-executor` 0.1.0.)
 - `operation-invoker/0.1.json` — operation invoker contract. The by-reference peer of `binding-invoker`: `invokeOperation` resolves an operation (or binding) key against an OBI, requires a caller choice when several invocable bindings remain, validates declared value contracts, then performs kind-governed binding invocation; `preflightOperation` is the preflight. Same frame protocol as `invokeBinding`, with the resolution and validation semantics on top.
 - `interface-synthesizer/0.2.json` — interface synthesizer contract. Defines strict OBI synthesis and synthesis with durable, verifiable coverage evidence for components that derive OBIs from existing source artifacts.
 - `source-inspector/0.1.json` — source inspector contract. Defines `listSupportedKinds`, `checkKindSupport`, and `inspectSource` for components that inspect source artifacts and return bindable targets, an exhaustiveness claim, and evidence explaining partial enumeration. (New for spec 0.2.0; first contract version 0.1.0.)
@@ -102,7 +126,10 @@ A service claims correspondence with one of these interfaces by giving the corre
 
 Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
 
-A correspondence is a **claim**, and a runtime proceeds on it. The name does not establish compatibility (the spec says so); the only honest posture for a runtime that cannot verify a claim is to act on it. Every consumer of correspondence in these interfaces (operation invocation, composition, delegate admission) may check a claim, sets a candidate aside only on a contradiction it establishes, and never treats its own inability to decide as a contradiction. If a claim is false in a way no check could see, the consequence surfaces at invocation, and that is accepted.
+A correspondence is a **claim**. A consumer decides whether to rely on it and
+whether to compare it with a reference interface. An inability to establish
+compatibility is not evidence of incompatibility. Trust, admission and recovery
+remain consumer policy; carrying a name does not compel a consumer to invoke it.
 
 ## Error-code registry
 
@@ -126,7 +153,7 @@ should check:
    `ERR_BINDING_NOT_FOUND`, `ERR_BINDING_SELECTION_REQUIRED`,
    `ERR_UNKNOWN_SOURCE`, `ERR_OPERATION_VALIDATION_FAILED`,
    `ERR_SCHEMA_UNRESOLVED`.
-3. **A kind's defining document** may define codes for sources of that kind, with the same standing. No `openbindings.*` binding-specification
+3. **A kind's definition**, whether written or code-defined, may define codes for sources of that kind, with the same standing. No `openbindings.*` binding-specification
    candidate currently defines one; a specification that does so defines the
    code in its own text, and this registry gains a citation, not a copy.
 
@@ -163,10 +190,10 @@ publishes instead of predictably returning `indeterminate`.
 The profile includes structural unions, so conditional contract shapes are
 written as `oneOf` alternatives when that preserves the requirement exactly.
 Constraints whose containment the profile cannot soundly decide, such as
-regular-expression `pattern` or `uniqueItems`, are not added merely as
-validation decoration: their essential semantics belong in an in-profile
-shape or in normative operation prose; otherwise the contract needs a future
-comparison-profile revision before this repository publishes the constraint.
+regular-expression `pattern` or `uniqueItems`, are not added merely as validation
+decoration. A checker limitation is not a reason to move an implementation policy
+into operation prose. Additional value constraints need an independent interface
+justification and a deliberate comparison-profile decision.
 CI walks every named and inline operation schema and fails on an
 outside-profile keyword.
 

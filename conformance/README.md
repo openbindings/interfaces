@@ -2,7 +2,10 @@
 
 Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, interface-synthesizer coverage evidence, and schema-comparison semantics.
 
-The corpus is reference material, not part of any contract: each contract's prose (its README and versioned contract document) is the sole source of conformance, where prose and corpus disagree the prose governs, and a rule without fixtures is no less binding. This mirrors the stance of the spec repository's corpus (`openbindings/spec/conformance`), whose conventions this corpus follows.
+The corpus is reference material. Interface examples illustrate published value
+shapes and capability meanings, not required internal implementations or recovery
+policies. Separately identified profiles and SDK policies have their own scope.
+Passing examples is not proof of a producer's behavioral claims.
 
 ## Coverage
 
@@ -11,9 +14,9 @@ The corpus is reference material, not part of any contract: each contract's pros
 | binding-invoker / interface-synthesizer: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
-| interface-synthesizer: coverage evidence links and derived `fullyRepresented` state | **Complete for format-neutral invariants** (`synthesis-coverage/`); family inventories live in the spec synthesis corpus. |
+| interface-synthesizer: coverage output shapes, optional attribution and permitted variation | **Shape examples** (`synthesis-coverage/`); no prescribed SDK checker or recovery policy. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
-| operation-invoker / binding-invoker: frame protocol (first-frame-`open`, single-`open`, input-after-closure, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection) | **Deferred by doctrine.** The frame rules are runtime-shaped: fixtures would need a portable frame-sequence format (frames in, frames out, over a live bidirectional channel). Per the second-implementation doctrine the project applies to runtime-shaped test formats, that format is designed only once a second independent implementation exists to keep it from encoding one implementation's shape — today the frame lanes have one server implementation (ob) and one client (the Go SDK). Behavioral coverage lives in the reference implementations' own suites. |
+| operation-invoker / binding-invoker: frame message shapes and exchange meanings | Schema controls here; buffer, cancellation-race and malformed-input policies are tested by implementations. |
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
 | Other contracts (binding-invoker resolution, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
@@ -78,16 +81,16 @@ Resolution is deterministic without imposing a preference policy: explicit calle
 
 ## Synthesis coverage (`synthesis-coverage/`)
 
-Covers the format-neutral invariants of the interface-synthesizer contract's `synthesizeInterfaceWithCoverage` operation:
+The `openbindings.interface-synthesis-shape-cases@1` examples carry a report and
+its `schemaValid` result. They include absent optional attribution, repeated rows,
+unbound operation declarations, additional report fields and malformed field types.
+The repository evaluates the report schema; it does not emulate a synthesis
+provider or require a consumer to reject any schema failure.
 
-- represented evidence names operation, binding and source keys that agree with one another in the emitted OBI;
-- non-represented evidence carries a stable reason code and explanation;
-- `fullyRepresented` is derived rather than asserted: it is true only for exhaustive evidence with no upstream-valid exclusion, lossy projection, or implementation gap;
-- non-exhaustive evidence never claims full representation.
-
-[`synthesis-coverage/cases.json`](synthesis-coverage/cases.json) is validated by [`synthesis-coverage/fixture.schema.json`](synthesis-coverage/fixture.schema.json). The corpus does not define a binding family's interaction inventory. That inventory and its representation/exclusion rules belong to the source's kind and are exercised by the spec repository's synthesis scenarios.
-
-Coverage evidence is a portable audit record, not a proof that consumers must trust. A consumer may independently inspect the source and compare it with the emitted OBI; the evidence makes that verification easier and makes omissions explicit.
+The previous 26 SDK checker cases remain in the Rust SDK as
+`openbindings.sdk-synthesis-policy-cases@1`. Their duplicate refusal, exact
+dependency correspondence, strict eligibility, source preservation and operation
+path checks are SDK policy regressions, not requirements of this interface.
 
 ## Runtime composition (`composition/`)
 
@@ -194,34 +197,15 @@ Same convention as the spec corpus: a harness looks for a **sibling checkout** o
 
 ## Versioning
 
-Selection fixtures are authored against **operation-invoker contract 0.1**, synthesis-coverage fixtures against **interface-synthesizer contract 0.2**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
+Selection fixtures are authored against **operation-invoker contract 0.1**, synthesis output examples against **interface-synthesizer contract 0.2**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
 
 ## Carried values (`carried-values/`)
 
-The contract-boundary corpus separates schema acceptance from the normative
-unknown-member refusal rule. The automated repository check does not implement
-invocation or claim runtime conformance; implementations replay the cases to
-verify refusal before work. Coverage examples use `example.coverage@1` as a
-private harness kind: their invented content and exclusions claim no meaning under
-any OpenAPI kind.
+Carrier examples distinguish schema acceptance from membership in the core
+carrier field set. `carrierFieldsValid` records the latter, not a refusal rule.
+The SDK may reject malformed carriers before work; another implementation chooses
+its own handling. Such handling does not change core document conformance.
 
-## Coverage harness kind
-
-`example.coverage@1` is a fixture-only kind. Its source-local references are the
-literal `sourceRef` strings in `synthesis-coverage/cases.json`; the target bindings
-use their corresponding `content.selector` values. This private definition
-excludes the target unit `#/webhooks/onEvent/post` and the dependency unit
-`#/webhooks/jobFailed/post`. Those exclusions deliberately exercise kind-owned
-policy, not an OpenAPI exclusion or an unresolved schema. All other illustrated
-units are admitted. A production reader cannot infer an OpenAPI rule from them.
-
-Positive coverage fixtures are checked against the published `SynthesisCoverage`
-schema. Correspondence negatives (missing emitted binding or dependency evidence)
-remain portable obligations for runtime adapters; schema acceptance is not proof
-of the accounting semantics.
-
-The CI extractor validates and checks canonical member order for complete OBIs
-in selection, comparison, synthesis coverage, composition and Delegate Manager
-admission/examples. `delegate-manager/legacy-location-draft.json` is an explicit
-historical input, excluded from current-core checks and retained for the baseline
-comparison. Arbitrary JSON inside kind content is not recursively treated as OBI.
+Coverage examples use a fixture-only kind. Its labels and content are examples,
+not OpenAPI semantics. Schema checks do not prove source correspondence.
+The extractor also validates the embedded OBI document shapes and canonical order.

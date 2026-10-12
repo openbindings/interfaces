@@ -8,65 +8,30 @@ meaning incorporates it. Where a written definition leaves a case open, an
 invoker may complete it locally, but must not present that completion as shared
 portable meaning. This contract supplies no new core field for such behavior.
 
-## Kind support
+## Adoption and kind support
 
-`checkKindSupport` is the authoritative support operation for this interface's
-job. It accepts `{ "kinds": [...] }` and returns one `{kind, supported}` verdict
-per unique input kind, in first-occurrence order. Kinds compare by exact
-whole-string equality, without normalization, prefix matching or dereferencing.
-
-True means the implementation knows how to read the kind for its job, whether
-that meaning is published, private or defined only in code. It does not promise
-that every case is within reach: an unhandled case is refused before work or,
-where the operation provides a partial-result route, omitted and disclosed.
-False means every call on that kind is refused before work. The result is
-deterministic for a given implementation version and configuration. An internal
-pattern may compress the supported set but MUST NOT extend it. Future optional
-verdict fields may annotate the answer, never qualify the boolean.
-
-`checkKindSupport` MUST have no side effects: it neither acquires nor modifies
-source artifacts or performs the interface job.
-
-`listSupportedKinds` is advisory. Every listed kind MUST receive true from this
-interface's check; absence from the list says nothing. Support is per job:
-invocation, inspection and synthesis can have different answers.
-
+The [publication boundary](../#publication-boundary) applies. These are voluntarily
+adopted operation descriptions; no native SDK or execution architecture is required.
+`checkKindSupport` returns one verdict per distinct requested kind, in request
+first-occurrence order. Kind equality is exact; support is per job and need not
+cover every case. `listSupportedKinds` is advisory and lists positively supported
+kinds. Neither query performs the requested binding operation. Detection is private.
 
 ## Why it's called a *binding* invoker
 
-A binding invoker takes `(source, binding)` directly. It invokes **by value**: the caller supplies the two objects without an OBI document or a binding lookup. `BindingInvocationInput` requires both members; a binding without content is `binding: {}`. The full initial payload MUST satisfy that schema and the carried-values rule, or invocation/preflight completes unsuccessfully with `ERR_REFUSED` before work.
+A binding invoker takes `(source, binding)` directly. It invokes **by value**: the caller supplies the two objects without an OBI document or a binding lookup. `BindingInvocationInput` requires both members; a binding without content is `binding: {}`. The schema describes the initial payload; malformed-request handling is implementation policy.
 
 The source's `kind` selects the interpretation of both content values. A kind may use a selector, a location, transformations, or none of these; this interface does not invent their representation. Its peer, the [operation invoker](../operation-invoker/), receives an interface and resolves an operation or binding **by reference**.
 
 ## Sources and bindings by value
 
-The carriers use the OpenBindings 0.2 core types. A source may contain only
-`kind`, `content`, `description` and `x-` extensions. A binding may contain only
-`operation`, `source`, `content`, `idempotent`, `preference`, `description`,
-`deprecated` and `x-` extensions. A wrong core type or any other member MUST be
-refused before work. The schemas stay open to preserve extensions; this rule
-still rejects a legacy `selector` or `location` instead of treating it as absent
-content.
+Sources and bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Source and binding content preserve absence versus JSON null and are interpreted under the source's exact kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.
 
-Source and binding content each preserve absence versus present JSON null. A
-binding with no members is `{}`. The binding's `operation` and `source` members
-are forwarded verbatim; this interface gives them no meaning and neither
-forbids nor designs for a kind reading them. Kinds are best served identifying
-targets through `content`. Other binding metadata is information, not an
-instruction. An implementation acts on exactly the source and binding values
-sent to it.
-
-## What an invoker does
-
-When a binding invoker receives a `BindingInvocationInput`, it follows this lifecycle:
-
-1. **Source interpretation.** Interprets the source and binding content under the exact source kind, including any artifact carriage that kind defines. Loading and caching strategy are implementation details.
-2. **Context consumption.** Reads the context supplied for this invocation without mutating the caller's input. The contract neither requires nor exposes a context store.
-3. **Context application.** Applies credentials, headers, cookies, and other context to the interaction exactly as the source's kind defines.
-4. **Invocation.** Interprets the kind-owned binding content, maps operation-value writes to the concrete interaction, and emits operation-value outputs through the invocation handle. Any value adaptation belongs to that kind's interpretation and is performed here.
-5. **Context negotiation.** If the binding cannot proceed because required context is missing, emits `CONTEXT_REQUIRED` before output or effects. A surrounding runtime may resolve the requirements and start a new attempt with augmented context.
-
-The operation contract is not carried. Adaptation requiring the operation's input/output schemas cannot be served by value through this contract; those schemas and their referenced resources require a separate design. The binding invoker exchanges caller-facing values and applies kind-defined adaptation. A failed adaptation before dispatch refuses with `ERR_REFUSED`; after dispatch it completes with `ERR_EXECUTION_FAILED`, unless a governing rule owns another code.
+Binding invocation interprets the supplied source and binding under their kind
+and exchanges caller-facing values. Context carries runtime prerequisites.
+The operation declaration and its schemas are not supplied. Loading, caching,
+adaptation implementation and preparation order are private implementation choices.
+There is no required binding-invoker component inside another service.
 
 ## Context
 
@@ -82,15 +47,14 @@ This separation is intentional. A stateless remote invoker, an in-process invoke
 
 A `CONTEXT_REQUIRED` challenge reports a **target**: an opaque identifier for the concrete destination or context scope the invoker is about to use. A runtime may use that value to scope resolution or reuse, but key derivation, normalization, persistence, hierarchy, and cross-target sharing are runtime policy rather than this interface's semantics.
 
-The target is an invoker assertion, not self-authenticating proof. A resolver
-that does not include the invoker in its trust boundary MUST independently
-validate the asserted target before releasing a reusable secret. An in-process
+The target is an invoker assertion, not self-authenticating proof. A resolver decides what evidence and trust are sufficient before releasing a
+reusable secret; the target string alone establishes neither. An in-process
 resolver may deliberately treat its co-located invoker as trusted; a delegate
 or hosted invoker normally requires an independently derived comparison. This
 contract does not pretend that a generic resolver can validate an opaque
 identifier without knowing the source's kind.
 
-When a runtime does derive storage keys from network locations, excluding userinfo and other secret material is a security requirement. Host normalization can also improve reuse across kinds. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
+When deriving storage keys, a runtime should avoid including userinfo and other secret material. Host normalization can also improve reuse across kinds. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
 
 ### Well-known context fields
 
@@ -108,11 +72,14 @@ Context is an opaque object, but these well-known field names provide cross-invo
 | `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
 | `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
 | `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
-| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name (a kind's decode point, for example); consulted at the first tier of each point's order |
+| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name; each point's defining authority supplies its meaning and consultation rules |
 
-Implementations and callers may add fields for session state, consent, or other kind-specific needs. Consumers ignore fields they do not understand unless the source's kind says otherwise.
+Implementations and callers may add fields for session state, consent, or other kind-specific needs. Fields without a meaning defined by the interface or kind have implementation-specific interpretation; this guide adds no handling policy.
 
-**Context confidentiality.** Bearer and OAuth tokens, API keys, and the password inside `basic` are always secret. Other fields are not inherently non-secret: headers, cookies, environment values, metadata, and configuration can also contain secrets according to their meaning. A runtime MUST protect values classified as secret by their requirement family, source's kind, or application policy; it must not expose them in diagnostics or derived keys. Structural redaction may retain non-secret names such as an API-key scheme name, but never the secret value.
+**Security guidance.** Credential fields contain secrets; other context can be
+sensitive too. Consumers should avoid disclosure through logs, diagnostics and
+storage keys. Secret handling and trust checks are host responsibilities; the
+interface describes the values and supplies no security implementation.
 
 ### Interactive resolution
 
@@ -131,8 +98,8 @@ When a binding cannot proceed because required context is missing, `invokeBindin
 
 A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
 
-- `durable: true`: resolved context MAY be persisted, keyed from `target`, and reused for later invocations. This is permission, not a claim that every credential or other value should be stored.
-- absent or `durable: false` (the default): resolved context is for the immediate attempt only and MUST NOT be persisted. A one-shot user approval and a short-lived challenge response are not durable.
+- `durable: true`: the producer describes context as suitable for reuse; persistence and keying remain runtime decisions. This is a producer claim about safe reuse, not an instruction to persist a value.
+- absent or `durable: false` (the default): the producer describes context as suitable only for the immediate attempt, without a safe-reuse claim. A one-shot user approval and a short-lived challenge response are not durable.
 
 ### Resolve and retry
 
@@ -140,11 +107,11 @@ On `CONTEXT_REQUIRED`, a runtime may:
 
 1. Pick one `alternative` whose every `requirement` it can satisfy.
 2. Resolve each requirement into context by whatever mechanism it owns.
-3. Persist durable results according to its own storage policy; never persist non-durable ones.
+3. Decide whether to retain or reuse values under its own policy. False or absent
+   `durable` provides no safe-reuse claim; retention and reuse are different decisions.
 4. Start a new `invokeBinding` attempt with the augmented context.
 
-If it retries, the runtime bounds attempts and does not retry when resolution
-made no structural change to the supplied context. A binding MAY issue a fresh
+Retry limits and deciding whether another attempt is useful are caller policy. A binding MAY issue a fresh
 `CONTEXT_REQUIRED` after supplied context proves unusable (for example, an
 expired credential) only when its governing rules can still guarantee that no
 output or observable operation side effect occurred. A native failure status
@@ -153,9 +120,15 @@ the attempt completes unsuccessfully instead of being replayed automatically.
 
 ### Least privilege
 
-A `CONTEXT_REQUIRED` challenge is a **scope, not a hint**. When resolving it, the runtime provisions only the context needed to satisfy the **one selected alternative**, and never unrelated stored credentials or configuration. Any resolved value may be sensitive according to its requirement family, source's kind, or application policy. The invoker never gets raw access to a caller's store (no enumeration, no arbitrary reads); it sees only the context supplied by value for this attempt.
+The challenge describes context needed for one alternative. It is not permission
+to disclose unrelated secrets. Supplying only the necessary values is recommended
+security practice. The request carries context by value; the interface specifies
+no private store access or storage architecture.
 
-This matters most when the invoker is a **separate or third-party service**, such as a delegate or a hosted invoker: it receives only the context its own challenge requires, never the caller's full stored profile. Two runtime-enforced limits produce that bound together — the per-challenge field scoping here (*which fields* for a target) and the target validation under `ContextRequiredDetails` (*which target* at all). Both are the provisioning runtime's responsibility, since only it holds the store and the trust relationship; the bound is a property of what the runtime provisions, not of the invoker's good behavior.
+For a separate or third-party invoker, a caller can limit disclosure to the
+chosen alternative and assess the asserted target before supplying context.
+Those are host security decisions. The challenge does not establish trust or
+grant access to a stored profile.
 
 ### Requirement types
 
@@ -173,24 +146,24 @@ A requirement MAY carry a `name` — the scheme name as the source artifact decl
 `config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by source configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
 - `point` — the configuration point the source's kind defines for this value (`server`, `address`, a kind's decode point, …).
-- `path` — an RFC 6901 JSON Pointer relative to `configuration[point]`. The
+- `path` — an RFC 6901 JSON Pointer evaluated from `configuration[point]`. The
   empty pointer denotes the whole point; `/variables/region` denotes a nested
   member, and `/value` denotes a member literally named `value`.
 - `description` — human-readable prompt text.
-- `schema` (optional) — an engine-asserted JSON Schema for the value addressed
-  by `point` and `path`. It is derived from the source artifact where the
-  artifact speaks, supplied by the implementation where the kind defines a
-  shape, and absent where nothing does; absence
-  means the value is unconstrained. An `enum` declares the closed admissible
-  set, and satisfaction validates against it; `examples` are advisory
-  suggestions, and an off-list value remains valid.
+- `schema` (optional) — a standalone JSON Schema in object or Boolean form for
+  the addressed value. Its default dialect is JSON Schema 2020-12; a root
+  `$schema` can identify another dialect. References follow the applicable JSON
+  Schema dialect, including resource boundaries introduced by `$id`. Neither the
+  source artifact nor the OBI supplies an implicit reference environment. Absence states no constraint. For example, `enum`
+  describes allowed values while `examples` merely suggests values. Evaluation,
+  resource acquisition and handling unsupported schemas remain consumer choices.
 
 It resolves into the `configuration` context field at the deterministic address
 above. `durable` defaults to `false`; an invoker sets `durable: true` only when
 reuse is safe. A runtime that cannot satisfy `config.value` simply cannot
 select that alternative, exactly as for any other family.
 
-Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An invoker may surface an artifact-defined scheme as an extension requirement only when it knows how the resulting context will be applied faithfully. If the invoker cannot represent or apply a prerequisite, it refuses before dispatch rather than emitting a satisfiable-looking challenge or attempting the interaction without it.
+Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An extension challenge claims that its requirements can be applied faithfully to the selected interaction. Handling an unsupported prerequisite is an implementation choice; it does not make that claim true.
 
 ### preflightBinding
 
@@ -234,12 +207,12 @@ cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
-| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. A refusal with a resolution path: like `ERR_REFUSED`, it guarantees no observable effect of the requested operation occurred. |
+| `CONTEXT_REQUIRED` | The binding requests the `ContextRequiredDetails` carried in `data`. The attempt produced no operation output and no observable effect of the requested operation. |
 | `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
 | `ERR_CANCELLED` | The caller cancelled the invocation. |
-| `ERR_REFUSED` | Unsuccessful completion carrying the guarantee that **no observable effect of the requested operation occurred** — the invocation was refused before dispatch. Every "refuses before dispatch" rule in a source's kind surfaces portably as this code (or as `CONTEXT_REQUIRED` when the refusal carries a resolution path). An implementation MUST NOT emit it unless the guarantee holds; a caller may treat it as safe to retry once the refusal's cause is addressed. |
-| `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: the caller MUST treat the interaction as possibly dispatched. |
+| `ERR_REFUSED` | Unsuccessful completion asserting that **no observable effect of the requested operation occurred**. It makes no claim about whether a protocol request was sent. Whether to trust it or retry remains caller policy. |
+| `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: dispatch and effects remain possible. |
 
 The operation-invoker interface and each source's kind own
 the additional codes they explicitly define. Implementations may use further
@@ -248,82 +221,143 @@ behavior rather than portable contract meaning. Community convergence around
 an underdefined case is a reason to tighten the kind's definition, not
 to infer a hidden universal taxonomy. This contract assigns additional codes
 no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
-policy belong to the caller and SDK layer. A kind's rules can establish many
-refusals to happen **before dispatch**, and that boundary fact is carried
-portably by the code space itself: `ERR_REFUSED` (and its special case
-`CONTEXT_REQUIRED`) guarantees no observable effect of the requested operation occurred, while
-`ERR_EXECUTION_FAILED` makes no dispatch-state claim and MUST be treated as
-possibly dispatched. Codes may encode interaction-boundary facts of this
-kind — whether dispatch occurred — and never cause, blame, or protocol
-category: that line is what keeps the set small and the taxonomy refusal
-intact. Artifact runtimes, protocol-native
+policy belong to the caller and SDK layer. `ERR_REFUSED` asserts no observable
+operation effects; `CONTEXT_REQUIRED` additionally asserts no operation output.
+Neither says whether a protocol request was sent. For example, a kind may know
+that a remote authentication rejection occurred before any operation effects.
+`ERR_EXECUTION_FAILED` asserts no such boundary. These meanings describe the
+reported outcome, not a required way of detecting it. Artifact runtimes, protocol-native
 clients, logs, and traces may preserve native evidence below the OpenBindings
 invocation boundary, but the error frame never carries that evidence and
-ordinary application behavior never branches on it.
+its local use is an implementation or application decision.
 
-## What a binding invoker must NOT do
+## Capability boundary
 
-- **Interpret operation declarations.** It receives no operation declaration or value contract. It interprets the source and binding content under their kind.
-- **Select bindings.** That is the operation invoker's job. The binding invoker invokes what it is given.
-- **Require a particular state architecture.** The contract supplies context by value and exposes no context store. Caches, pools, sessions, credential brokers, and persistence remain implementation choices so long as their observable behavior honors the contract.
-- **Invent generic transforms.** Any value adaptation follows the kind's definition of source and binding content; this interface defines no independent transform fields or expression language.
-- **Mutate the caller's input.** Context merging and enrichment MUST operate on a copy.
-- **Over-reach for context.** It receives only the context the challenge scoped and applies only what the operation requires (e.g. the security scheme the call declares). It does not read the runtime's store directly, accumulate other targets' credentials, or forward more than a delegate's own challenge requires.
+Binding invocation is by value. It neither selects a binding from an OBI nor
+interprets an operation declaration it has not received. Kind interpretation owns
+value adaptation. Context storage, acquisition, enrichment, trust and retry policy
+are outside this interface. No copy operation, storage architecture or component
+boundary is prescribed.
 
-## Cardinality reach depends on the source's kind
+## Frame exchange
 
-The binding-invoker interface exposes a bidirectional I/O contract through `invokeBinding`. An implementation can only honor the full contract if its chosen kind's wire can carry bidirectional message streams. This is a property of the kind, not a property of the interface.
+The caller sends an open frame carrying the invocation request, followed by input frames and an optional close. close means no further input values; input_closed reports that the invoked binding is no longer accepting input. Repeated close has the same meaning. A caller close is unnecessary when input has already closed or the invocation has ended. The service returns output and input_closed frames followed by one terminal complete or error. complete reports successful completion; error reports unsuccessful completion. No further frames belong to the invocation after its terminal frame. An output value alone does not report success. A late failure does not retract values already delivered or assert that no effects occurred.
 
-| Kind (examples) | Unary | Server-streaming | Client-streaming | Bidirectional |
-|-----------------------------|-------|------------------|------------------|---------------|
-| In-process code module (`node-module`, `go-package`) | Yes | Yes | Yes | Yes |
-| stdio / subprocess (`usage`) | Yes | No | No | No |
-| WebSocket-based (`asyncapi-ws`) | Yes | Yes | Yes | Yes |
-| HTTP/2 streaming (`grpc`, `connect`) | Yes | Yes | Yes | Yes |
-| HTTP/1.1 + SSE (`openapi` with SSE response) | Yes | Yes | No | No |
-| HTTP/1.1 request/response only (`openapi` plain REST) | Yes | No | No | No |
+Frame schemas describe the messages. Handling malformed frames, late inputs or interrupted transports is implementation policy; ERR_FRAME_PROTOCOL and ERR_TRANSPORT_CLOSED identify those reported failures. The interface does not prescribe parser order, buffer admission, internal terminal-race arbitration, queue draining, polling or handle disposal. ERR_CANCELLED reports cancellation without promising rollback or that external work has stopped.
 
-An implementation backed by an HTTP/1.1 binding can only invoke underlying bindings whose cardinality the wire can carry; it cannot proxy a bidi binding. This is fundamental, not a current implementation gap. Implementation authors who want to honor the full contract pick a kind whose wire supports bidirectional streams. Implementation authors with a constrained binding should document which cardinalities they can carry.
+The operation exchanges frames; it does not return a prescribed native handle.
+Rust futures, TypeScript iterators, scheduling, backpressure, queues, connection
+pools and cancellation mechanics belong to implementations. Cardinality follows
+the chosen binding's interaction; this interface does not require every provider
+to support every streaming pattern. A consumer interprets complete and error as
+terminal outcomes; returning the first output alone does not establish success.
 
-## Why `invokeBinding` returns an `Invocation` handle
+## Walkthrough: values and outcomes
 
-`invokeBinding` returns an `Invocation` handle: a typed I/O pair (write side + read side) scoped to one operation invocation, plus lifecycle controls (`close`, `cancel`, terminal state). This shape unifies every cardinality the OpenBindings spec permits (unary, server-streaming, client-streaming, bidirectional) under one signature.
+Use the `echo` binding from the [illustrative text example](../source-inspector/#walkthrough-inspect-and-author).
+The arrays below display successive frame values for readability. They are not
+array-valued operation inputs or a prescribed transport envelope. The same
+values can be exchanged by a library or a remote service; scheduling and
+transport are implementation choices.
 
-When this invoker is reached remotely — as a delegate or hosted service rather than an in-process module — that same handle *is* the frame protocol: its frames are carried as the ordinary streaming values of whatever binding the invoker's OBI declares for `invokeBinding`, so no dedicated frame transport exists. Any supported streaming kind can carry them; `openbindings.asyncapi@1` is the project's current unreleased candidate for one such kind.
+One possible caller exchange is:
 
-### The design question
+```json
+[
+  {
+    "kind": "open",
+    "input": {
+      "source": {
+        "kind": "example.text@1"
+      },
+      "binding": {
+        "content": "echo"
+      }
+    }
+  },
+  {
+    "kind": "input",
+    "value": "Hello"
+  },
+  {
+    "kind": "close"
+  }
+]
+```
 
-A central design question is whether operations should be modeled as request-response (one input, one output) or as bidirectional streams (zero-or-more inputs, zero-or-more outputs). REST is request-response. SSE and WebSocket receive are server-streaming. File upload protocols are client-streaming. WebSocket bidi and gRPC bidi are full bidirectional. The interface needs to support all of them.
+One successful service exchange is:
 
-### Alternatives considered
+```json
+[
+  {
+    "kind": "output",
+    "value": "Hello"
+  },
+  {
+    "kind": "complete"
+  }
+]
+```
 
-**1. Separate unary and streaming interfaces.** An `invokeBinding` for request-response and `subscribeBinding` for streams. Rejected: forces the caller to know which pattern an operation uses before calling it. That is protocol knowledge leaking through the abstraction. A developer switching a binding from OpenAPI to gRPC should not have to change their calling code.
+`close` ends caller input; `complete` reports successful invocation completion.
+A service could instead report an unsuccessful terminal outcome after an output:
 
-**2. Single-value return for unary, stream for streaming.** Different return types per operation. Rejected: creates two code paths and the caller must know which to use. Same leak as (1).
+```json
+[
+  {
+    "kind": "output",
+    "value": "Hello"
+  },
+  {
+    "kind": "error",
+    "error": {
+      "code": "ERR_EXECUTION_FAILED"
+    }
+  }
+]
+```
 
-**3. Single input + output stream.** Earlier OpenBindings SDKs shipped this: `invokeBinding(input) -> stream of outputs`. It covers unary and server-streaming cleanly. But client-streaming (caller sends N messages) and bidirectional (interleaved sends and receives) cannot be expressed. The earlier SDK acknowledged this gap and skipped gRPC client-streaming / bidi during interface synthesis.
+The earlier value remains delivered. The terminal error does not assert that
+there were no effects, and the interface does not choose the caller's recovery.
+Individual frame examples are also included in `invokeBinding.examples` in the
+JSON interface.
 
-**4. Handle with write + outputs + lifecycle (chosen).** `invokeBinding(input) -> Invocation<I, O>`. The handle exposes:
+### A context challenge
 
-- `write(input)`: write one input message to the binding's channel (synchronous handoff to a buffer; does not claim transport dispatch).
-- `close()`: graceful half-close, signal no more input.
-- `cancel()`: abort the whole invocation.
-- Output access: iterate `outputs` in TypeScript or call `Read(ctx)` in Go.
-- `closed`: terminal-state signal.
+A separate protected-service example can finish an attempt with:
 
-The caller drives the handle however the operation demands. Cardinality emerges from how the caller drives it, not from a declared signature.
+```json
+{
+  "kind": "error",
+  "error": {
+    "code": "CONTEXT_REQUIRED",
+    "data": {
+      "target": "example:text-service",
+      "alternatives": [
+        {
+          "requirements": [
+            {
+              "type": "auth.bearer",
+              "durable": false
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
 
-### How each cardinality looks under the handle
+This outcome describes no operation output or effects. It does not establish
+that the asserted target is trustworthy. If the caller chooses to trust that
+service and supply a token, a new attempt's opening payload can include
+`"context": {"bearerToken": "example-token"}` alongside its source and binding.
+The token here is a placeholder. Obtaining it, retaining it, and deciding whether
+to retry are caller decisions. False `durable` makes no safe-reuse claim and says
+nothing about how a caller stores an attempt.
 
-- **Unary** (REST GET, gRPC unary): caller writes one input; binding closes input from its side; output yields one value; close. Caller code: `await call.write(x); for await (const o of call.outputs) return o;`
-- **Server-streaming** (SSE, gRPC server-stream): caller writes one input; binding closes input; output yields many values until done. Same caller pattern as unary; the loop just runs more.
-- **Client-streaming** (file upload, gRPC client-stream): caller writes many inputs then calls `close()`; binding aggregates, produces one output. Caller owns `close()` because only the caller knows when they are done writing.
-- **Bidirectional** (WebSocket, gRPC bidi): caller writes inputs in one async task; reads outputs in another; calls `close()` when done writing. Both sides flow concurrently.
-- **No-input** (HTTP GET with no params, "ping"): binding closes its input side immediately; caller never touches input; just iterates outputs.
-- **Fire-and-forget**: write one input; close; `closed` resolves. No iteration needed.
+### Addressing the same call through a document
 
-The caller's pattern adapts per operation, but the SDK signature is the same. Cardinality is observed at the call site, not declared in types.
-
-### Connection pooling is a kind implementation concern
-
-Different protocols handle connection reuse differently. HTTP's `http.Client` pools TCP connections automatically. gRPC's `ClientConn` cache multiplexes RPCs on one HTTP/2 connection. MCP's session pool shares one JSON-RPC session across tool calls. AsyncAPI WebSocket pools share one socket across operations on the same channel. This is protocol-specific knowledge that belongs in the library implementing each kind. The contract stays clean: `invokeBinding(input) -> Invocation`. That library decides whether to open a new connection or reuse one and routes each invocation's I/O through the appropriate transport.
+The [operation-invoker examples](../operation-invoker/#walkthrough-document-addressing)
+show the other opening payload. Both roles use the same subsequent value and
+terminal meanings; neither role prescribes a native handle or callback API.

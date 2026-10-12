@@ -90,15 +90,152 @@ for (const request of [
   { source: { kind: 'k' }, binding: { deprecated: 'yes' } },
 ]) accepts(invocation, request, false);
 accepts(invocation, { source: { kind: 'k', 'x-source': true }, binding: { operation: 'op', source: 's', 'x-binding': null } });
+accepts(invocation, { source: { kind: 'k' }, binding: { operation: '', source: '' }, context: {} });
+accepts(invocation, { source: { kind: 'k' }, binding: {}, context: { custom: [null, false] } });
+for (const context of [null, false, '', []]) {
+  accepts(invocation, { source: { kind: 'k' }, binding: {}, context }, false);
+}
 accepts(target, {}, false);
 accepts(target, { sourceRef: 'target' }, false);
 accepts(target, { binding: {} }, false);
 accepts(synthesisSource, { bindingSpec: 'k', content: {} }, false);
 accepts(synthesisSource, { source: { kind: 'k' }, embed: true }, false);
 
-// Open carriers are required by the comparison profile. Unknown-member refusal
-// is a behavioral producer/consumer rule, not a schema-validation promise. Keep
-// witnesses in a reusable corpus and separately exercise the known namespace.
+// Addressing describes one of three shapes. This says nothing about how a
+// provider handles a request outside those shapes.
+const operationInvoker = contracts.get('operation-invoker');
+const operationRequest = compile(operationInvoker, operationInvoker.schemas.OperationInvocationInput);
+for (const addressedByOperation of [false, true]) {
+  for (const addressedByBinding of [false, true]) {
+    for (const hasSelection of [false, true]) {
+      const request = { interface: { openbindings: '0.2.0', operations: {} } };
+      if (addressedByOperation) request.operation = 'echo';
+      if (addressedByBinding) request.binding = 'echoBinding';
+      if (hasSelection) request.selection = ['echoBinding'];
+      accepts(operationRequest, request,
+        (addressedByOperation && !addressedByBinding) ||
+        (addressedByBinding && !addressedByOperation && !hasSelection));
+    }
+  }
+}
+
+// Examples are operation values, not required implementation traces. Check
+// the same public schemas a reader uses, including the OBI values they carry.
+let exampleValues = 0;
+for (const doc of contracts.values()) {
+  for (const operation of Object.values(doc.operations)) {
+    for (const example of Object.values(operation.examples ?? {})) {
+      for (const side of ['input', 'output']) {
+        if (!Object.hasOwn(example, side) || !Object.hasOwn(operation, side)) continue;
+        accepts(compile(doc, operation[side]), example[side]);
+        exampleValues++;
+        const value = example[side];
+        for (const candidate of [value, value?.interface, value?.input?.interface]) {
+          if (candidate && Object.hasOwn(candidate, 'openbindings')) {
+            assert(core(candidate), JSON.stringify(core.errors));
+          }
+        }
+      }
+    }
+  }
+}
+assert(exampleValues > 0, 'no public operation examples checked');
+
+// Inspection framing is portable into an authored OBI. Exercise the carried
+// resource example under different author-assigned keys, without fetching.
+for (const framing of inspector.schemas.Operation.examples ?? []) {
+  accepts(compile(inspector, inspector.schemas.Operation), framing);
+  for (const key of ['echo', 'author.renamed']) {
+    const authored = { openbindings: '0.2.0', operations: { [key]: framing } };
+    assert(core(authored), JSON.stringify(core.errors));
+    const pointer = key.replaceAll('~', '~0').replaceAll('/', '~1');
+    // Ajv does not discover resource roots in OBI's non-schema `operations`
+    // map. Register this example's explicitly declared resource before lookup.
+    const validator = new Ajv2020({ strict: false });
+    validator.addSchema(framing.input);
+    const validate = validator.compile({
+      ...authored, $ref: `#/operations/${pointer}/input`,
+    });
+    accepts(validate, 'Hello');
+    accepts(validate, 42, false);
+  }
+}
+
+// These are schema shape controls, not a portable runtime trace format.
+// Ordering of internal transitions, close/cancel races and malformed-input
+// recovery belong to implementation tests, not these value-shape controls.
+for (const [role, prefix, request] of [
+  ['binding-invoker', 'BindingInvoker', { source: { kind: 'example.invocation@1' }, binding: {} }],
+  ['operation-invoker', 'OperationInvoker', { interface: { openbindings: '0.2.0' }, operation: 'echo' }],
+]) {
+  const document = contracts.get(role);
+  const requirement = compile(document, document.schemas.ContextRequirement);
+  const challenge = compile(document, document.schemas.ContextRequiredDetails);
+  const failure = compile(document, document.schemas.InvocationError);
+  const inputFrame = compile(document, document.schemas[`${prefix}InputFrame`]);
+  const outputFrame = compile(document, document.schemas[`${prefix}OutputFrame`]);
+  const preflight = compile(document, document.operations[`openbindings.${role}.preflight${prefix === 'BindingInvoker' ? 'Binding' : 'Operation'}`].output);
+  const custom = { type: 'example.custom', familyValue: { exact: null } };
+  const details = { target: '', alternatives: [{ requirements: [custom] }] };
+
+  for (const value of [custom, { ...custom, name: 'custom' }, { ...custom, durable: false }, { ...custom, durable: true }]) {
+    accepts(requirement, value);
+  }
+  for (const value of [{}, { type: '' }, { ...custom, name: '' }, { ...custom, durable: null }, { ...custom, durable: 'true' }]) {
+    accepts(requirement, value, false);
+  }
+  const config = { type: 'config.value', point: 'server', path: '', description: 'A value' };
+  accepts(requirement, config);
+  for (const schema of [{ type: 'string' }, { enum: ['a', 'b'] }, {}, true, false]) {
+    accepts(requirement, { ...config, schema });
+  }
+  for (const schema of [null, [], 'string', 1]) {
+    accepts(requirement, { ...config, schema }, false);
+  }
+  for (const value of [{ ...config, point: null }, { ...config, path: false }, { ...config, description: 1 }]) {
+    accepts(requirement, value, false);
+  }
+  accepts(challenge, details); // An opaque target may be empty; family fields stay open.
+  accepts(preflight, null);
+  accepts(preflight, details);
+  for (const value of [
+    null, {}, { ...details, target: null }, { ...details, extra: true },
+    { ...details, alternatives: [] },
+    { ...details, alternatives: [{ requirements: [] }] },
+    { ...details, alternatives: [{ requirements: [custom], extra: true }] },
+    { ...details, alternatives: [{ requirements: [{ type: '' }] }] },
+  ]) {
+    accepts(challenge, value, false);
+    if (value !== null) accepts(preflight, value, false);
+  }
+  accepts(failure, { code: 'example.application-failure' });
+  for (const data of [null, false, 0, '', [], { application: 'value' }]) {
+    accepts(failure, { code: 'example.application-failure', data });
+  }
+  for (const value of [{}, { code: '' }, { code: null }, { code: 'ERR_EXECUTION_FAILED', message: 'extra' }]) {
+    accepts(failure, value, false);
+  }
+  for (const frame of [{ kind: 'open', input: request }, { kind: 'input', value: null }, { kind: 'close' }]) {
+    accepts(inputFrame, frame);
+    accepts(inputFrame, { ...frame, extra: true }, false);
+  }
+  for (const frame of [null, [], {}, { kind: 'unknown' }, { kind: 'open' }, { kind: 'open', input: null }, { kind: 'input' }, { kind: 'close', value: null }]) {
+    accepts(inputFrame, frame, false);
+  }
+  for (const frame of [
+    { kind: 'output', value: null }, { kind: 'input_closed' }, { kind: 'complete' },
+    { kind: 'error', error: { code: 'example.application-failure', data: null } },
+  ]) {
+    accepts(outputFrame, frame);
+    accepts(outputFrame, { ...frame, extra: true }, false);
+  }
+  for (const frame of [null, [], {}, { kind: 'unknown' }, { kind: 'output' }, { kind: 'complete', value: null }, { kind: 'error' }, { kind: 'error', error: { code: '' } }]) {
+    accepts(outputFrame, frame, false);
+  }
+}
+
+// Open carrier schemas do not fully check core field membership. These examples
+// distinguish the two facts without prescribing malformed-input handling.
 const carriedCases = read('conformance/carried-values/cases.json');
 const sourceKeys = new Set(['kind', 'content', 'description']);
 const bindingKeys = new Set(['operation', 'source', 'content', 'idempotent', 'preference', 'description', 'deprecated']);
@@ -111,15 +248,13 @@ for (const test of carriedCases.tests) {
   const allowed = carrier && typeof carrier === 'object' && !Array.isArray(carrier)
     && Object.keys(carrier).every(key => keys.has(key) || key.startsWith('x-'));
   const producerKeysValid = test.schema !== 'BindableTarget' || (!Object.hasOwn(carrier, 'operation') && !Object.hasOwn(carrier, 'source'));
-  assert.equal(Boolean(allowed) && test.schemaValid && producerKeysValid, test.allowedByCarriedValuesRule, test.description);
+  assert.equal(Boolean(allowed) && test.schemaValid && producerKeysValid, test.carrierFieldsValid, test.description);
 }
 for (const name of ['binding-invoker', 'source-inspector', 'interface-synthesizer']) {
   const doc = contracts.get(name);
-  assert(doc.description.includes('MUST refuse a call carrying any other member'));
   const check = doc.operations[`openbindings.${name}.checkKindSupport`];
   const list = doc.operations[`openbindings.${name}.listSupportedKinds`];
   assert(check && list);
-  assert(check.description.includes("MUST have no side effects"));
   const input = compile(doc, check.input), output = compile(doc, check.output);
   accepts(input, { kinds: [] });
   accepts(input, { kinds: ['acme.private@1', 'acme.private@1'] });
@@ -135,15 +270,19 @@ for (const test of read('conformance/kind-support/cases.json').tests) {
   assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
 }
 const coverageReport = compile(synthesizer, synthesizer.schemas.SynthesisCoverage);
-let positiveCoverage = 0;
+let coverageExamples = 0;
 for (const test of read('conformance/synthesis-coverage/cases.json').tests) {
-  if (!test.expected.valid) continue; // Other negatives concern runtime correspondence, not shape.
-  const report = { entries: test.entries, exhaustive: test.exhaustive, fullyRepresented: test.expected.fullyRepresented };
-  if (test.limitation) report.limitation = test.limitation;
-  accepts(coverageReport, report);
-  positiveCoverage++;
+  accepts(coverageReport, test.report, test.schemaValid);
+  coverageExamples++;
 }
-assert(positiveCoverage > 0, 'no positive coverage fixtures checked');
+assert(coverageExamples > 0, 'no coverage shape examples checked');
+const emptyCoverage = { entries: [], exhaustive: true, fullyRepresented: true };
+accepts(coverageReport, emptyCoverage);
+for (const sourceKeys of [null, 'api', [null], ['']]) {
+  accepts(coverageReport, { ...emptyCoverage, sourceKeys }, false);
+}
+accepts(coverageReport, { ...emptyCoverage, sourceKeys: [] });
+accepts(coverageReport, { ...emptyCoverage, sourceKeys: ['api', 'api'] });
 const coverage = compile(synthesizer, synthesizer.schemas.SynthesisCoverageEntry);
 const represented = { sourceIndex: 0, sourceRef: 'unit', scope: 'target', status: 'represented', sourceKey: 's', operationKey: 'op', bindingKey: 'b' };
 accepts(coverage, represented);
@@ -156,7 +295,8 @@ for (const scope of ['target', 'dependency']) {
   accepts(coverage, { ...excluded, rule: 'example.kind@1 section 4' });
 }
 const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented' };
+accepts(coverage, { ...dependency, dependencyKey: 'jobDone' });
 accepts(coverage, dependency);
 accepts(coverage, { ...dependency, bindingKey: 'b' }, false);
 accepts(coverage, { ...dependency, status: 'lossy', reasonCode: 'example.loss', message: 'A dependency projection is incomplete.' });
-console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; carrier, presence, support and coverage controls pass`);
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; carrier, presence, support, invocation shape and coverage controls pass`);

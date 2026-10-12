@@ -1,9 +1,9 @@
 {
   "format": "openbindings.carried-values-cases@1",
-  "description": "Contract schemas remain open for x- extensions within the comparison profile. allowedByCarriedValuesRule separately records the normative refusal rule; this corpus is not a runtime conformance claim.",
+  "description": "Schema acceptance is distinct from the core carrier field set. carrierFieldsValid records that field-set check, not a mandated response to malformed input.",
   "tests": [
     {
-      "description": "legacy binding selector refuses before work",
+      "description": "legacy binding selector is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -16,10 +16,10 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
-      "description": "legacy source location refuses before work",
+      "description": "legacy source location is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -31,10 +31,10 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
-      "description": "legacy bindingSpec source member refuses before work",
+      "description": "legacy bindingSpec source member is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -46,7 +46,7 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "extensions survive the full binding carrier",
@@ -64,7 +64,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     },
     {
       "description": "explicit null content is carried",
@@ -80,7 +80,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     },
     {
       "description": "absent content is carried as empty binding",
@@ -94,7 +94,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     },
     {
       "description": "wrong typed binding member is refused",
@@ -110,7 +110,7 @@
       },
       "carrier": "binding",
       "schemaValid": false,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "missing binding refuses the whole input before work",
@@ -123,10 +123,10 @@
       },
       "carrier": "binding",
       "schemaValid": false,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
-      "description": "top-level legacy selector refuses before work",
+      "description": "top-level legacy selector is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -138,10 +138,10 @@
       },
       "carrier": "binding",
       "schemaValid": false,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
-      "description": "wrong idempotent type refuses before work",
+      "description": "wrong idempotent type is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -154,10 +154,10 @@
       },
       "carrier": "binding",
       "schemaValid": false,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
-      "description": "wrong preference type refuses before work",
+      "description": "wrong preference type is outside the described carrier fields",
       "interface": "binding-invoker",
       "schema": "BindingInvocationInput",
       "value": {
@@ -170,7 +170,7 @@
       },
       "carrier": "binding",
       "schemaValid": false,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "unknown unprefixed binding member refuses",
@@ -186,7 +186,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "unknown source member refuses for source-inspector",
@@ -200,7 +200,7 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "source extension and null content survive for source-inspector",
@@ -215,7 +215,7 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     },
     {
       "description": "unknown source member refuses for interface-synthesizer",
@@ -229,7 +229,7 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "source extension and null content survive for interface-synthesizer",
@@ -244,7 +244,7 @@
       },
       "carrier": "source",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     },
     {
       "description": "inspector producer binding {'confidence': 1}",
@@ -258,7 +258,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "inspector producer binding {'operation': 'op'}",
@@ -272,7 +272,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "inspector producer binding {'source': 's'}",
@@ -286,7 +286,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": false
+      "carrierFieldsValid": false
     },
     {
       "description": "inspector producer binding {'content': None, 'x-evidence': True}",
@@ -301,7 +301,7 @@
       },
       "carrier": "binding",
       "schemaValid": true,
-      "allowedByCarriedValuesRule": true
+      "carrierFieldsValid": true
     }
   ]
 }

@@ -102,9 +102,8 @@ accepts(synthesisSource, { bindingSpec: 'k', content: {} }, false);
 accepts(synthesisSource, { source: { kind: 'k' }, embed: true }, false);
 
 // These are schema shape controls, not a portable runtime trace format.
-// Ordering, close/cancel races, safe challenges and error classification need
-// an invocation implementation. In particular, a valid open envelope whose
-// payload fails the request schema refuses before work, not a frame error.
+// Ordering of internal transitions, close/cancel races and malformed-input
+// recovery belong to implementation tests, not these value-shape controls.
 for (const [role, prefix, request] of [
   ['binding-invoker', 'BindingInvoker', { source: { kind: 'example.invocation@1' }, binding: {} }],
   ['operation-invoker', 'OperationInvoker', { interface: { openbindings: '0.2.0' }, operation: 'echo' }],
@@ -175,9 +174,8 @@ for (const [role, prefix, request] of [
   }
 }
 
-// Open carriers are required by the comparison profile. Unknown-member refusal
-// is a behavioral producer/consumer rule, not a schema-validation promise. Keep
-// witnesses in a reusable corpus and separately exercise the known namespace.
+// Open carrier schemas do not fully check core field membership. These examples
+// distinguish the two facts without prescribing malformed-input handling.
 const carriedCases = read('conformance/carried-values/cases.json');
 const sourceKeys = new Set(['kind', 'content', 'description']);
 const bindingKeys = new Set(['operation', 'source', 'content', 'idempotent', 'preference', 'description', 'deprecated']);
@@ -190,15 +188,13 @@ for (const test of carriedCases.tests) {
   const allowed = carrier && typeof carrier === 'object' && !Array.isArray(carrier)
     && Object.keys(carrier).every(key => keys.has(key) || key.startsWith('x-'));
   const producerKeysValid = test.schema !== 'BindableTarget' || (!Object.hasOwn(carrier, 'operation') && !Object.hasOwn(carrier, 'source'));
-  assert.equal(Boolean(allowed) && test.schemaValid && producerKeysValid, test.allowedByCarriedValuesRule, test.description);
+  assert.equal(Boolean(allowed) && test.schemaValid && producerKeysValid, test.carrierFieldsValid, test.description);
 }
 for (const name of ['binding-invoker', 'source-inspector', 'interface-synthesizer']) {
   const doc = contracts.get(name);
-  assert(doc.description.includes('MUST refuse a call carrying any other member'));
   const check = doc.operations[`openbindings.${name}.checkKindSupport`];
   const list = doc.operations[`openbindings.${name}.listSupportedKinds`];
   assert(check && list);
-  assert(check.description.includes("MUST have no side effects"));
   const input = compile(doc, check.input), output = compile(doc, check.output);
   accepts(input, { kinds: [] });
   accepts(input, { kinds: ['acme.private@1', 'acme.private@1'] });
@@ -214,17 +210,14 @@ for (const test of read('conformance/kind-support/cases.json').tests) {
   assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
 }
 const coverageReport = compile(synthesizer, synthesizer.schemas.SynthesisCoverage);
-let positiveCoverage = 0;
+let coverageExamples = 0;
 for (const test of read('conformance/synthesis-coverage/cases.json').tests) {
-  if (!test.expected.valid) continue; // Other negatives concern runtime correspondence, not shape.
-  const report = { sourceKeys: test.expected.sourceKeys, entries: test.entries, exhaustive: test.exhaustive, fullyRepresented: test.expected.fullyRepresented };
-  if (test.limitation) report.limitation = test.limitation;
-  accepts(coverageReport, report);
-  positiveCoverage++;
+  accepts(coverageReport, test.report, test.schemaValid);
+  coverageExamples++;
 }
-assert(positiveCoverage > 0, 'no positive coverage fixtures checked');
+assert(coverageExamples > 0, 'no coverage shape examples checked');
 const emptyCoverage = { entries: [], exhaustive: true, fullyRepresented: true };
-accepts(coverageReport, emptyCoverage, false);
+accepts(coverageReport, emptyCoverage);
 for (const sourceKeys of [null, 'api', [null], ['']]) {
   accepts(coverageReport, { ...emptyCoverage, sourceKeys }, false);
 }
@@ -241,7 +234,8 @@ for (const scope of ['target', 'dependency']) {
   accepts(coverage, excluded, false);
   accepts(coverage, { ...excluded, rule: 'example.kind@1 section 4' });
 }
-const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented', dependencyKey: 'jobDone' };
+const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency', status: 'represented' };
+accepts(coverage, { ...dependency, dependencyKey: 'jobDone' });
 accepts(coverage, dependency);
 accepts(coverage, { ...dependency, bindingKey: 'b' }, false);
 accepts(coverage, { ...dependency, status: 'lossy', reasonCode: 'example.loss', message: 'A dependency projection is incomplete.' });

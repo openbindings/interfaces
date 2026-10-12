@@ -24,29 +24,18 @@ This axis, not "binding vs operation," is the real distinction between the two i
 
 Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and any context the selected kind requires. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
 
-## Document admission
+## Publication boundary
 
-Whole-document conformance proof is not an invocation prerequisite. An
-implementation MAY admit a nonconformant snapshot when the selected operation,
-binding, source, and applicable schemas can be interpreted under the core rules.
-It MUST NOT invent a resolution for missing or ambiguous names. Structurally
-uninterpretable requests MAY be refused before effects. Accepting a call or
-validating a value does not certify document conformance.
-
-Missing or ambiguous operation names produce `ERR_OPERATION_NOT_FOUND`. An
-explicit binding's `operation` must name a primary key, not merely an alias.
-Explicit bindings bypass candidate filtering: an unsupported kind is refused
-under the binding-invoker contract, without fallback. A selected explicit binding
-with no source produces `ERR_UNKNOWN_SOURCE`. Bindings without resolvable sources
-are outside the candidate set for automatic or ordered selection.
-
-Schema preparation may be deferred until an actual value needs checking. Zero
-values impose no instance check. A later validation failure preserves earlier
-relayed outputs and does not imply that no observable effects occurred.
+These operations are offered for voluntary adoption under the
+[publication boundary](../#publication-boundary). The document carrier is not a
+conformance certificate. Admission of partially invalid documents, validation
+preparation timing, caching, recovery and error precedence on malformed requests
+are implementation policy. The described name resolution still follows the core.
 
 ## What an operation invoker does
 
-When it receives an `OperationInvocationInput` (carried by the `open` frame), it:
+The operation describes the following capability. These points describe the
+caller-facing meaning, not a required execution pipeline:
 
 1. **Resolves the name or key.** An `operation` name resolves across the flat key-and-alias namespace (core §5.1) to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it. Bindings are found by the resolved operation key, not the alias used to reach it.
 2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose sources have kinds the invoker can act on. The contract follows caller policy and the source's kind without inventing a ranking:
@@ -60,24 +49,19 @@ When it receives an `OperationInvocationInput` (carried by the `open` frame), it
 3. **Validates declared value contracts.** Each input value is checked before forwarding and each successful output value before relaying, where that side declares a schema. Validity follows [core §5.2](https://github.com/openbindings/spec/blob/release/0.2/openbindings.md#52-schemas): JSON Schema 2020-12, `format` as annotation where assertion is optional, ECMA-262 patterns with Unicode semantics, and the OBI reference environment. An established mismatch is `ERR_OPERATION_VALIDATION_FAILED`; a check that cannot give a verdict is `ERR_SCHEMA_UNRESOLVED`. Neither permits forwarding that value as validated. An absent schema states no contract: values on that side are forwarded without a validation claim. No whole-graph readiness check is required.
 4. **Drives the binding invocation,** forwarding the selected source, the full binding object with content presence preserved, and caller context. The binding invoker applies any kind-defined adaptation. The operation invoker preserves the binding invoker's frame ordering and operation-value payloads, subject to step 3's validation. An unsuccessful terminal frame remains unsuccessful; `CONTEXT_REQUIRED` details and opaque application failure data are relayed unchanged without output-schema validation. This layer may terminate with its own resolution or validation failure, but does not apply a second transformation.
 
-## The frame protocol
+## The frame exchange
 
-`invokeOperation` is a typed bidirectional I/O operation. The caller streams `OperationInvokerInputFrame` messages (one `open` carrying the `OperationInvocationInput`, then zero or more `input` frames and an optional logical caller half-close, `close`); the invoker streams `OperationInvokerOutputFrame` messages back (zero or more `output` / `input_closed`, then exactly one terminal `complete` or `error`). Repeated `close` frames are harmless; no caller close is required when the binding closes input or the invocation terminates first. The same shape covers unary, server-streaming, client-streaming, and bidirectional bindings; cardinality is observed by how the caller drives the frames, not declared.
-
-The frame protocol and **every normative frame rule** are identical to [`binding-invoker.invokeBinding`](../binding-invoker/) — first-frame-`open`, single-`open`, input-after-closure handling, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection, and caller-cancellation all apply here unchanged. The operation invoker adds name resolution, binding selection and value-contract validation.
-
-Input closure is nonterminal and does not stop control or protocol-error
-processing while the invocation remains live. Consumers observe output through
-terminal success or failure; one output alone is not success. The first terminal
-transition wins. Outputs committed to the invocation's sequence before that
-transition precede the terminal frame even if read or transported later, including
-on cancellation; no new emission is accepted afterward. Cancellation makes no
-dispatch-state or rollback guarantee, and releasing a native handle does not by
-itself prove remote work stopped.
+`invokeOperation` exchanges the input and output frames declared in its schemas.
+Their meanings match [binding invocation](../binding-invoker/#frame-exchange):
+open introduces a request, input/output carry values, close/input_closed describe
+input closure, and complete/error describe the terminal outcome. An output alone
+does not establish success; a later failure does not retract delivered values.
+No native handle, queue, polling model, cancellation race algorithm or disposal
+mechanism is prescribed. An interruption does not promise rollback.
 
 ## Context is forwarded, not reinterpreted
 
-The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` challenge from that invocation that the implementation does not resolve propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution failure is a local runtime failure, not a declined challenge, and an unchanged resolver result does not trigger another attempt.
+The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` challenge from that invocation that the implementation does not resolve propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution strategy and deciding whether to make another attempt are caller policy.
 
 The contract does not prescribe where resolution runs, what triggers it, or whether context is stored. A monolithic runtime may compose selection, resolution, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
 
@@ -96,7 +80,7 @@ This interface owns only the codes required by its resolution and validation mec
 
 | Code | Meaning |
 |---|---|
-| `ERR_OPERATION_NOT_FOUND` | The requested operation key or alias is missing or ambiguous, or an explicit binding does not name a primary operation key. |
+| `ERR_OPERATION_NOT_FOUND` | The requested operation name cannot be resolved. |
 | `ERR_BINDING_NOT_FOUND` | The explicit binding, or a key in `selection`, names no binding of the operation, or no invocable binding remains among those allowed. |
 | `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied neither `binding` nor `selection`. |
 | `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |
@@ -113,13 +97,12 @@ vocabulary for bindings or protocols.
 
 `preflightOperation` resolves the named operation or binding with invocation's selection rules and preflights the selected binding under the [binding-invoker contract](../binding-invoker/README.md#preflightbinding). A resolution failure completes with this interface's own resolution code and is not the binding's answer. Preflight does not pin a later selection.
 
-## What an operation invoker must NOT do
+## Capability boundary
 
-- **Prescribe context storage or resolution architecture.** It forwards context and propagates challenges; composition around that exchange is external.
-- **Invent a binding choice.** Several invocable alternatives require an explicit caller-owned choice.
-- **Reimplement the wire.** It drives a binding invoker; it does not speak protocols directly.
-- **Bake in cardinality.** The signature never declares unary vs streaming; cardinality is observed at the frames.
-- **Mutate the caller's input.** Context forwarding and enrichment operate on a copy.
+Context retains its kind-defined meaning. Caller binding selection is not
+replaced by a private ranking. The operation adds no generic value transform.
+It describes the caller-facing exchange, not a required component topology,
+copy strategy, context store, schema compiler or network implementation.
 
 ## Relationship to the binding invoker
 

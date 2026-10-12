@@ -10,6 +10,25 @@ This repository is **not the specification**. The normative specification and it
 
 The project publishes these under its own `openbindings.*` operation namespace exactly as any third party would publish theirs under its own; the spec privileges none of them.
 
+## Publication boundary
+
+These are voluntarily adopted operation descriptions. The schemas describe
+caller-facing values; prose explains the capability and the meaning of those
+values. Adopting a name is an author claim, not certification or a grant of
+authority over the implementation. Adoption remains per operation.
+
+The publications do not prescribe SDK types, internal algorithms, buffers,
+validation timing, duplicate recovery, naming strategies or process architecture.
+Descriptions of result fields and message sequences are not instructions for how
+to produce or consume them. A value outside a described shape does not become
+conformant merely because an implementation accepts or repairs it; the handling
+of that value is the implementation's decision.
+
+Before adding a field or semantic promise, identify what a caller needs it to
+understand. SDK convenience, a checker assertion or agreement among our own
+implementations is insufficient justification. Shared examples demonstrate
+interface shapes and meanings; SDK policy tests belong with the SDK.
+
 ## Canonical URLs
 
 Each interface is served at a stable URL on openbindings.com:
@@ -48,9 +67,9 @@ synthesize the same kind must answer through distinct checks.
 
 Idempotence promises are stated in operation descriptions and the interface
 prose. These unbound contracts carry no operation-level `idempotent` member.
-Concrete bindings make their own core `idempotent` claims; an implementation
-that claims correspondence must also meet the interface's behavioral promises.
-Neither those promises nor a core claim independently authorizes retries.
+Concrete bindings make their own core `idempotent` claims. Correspondence asserts
+the described capability; it does not verify behavior. Neither a description nor
+a core claim independently authorizes retries.
 
 ## Interfaces
 
@@ -102,7 +121,10 @@ A service claims correspondence with one of these interfaces by giving the corre
 
 Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
 
-A correspondence is a **claim**, and a runtime proceeds on it. The name does not establish compatibility (the spec says so); the only honest posture for a runtime that cannot verify a claim is to act on it. Every consumer of correspondence in these interfaces (operation invocation, composition, delegate admission) may check a claim, sets a candidate aside only on a contradiction it establishes, and never treats its own inability to decide as a contradiction. If a claim is false in a way no check could see, the consequence surfaces at invocation, and that is accepted.
+A correspondence is a **claim**. A consumer decides whether to rely on it and
+whether to compare it with a reference interface. An inability to establish
+compatibility is not evidence of incompatibility. Trust, admission and recovery
+remain consumer policy; carrying a name does not compel a consumer to invoke it.
 
 ## Error-code registry
 
@@ -163,10 +185,10 @@ publishes instead of predictably returning `indeterminate`.
 The profile includes structural unions, so conditional contract shapes are
 written as `oneOf` alternatives when that preserves the requirement exactly.
 Constraints whose containment the profile cannot soundly decide, such as
-regular-expression `pattern` or `uniqueItems`, are not added merely as
-validation decoration: their essential semantics belong in an in-profile
-shape or in normative operation prose; otherwise the contract needs a future
-comparison-profile revision before this repository publishes the constraint.
+regular-expression `pattern` or `uniqueItems`, are not added merely as validation
+decoration. A checker limitation is not a reason to move an implementation policy
+into operation prose. Additional value constraints need an independent interface
+justification and a deliberate comparison-profile decision.
 CI walks every named and inline operation schema and fails on an
 outside-profile keyword.
 

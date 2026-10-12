@@ -107,3 +107,36 @@ copy strategy, context store, schema compiler or network implementation.
 ## Relationship to the binding invoker
 
 The operation-invoker semantics compose with the binding-invoker semantics: after resolution, the selected source and binding objects drive invocation, while the operation layer checks declared value contracts. An implementation may layer the two components or fuse them behind one service. The two addressing contracts do not require a particular process architecture.
+
+## Walkthrough: document addressing
+
+Take the complete OBI from the [text authoring walkthrough](../source-inspector/#walkthrough-inspect-and-author).
+The opening payload carries that document as `interface`, together with one of
+these addressing choices (shown here as payload fragments):
+
+```json
+{"operation": "repeat"}
+```
+
+```json
+{"binding": "repeatText"}
+```
+
+```json
+{"operation": "repeat", "selection": ["repeatText"]}
+```
+
+Use one choice per invocation. `binding` stands alone; `selection` accompanies
+`operation`. The JSON interface includes complete opening frames, with the inline
+OBI, in `invokeOperation.examples`. It does not require a document registry.
+
+The caller can then exchange the `input`, `close`, `output` and terminal values
+from the [binding-invocation walkthrough](../binding-invoker/#walkthrough-values-and-outcomes).
+Here the operation declares string input and output contracts. A validity
+mismatch is described by `ERR_OPERATION_VALIDATION_FAILED`; inability to decide
+validity by `ERR_SCHEMA_UNRESOLVED`. Those meanings do not prescribe a schema
+compiler, validation preparation order, or caching strategy.
+
+A missing binding choice, a context challenge, and an unsuccessful operation
+outcome are different reported facts. The consumer chooses what to do with them;
+these examples specify no automatic fallback or retry loop.

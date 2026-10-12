@@ -107,7 +107,8 @@ On `CONTEXT_REQUIRED`, a runtime may:
 
 1. Pick one `alternative` whose every `requirement` it can satisfy.
 2. Resolve each requirement into context by whatever mechanism it owns.
-3. Persist durable results according to its own storage policy; never persist non-durable ones.
+3. Decide whether to retain or reuse values under its own policy. False or absent
+   `durable` provides no safe-reuse claim; retention and reuse are different decisions.
 4. Start a new `invokeBinding` attempt with the augmented context.
 
 Retry limits and deciding whether another attempt is useful are caller policy. A binding MAY issue a fresh
@@ -124,7 +125,10 @@ to disclose unrelated secrets. Supplying only the necessary values is recommende
 security practice. The request carries context by value; the interface specifies
 no private store access or storage architecture.
 
-This matters most when the invoker is a **separate or third-party service**, such as a delegate or a hosted invoker: it receives only the context its own challenge requires, never the caller's full stored profile. Two runtime-enforced limits produce that bound together — the per-challenge field scoping here (*which fields* for a target) and the target validation under `ContextRequiredDetails` (*which target* at all). Both are the provisioning runtime's responsibility, since only it holds the store and the trust relationship; the bound is a property of what the runtime provisions, not of the invoker's good behavior.
+For a separate or third-party invoker, a caller can limit disclosure to the
+chosen alternative and assess the asserted target before supplying context.
+Those are host security decisions. The challenge does not establish trust or
+grant access to a stored profile.
 
 ### Requirement types
 
@@ -142,17 +146,17 @@ A requirement MAY carry a `name` — the scheme name as the source artifact decl
 `config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by source configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
 - `point` — the configuration point the source's kind defines for this value (`server`, `address`, a kind's decode point, …).
-- `path` — an RFC 6901 JSON Pointer relative to `configuration[point]`. The
+- `path` — an RFC 6901 JSON Pointer evaluated from `configuration[point]`. The
   empty pointer denotes the whole point; `/variables/region` denotes a nested
   member, and `/value` denotes a member literally named `value`.
 - `description` — human-readable prompt text.
-- `schema` (optional) — an engine-asserted JSON Schema in object or Boolean form for the value addressed
-  by `point` and `path`. It is derived from the source artifact where the
-  artifact speaks, supplied by the implementation where the kind defines a
-  shape, and absent where nothing does; absence
-  means the value is unconstrained. An `enum` declares the closed admissible
-  set, and satisfaction validates against it; `examples` are advisory
-  suggestions, and an off-list value remains valid.
+- `schema` (optional) — a standalone JSON Schema in object or Boolean form for
+  the addressed value. Its default dialect is JSON Schema 2020-12; a root
+  `$schema` can identify another dialect. References follow the applicable JSON
+  Schema dialect, including resource boundaries introduced by `$id`. Neither the
+  source artifact nor the OBI supplies an implicit reference environment. Absence states no constraint. For example, `enum`
+  describes allowed values while `examples` merely suggests values. Evaluation,
+  resource acquisition and handling unsupported schemas remain consumer choices.
 
 It resolves into the `configuration` context field at the deterministic address
 above. `durable` defaults to `false`; an invoker sets `durable: true` only when
@@ -203,11 +207,11 @@ cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
-| `CONTEXT_REQUIRED` | The binding needs the `ContextRequiredDetails` carried in `data` before dispatch. A refusal with a resolution path: like `ERR_REFUSED`, it guarantees no observable effect of the requested operation occurred. |
+| `CONTEXT_REQUIRED` | The binding requests the `ContextRequiredDetails` carried in `data`. The attempt produced no operation output and no observable effect of the requested operation. |
 | `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
 | `ERR_CANCELLED` | The caller cancelled the invocation. |
-| `ERR_REFUSED` | Unsuccessful completion carrying the guarantee that **no observable effect of the requested operation occurred** — the invocation was refused before dispatch. Every "refuses before dispatch" rule in a source's kind surfaces portably as this code (or as `CONTEXT_REQUIRED` when the refusal carries a resolution path). It asserts that boundary; whether to trust it or retry remains caller policy. |
+| `ERR_REFUSED` | Unsuccessful completion asserting that **no observable effect of the requested operation occurred**. It makes no claim about whether a protocol request was sent. Whether to trust it or retry remains caller policy. |
 | `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: dispatch and effects remain possible. |
 
 The operation-invoker interface and each source's kind own
@@ -217,14 +221,12 @@ behavior rather than portable contract meaning. Community convergence around
 an underdefined case is a reason to tighten the kind's definition, not
 to infer a hidden universal taxonomy. This contract assigns additional codes
 no portable category, retry disposition, or protocol-status mapping. Retry and side-effect
-policy belong to the caller and SDK layer. A kind's rules can establish many
-refusals to happen **before dispatch**, and that boundary fact is carried
-portably by the code space itself: `ERR_REFUSED` (and its special case
-`CONTEXT_REQUIRED`) guarantees no observable effect of the requested operation occurred, while
-`ERR_EXECUTION_FAILED` makes no dispatch-state claim; dispatch remains possible. Codes may encode interaction-boundary facts of this
-kind — whether dispatch occurred — and never cause, blame, or protocol
-category: that line is what keeps the set small and the taxonomy refusal
-intact. Artifact runtimes, protocol-native
+policy belong to the caller and SDK layer. `ERR_REFUSED` asserts no observable
+operation effects; `CONTEXT_REQUIRED` additionally asserts no operation output.
+Neither says whether a protocol request was sent. For example, a kind may know
+that a remote authentication rejection occurred before any operation effects.
+`ERR_EXECUTION_FAILED` asserts no such boundary. These meanings describe the
+reported outcome, not a required way of detecting it. Artifact runtimes, protocol-native
 clients, logs, and traces may preserve native evidence below the OpenBindings
 invocation boundary, but the error frame never carries that evidence and
 its local use is an implementation or application decision.
@@ -249,3 +251,113 @@ pools and cancellation mechanics belong to implementations. Cardinality follows
 the chosen binding's interaction; this interface does not require every provider
 to support every streaming pattern. A consumer interprets complete and error as
 terminal outcomes; returning the first output alone does not establish success.
+
+## Walkthrough: values and outcomes
+
+Use the `echo` binding from the [illustrative text example](../source-inspector/#walkthrough-inspect-and-author).
+The arrays below display successive frame values for readability. They are not
+array-valued operation inputs or a prescribed transport envelope. The same
+values can be exchanged by a library or a remote service; scheduling and
+transport are implementation choices.
+
+One possible caller exchange is:
+
+```json
+[
+  {
+    "kind": "open",
+    "input": {
+      "source": {
+        "kind": "example.text@1"
+      },
+      "binding": {
+        "content": "echo"
+      }
+    }
+  },
+  {
+    "kind": "input",
+    "value": "Hello"
+  },
+  {
+    "kind": "close"
+  }
+]
+```
+
+One successful service exchange is:
+
+```json
+[
+  {
+    "kind": "output",
+    "value": "Hello"
+  },
+  {
+    "kind": "complete"
+  }
+]
+```
+
+`close` ends caller input; `complete` reports successful invocation completion.
+A service could instead report an unsuccessful terminal outcome after an output:
+
+```json
+[
+  {
+    "kind": "output",
+    "value": "Hello"
+  },
+  {
+    "kind": "error",
+    "error": {
+      "code": "ERR_EXECUTION_FAILED"
+    }
+  }
+]
+```
+
+The earlier value remains delivered. The terminal error does not assert that
+there were no effects, and the interface does not choose the caller's recovery.
+Individual frame examples are also included in `invokeBinding.examples` in the
+JSON interface.
+
+### A context challenge
+
+A separate protected-service example can finish an attempt with:
+
+```json
+{
+  "kind": "error",
+  "error": {
+    "code": "CONTEXT_REQUIRED",
+    "data": {
+      "target": "example:text-service",
+      "alternatives": [
+        {
+          "requirements": [
+            {
+              "type": "auth.bearer",
+              "durable": false
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+This outcome describes no operation output or effects. It does not establish
+that the asserted target is trustworthy. If the caller chooses to trust that
+service and supply a token, a new attempt's opening payload can include
+`"context": {"bearerToken": "example-token"}` alongside its source and binding.
+The token here is a placeholder. Obtaining it, retaining it, and deciding whether
+to retry are caller decisions. False `durable` makes no safe-reuse claim and says
+nothing about how a caller stores an attempt.
+
+### Addressing the same call through a document
+
+The [operation-invoker examples](../operation-invoker/#walkthrough-document-addressing)
+show the other opening payload. Both roles use the same subsequent value and
+terminal meanings; neither role prescribes a native handle or callback API.

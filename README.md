@@ -17,6 +17,11 @@ caller-facing values; prose explains the capability and the meaning of those
 values. Adopting a name is an author claim, not certification or a grant of
 authority over the implementation. Adoption remains per operation.
 
+The interface JSON carries the shapes, descriptions and examples needed to read
+the capability. Companion guides explain and illustrate that same interface;
+they do not add requirements. Example names, workflows and implementation choices
+are illustrative unless they are part of the interface's described meaning.
+
 The publications do not prescribe SDK types, internal algorithms, buffers,
 validation timing, duplicate recovery, naming strategies or process architecture.
 Descriptions of result fields and message sequences are not instructions for how
@@ -148,7 +153,7 @@ should check:
    `ERR_BINDING_NOT_FOUND`, `ERR_BINDING_SELECTION_REQUIRED`,
    `ERR_UNKNOWN_SOURCE`, `ERR_OPERATION_VALIDATION_FAILED`,
    `ERR_SCHEMA_UNRESOLVED`.
-3. **A kind's defining document** may define codes for sources of that kind, with the same standing. No `openbindings.*` binding-specification
+3. **A kind's definition**, whether written or code-defined, may define codes for sources of that kind, with the same standing. No `openbindings.*` binding-specification
    candidate currently defines one; a specification that does so defines the
    code in its own text, and this registry gains a citation, not a copy.
 

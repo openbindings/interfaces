@@ -101,6 +101,46 @@ accepts(target, { binding: {} }, false);
 accepts(synthesisSource, { bindingSpec: 'k', content: {} }, false);
 accepts(synthesisSource, { source: { kind: 'k' }, embed: true }, false);
 
+// Addressing describes one of three shapes. This says nothing about how a
+// provider handles a request outside those shapes.
+const operationInvoker = contracts.get('operation-invoker');
+const operationRequest = compile(operationInvoker, operationInvoker.schemas.OperationInvocationInput);
+for (const addressedByOperation of [false, true]) {
+  for (const addressedByBinding of [false, true]) {
+    for (const hasSelection of [false, true]) {
+      const request = { interface: { openbindings: '0.2.0', operations: {} } };
+      if (addressedByOperation) request.operation = 'echo';
+      if (addressedByBinding) request.binding = 'echoBinding';
+      if (hasSelection) request.selection = ['echoBinding'];
+      accepts(operationRequest, request,
+        (addressedByOperation && !addressedByBinding) ||
+        (addressedByBinding && !addressedByOperation && !hasSelection));
+    }
+  }
+}
+
+// Examples are operation values, not required implementation traces. Check
+// the same public schemas a reader uses, including the OBI values they carry.
+let exampleValues = 0;
+for (const doc of contracts.values()) {
+  for (const operation of Object.values(doc.operations)) {
+    for (const example of Object.values(operation.examples ?? {})) {
+      for (const side of ['input', 'output']) {
+        if (!Object.hasOwn(example, side) || !Object.hasOwn(operation, side)) continue;
+        accepts(compile(doc, operation[side]), example[side]);
+        exampleValues++;
+        const value = example[side];
+        for (const candidate of [value, value?.interface, value?.input?.interface]) {
+          if (candidate && Object.hasOwn(candidate, 'openbindings')) {
+            assert(core(candidate), JSON.stringify(core.errors));
+          }
+        }
+      }
+    }
+  }
+}
+assert(exampleValues > 0, 'no public operation examples checked');
+
 // These are schema shape controls, not a portable runtime trace format.
 // Ordering of internal transitions, close/cancel races and malformed-input
 // recovery belong to implementation tests, not these value-shape controls.

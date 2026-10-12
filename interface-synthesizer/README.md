@@ -100,3 +100,68 @@ the original synthesis observation and does not certify later edits or live drif
 Synthesis does not intentionally change sources or perform their operations.
 Idempotency concerns intended effects; it does not require identical bytes,
 ordering, internal reports, caches or naming algorithms across implementations.
+
+## Walkthrough: strict and partial synthesis
+
+Continue the [illustrative two-target text example](../source-inspector/#walkthrough-inspect-and-author).
+Both synthesis operations accept this same request value:
+
+```json
+{
+  "sources": [
+    {
+      "name": "text",
+      "source": {
+        "kind": "example.text@1"
+      }
+    }
+  ],
+  "name": "Text tools"
+}
+```
+
+A successful `synthesizeInterface` result describes both admitted targets,
+`echo` and `length`. Its JSON interface includes the complete document in
+`synthesizeInterface.examples.textTools`. The chosen generated keys are example
+choices, not a naming algorithm required by this interface.
+
+A synthesizer that represents only `echo` can instead describe that partial
+result through `synthesizeInterfaceWithCoverage`. For example, it returns the
+selected OBI from the authoring walkthrough as `interface`, and this `coverage`:
+
+```json
+{
+  "entries": [
+    {
+      "sourceIndex": 0,
+      "sourceRef": "echo",
+      "scope": "target",
+      "status": "represented",
+      "sourceKey": "text",
+      "operationKey": "repeat",
+      "bindingKey": "repeatText"
+    },
+    {
+      "sourceIndex": 0,
+      "sourceRef": "length",
+      "scope": "target",
+      "status": "implementation-unsupported",
+      "reasonCode": "example.length-unavailable",
+      "message": "This synthesizer does not generate the length target."
+    }
+  ],
+  "exhaustive": true,
+  "fullyRepresented": false
+}
+```
+
+Here `exhaustive` is true because the report accounts for both targets;
+`fullyRepresented` is false because one admitted target was not represented.
+The complete response envelope appears in the JSON interface's
+`synthesizeInterfaceWithCoverage.examples.partialTextTools`.
+
+The caller can use `sourceIndex` with its request to interpret attribution.
+This example omits the optional `sourceKeys` and `dependencyKey` fields. A
+consumer may preserve the request alongside the result if it needs that history.
+This example shows evidence meanings; it does not require constructing reports
+this way internally or using inspection as a synthesis stage.

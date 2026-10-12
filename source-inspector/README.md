@@ -55,3 +55,126 @@ binding content afterward creates a new author-owned correspondence claim.
 
 Inspection is idempotent in intended operation effects; it does not guarantee
 identical bytes, ordering or an immutable external source between calls.
+
+## Walkthrough: inspect and author
+
+This example defines an illustrative kind, `example.text@1`, with two targets:
+`echo` returns its input string; `length` counts its Unicode code points. Source
+content is absent and binding content names a target. These choices belong only
+to this example. The JSON interface also carries this request and result in
+`inspectSource.examples.textTargets`.
+
+An `inspectSource` input value is:
+
+```json
+{
+  "source": {
+    "kind": "example.text@1"
+  }
+}
+```
+
+One possible result is:
+
+```json
+{
+  "targets": [
+    {
+      "sourceRef": "echo",
+      "binding": {
+        "content": "echo"
+      },
+      "operationKey": "repeat",
+      "operation": {
+        "description": "Return the input string.",
+        "input": {
+          "type": "string"
+        },
+        "output": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "sourceRef": "length",
+      "binding": {
+        "content": "length"
+      },
+      "operationKey": "count",
+      "operation": {
+        "description": "Count Unicode code points in the input string.",
+        "input": {
+          "type": "string"
+        },
+        "output": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  ],
+  "exhaustive": true
+}
+```
+
+The author chooses `echo`, keeps its operation framing, and supplies document
+keys. Here the author chooses `repeat`, `text` and `repeatText`:
+
+```json
+{
+  "openbindings": "0.2.0",
+  "name": "Text tools",
+  "operations": {
+    "repeat": {
+      "description": "Return the input string.",
+      "input": {
+        "type": "string"
+      },
+      "output": {
+        "type": "string"
+      }
+    }
+  },
+  "sources": {
+    "text": {
+      "kind": "example.text@1"
+    }
+  },
+  "bindings": {
+    "repeatText": {
+      "operation": "repeat",
+      "source": "text",
+      "content": "echo"
+    }
+  }
+}
+```
+
+The inspector's binding fragment became a document binding by adding `operation`
+and `source`. No meaning was inferred from the spelling of `sourceRef`; it is
+not a generic binding locator. Naming and target selection are author choices.
+
+This authoring step is not a call to the synthesizer with a selection filter.
+The synthesis input has no such filter. The [synthesis continuation](../interface-synthesizer/#walkthrough-strict-and-partial-synthesis)
+shows whole-source strict synthesis and an explicitly partial result. The
+[invocation walkthrough](../binding-invoker/#walkthrough-values-and-outcomes)
+uses the selected binding.
+
+These are values exchanged with an implementation that adopts the operation.
+The published interface URL describes the operation; it is not an invocation
+endpoint and does not choose a provider or transport.
+
+### Adopting one operation
+
+An implementation offering only `inspectSource` can use
+`openbindings.source-inspector.inspectSource` as its operation key or alias.
+It describes compatible input and output shapes and supplies its own binding.
+It need not offer synthesis, support queries, or the remaining operations.
+For example, a local operation named `inspect` can carry:
+
+```json
+{"aliases": ["openbindings.source-inspector.inspectSource"]}
+```
+
+That fragment is an alias declaration, not a complete operation or OBI.
+The shared name is the author's correspondence claim, not proof of behavior.

@@ -177,7 +177,7 @@ A requirement MAY carry a `name` — the scheme name as the source artifact decl
   empty pointer denotes the whole point; `/variables/region` denotes a nested
   member, and `/value` denotes a member literally named `value`.
 - `description` — human-readable prompt text.
-- `schema` (optional) — an engine-asserted JSON Schema for the value addressed
+- `schema` (optional) — an engine-asserted JSON Schema in object or Boolean form for the value addressed
   by `point` and `path`. It is derived from the source artifact where the
   artifact speaks, supplied by the implementation where the kind defines a
   shape, and absent where nothing does; absence
@@ -305,7 +305,7 @@ A central design question is whether operations should be modeled as request-res
 
 **4. Handle with write + outputs + lifecycle (chosen).** `invokeBinding(input) -> Invocation<I, O>`. The handle exposes:
 
-- `write(input)`: write one input message to the binding's channel (synchronous handoff to a buffer; does not claim transport dispatch).
+- `write(input)`: admit one input message to the binding's channel. Admission may be asynchronous and subject to backpressure; success does not acknowledge transport dispatch or operation completion.
 - `close()`: graceful half-close, signal no more input.
 - `cancel()`: abort the whole invocation.
 - Output access: iterate `outputs` in TypeScript or call `Read(ctx)` in Go.
@@ -313,16 +313,45 @@ A central design question is whether operations should be modeled as request-res
 
 The caller drives the handle however the operation demands. Cardinality emerges from how the caller drives it, not from a declared signature.
 
+Input closure is nonterminal: a write after closure is refused without changing
+the invocation's outcome, and the caller still observes the output terminal.
+The caller may half-close input when finished writing; no caller `close` is
+required if the binding closes input or the invocation terminates first.
+Repeated `close` frames are harmless. While the invocation remains live, input
+closure does not stop control or protocol-error processing: valid late `input`
+frames are ignored, malformed envelopes remain `ERR_FRAME_PROTOCOL`, and a
+second `open` is always a frame violation, regardless of its payload. A valid
+first `open` envelope with an invalid invocation payload or carried value instead
+refuses with `ERR_REFUSED` before work.
+
+Output receipt alone is not success. Consumers observe the stream through its
+terminal outcome, including when an output is followed by failure. The first
+terminal transition wins and cannot be replaced by a later completion, failure
+or cancellation. Emission commits an output to the invocation's ordered output
+sequence; consumer reads and transport delivery may happen later. Outputs
+committed before a terminal transition precede its terminal frame, and no new
+output may be committed afterward. Cancellation follows the same ordering:
+already committed outputs may still be read before `ERR_CANCELLED`, but no new
+emission is accepted after cancellation settles the attempt. Cancellation makes
+no dispatch-state or rollback guarantee; a cancellation request, local terminal
+outcome and external work actually stopping are distinct. Releasing a native
+handle does not by itself prove remote work stopped.
+
 ### How each cardinality looks under the handle
 
-- **Unary** (REST GET, gRPC unary): caller writes one input; binding closes input from its side; output yields one value; close. Caller code: `await call.write(x); for await (const o of call.outputs) return o;`
-- **Server-streaming** (SSE, gRPC server-stream): caller writes one input; binding closes input; output yields many values until done. Same caller pattern as unary; the loop just runs more.
+- **Unary** (REST GET, gRPC unary): caller writes one input; binding closes input from its side; caller consumes output through terminal success and verifies exactly one value. A later failure must not be hidden by returning the first output.
+- **Server-streaming** (SSE, gRPC server-stream): caller writes one input; binding closes input; caller consumes all outputs and observes terminal success or failure.
 - **Client-streaming** (file upload, gRPC client-stream): caller writes many inputs then calls `close()`; binding aggregates, produces one output. Caller owns `close()` because only the caller knows when they are done writing.
 - **Bidirectional** (WebSocket, gRPC bidi): caller writes inputs in one async task; reads outputs in another; calls `close()` when done writing. Both sides flow concurrently.
 - **No-input** (HTTP GET with no params, "ping"): binding closes its input side immediately; caller never touches input; just iterates outputs.
-- **Fire-and-forget**: write one input; close; `closed` resolves. No iteration needed.
+- **No-output**: write any required input and close; observe terminal success or failure even though no output value is expected. A native implementation may require polling the output stream or its terminal observer to drive progress.
 
 The caller's pattern adapts per operation, but the SDK signature is the same. Cardinality is observed at the call site, not declared in types.
+
+A unary convenience must verify exactly one value and terminal success; zero
+outputs and one JSON null remain distinct. Bidirectional callers drive writes
+and reads concurrently and must still observe the authoritative output failure
+if a write first reports that input is closed.
 
 ### Connection pooling is a kind implementation concern
 

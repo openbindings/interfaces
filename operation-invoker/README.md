@@ -42,9 +42,18 @@ When it receives an `OperationInvocationInput` (carried by the `open` frame), it
 
 ## The frame protocol
 
-`invokeOperation` is a typed bidirectional I/O operation. The caller streams `OperationInvokerInputFrame` messages (one `open` carrying the `OperationInvocationInput`, then zero or more `input` frames, then `close`); the invoker streams `OperationInvokerOutputFrame` messages back (zero or more `output` / `input_closed`, then exactly one terminal `complete` or `error`). The same shape covers unary, server-streaming, client-streaming, and bidirectional bindings; cardinality is observed by how the caller drives the frames, not declared.
+`invokeOperation` is a typed bidirectional I/O operation. The caller streams `OperationInvokerInputFrame` messages (one `open` carrying the `OperationInvocationInput`, then zero or more `input` frames and an optional logical caller half-close, `close`); the invoker streams `OperationInvokerOutputFrame` messages back (zero or more `output` / `input_closed`, then exactly one terminal `complete` or `error`). Repeated `close` frames are harmless; no caller close is required when the binding closes input or the invocation terminates first. The same shape covers unary, server-streaming, client-streaming, and bidirectional bindings; cardinality is observed by how the caller drives the frames, not declared.
 
 The frame protocol and **every normative frame rule** are identical to [`binding-invoker.invokeBinding`](../binding-invoker/) — first-frame-`open`, single-`open`, input-after-closure handling, exactly-one-terminal, transport-closure synthesis, discriminator dispatch, `additionalProperties` rejection, and caller-cancellation all apply here unchanged. The operation invoker adds name resolution, binding selection and value-contract validation.
+
+Input closure is nonterminal and does not stop control or protocol-error
+processing while the invocation remains live. Consumers observe output through
+terminal success or failure; one output alone is not success. The first terminal
+transition wins. Outputs committed to the invocation's sequence before that
+transition precede the terminal frame even if read or transported later, including
+on cancellation; no new emission is accepted afterward. Cancellation makes no
+dispatch-state or rollback guarantee, and releasing a native handle does not by
+itself prove remote work stopped.
 
 ## Context is forwarded, not reinterpreted
 

@@ -37,8 +37,11 @@
                     "description": "config.value only: RFC 6901 JSON Pointer relative to configuration[point]. The empty pointer addresses the whole point; '/variables/region' addresses a nested member; '/value' addresses a member literally named value."
                 },
                 "schema": {
-                    "type": "object",
-                    "description": "config.value only: an engine-asserted JSON Schema for the value addressed by point and path. Derived from the source artifact where the artifact speaks, supplied by the implementation where the kind defines a shape, and absent where nothing does; absence means the value is unconstrained. An 'enum' declares the closed admissible set and satisfaction validates against it; 'examples' are advisory suggestions and an off-list value remains valid."
+                    "type": [
+                        "object",
+                        "boolean"
+                    ],
+                    "description": "config.value only: an engine-asserted JSON Schema in object or Boolean form for the value addressed by point and path. Derived from the source artifact where the artifact speaks, supplied by the implementation where the kind defines a shape, and absent where nothing does; absence means the value is unconstrained. An 'enum' declares the closed admissible set and satisfaction validates against it; 'examples' are advisory suggestions and an off-list value remains valid."
                 },
                 "description": {
                     "type": "string",
@@ -159,7 +162,7 @@
             "additionalProperties": false
         },
         "OperationInvokerInputFrame": {
-            "description": "One frame from the caller into invokeOperation. Same shape as the binding-invoker input stream, with the open frame carrying an OperationInvocationInput: exactly one `open` first, then zero or more `input` frames, then exactly one `close`.",
+            "description": "One frame from the caller into invokeOperation. Same shape and rules as the binding-invoker input stream, with the open frame carrying an OperationInvocationInput: exactly one `open` first, then zero or more `input` frames and an optional logical caller half-close (`close`). Repeated `close` frames are harmless; input closure does not stop control or protocol-error processing while the invocation remains live. Valid late `input` frames are ignored; a second `open` remains invalid.",
             "discriminator": {
                 "propertyName": "kind"
             },
@@ -203,7 +206,7 @@
                 {
                     "type": "object",
                     "title": "close",
-                    "description": "Caller signals no more input frames will be sent. Idempotent.",
+                    "description": "Caller signals that no more input values will be sent. Idempotent: repeated close frames are harmless. This closes only input; output and protocol-error processing continue.",
                     "properties": {
                         "kind": {
                             "const": "close"

@@ -90,11 +90,90 @@ for (const request of [
   { source: { kind: 'k' }, binding: { deprecated: 'yes' } },
 ]) accepts(invocation, request, false);
 accepts(invocation, { source: { kind: 'k', 'x-source': true }, binding: { operation: 'op', source: 's', 'x-binding': null } });
+accepts(invocation, { source: { kind: 'k' }, binding: { operation: '', source: '' }, context: {} });
+accepts(invocation, { source: { kind: 'k' }, binding: {}, context: { custom: [null, false] } });
+for (const context of [null, false, '', []]) {
+  accepts(invocation, { source: { kind: 'k' }, binding: {}, context }, false);
+}
 accepts(target, {}, false);
 accepts(target, { sourceRef: 'target' }, false);
 accepts(target, { binding: {} }, false);
 accepts(synthesisSource, { bindingSpec: 'k', content: {} }, false);
 accepts(synthesisSource, { source: { kind: 'k' }, embed: true }, false);
+
+// These are schema shape controls, not a portable runtime trace format.
+// Ordering, close/cancel races, safe challenges and error classification need
+// an invocation implementation. In particular, a valid open envelope whose
+// payload fails the request schema refuses before work, not a frame error.
+for (const [role, prefix, request] of [
+  ['binding-invoker', 'BindingInvoker', { source: { kind: 'example.invocation@1' }, binding: {} }],
+  ['operation-invoker', 'OperationInvoker', { interface: { openbindings: '0.2.0' }, operation: 'echo' }],
+]) {
+  const document = contracts.get(role);
+  const requirement = compile(document, document.schemas.ContextRequirement);
+  const challenge = compile(document, document.schemas.ContextRequiredDetails);
+  const failure = compile(document, document.schemas.InvocationError);
+  const inputFrame = compile(document, document.schemas[`${prefix}InputFrame`]);
+  const outputFrame = compile(document, document.schemas[`${prefix}OutputFrame`]);
+  const preflight = compile(document, document.operations[`openbindings.${role}.preflight${prefix === 'BindingInvoker' ? 'Binding' : 'Operation'}`].output);
+  const custom = { type: 'example.custom', familyValue: { exact: null } };
+  const details = { target: '', alternatives: [{ requirements: [custom] }] };
+
+  for (const value of [custom, { ...custom, name: 'custom' }, { ...custom, durable: false }, { ...custom, durable: true }]) {
+    accepts(requirement, value);
+  }
+  for (const value of [{}, { type: '' }, { ...custom, name: '' }, { ...custom, durable: null }, { ...custom, durable: 'true' }]) {
+    accepts(requirement, value, false);
+  }
+  const config = { type: 'config.value', point: 'server', path: '', description: 'A value' };
+  accepts(requirement, config);
+  for (const schema of [{ type: 'string' }, { enum: ['a', 'b'] }, {}, true, false]) {
+    accepts(requirement, { ...config, schema });
+  }
+  for (const schema of [null, [], 'string', 1]) {
+    accepts(requirement, { ...config, schema }, false);
+  }
+  for (const value of [{ ...config, point: null }, { ...config, path: false }, { ...config, description: 1 }]) {
+    accepts(requirement, value, false);
+  }
+  accepts(challenge, details); // An opaque target may be empty; family fields stay open.
+  accepts(preflight, null);
+  accepts(preflight, details);
+  for (const value of [
+    null, {}, { ...details, target: null }, { ...details, extra: true },
+    { ...details, alternatives: [] },
+    { ...details, alternatives: [{ requirements: [] }] },
+    { ...details, alternatives: [{ requirements: [custom], extra: true }] },
+    { ...details, alternatives: [{ requirements: [{ type: '' }] }] },
+  ]) {
+    accepts(challenge, value, false);
+    if (value !== null) accepts(preflight, value, false);
+  }
+  accepts(failure, { code: 'example.application-failure' });
+  for (const data of [null, false, 0, '', [], { application: 'value' }]) {
+    accepts(failure, { code: 'example.application-failure', data });
+  }
+  for (const value of [{}, { code: '' }, { code: null }, { code: 'ERR_EXECUTION_FAILED', message: 'extra' }]) {
+    accepts(failure, value, false);
+  }
+  for (const frame of [{ kind: 'open', input: request }, { kind: 'input', value: null }, { kind: 'close' }]) {
+    accepts(inputFrame, frame);
+    accepts(inputFrame, { ...frame, extra: true }, false);
+  }
+  for (const frame of [null, [], {}, { kind: 'unknown' }, { kind: 'open' }, { kind: 'open', input: null }, { kind: 'input' }, { kind: 'close', value: null }]) {
+    accepts(inputFrame, frame, false);
+  }
+  for (const frame of [
+    { kind: 'output', value: null }, { kind: 'input_closed' }, { kind: 'complete' },
+    { kind: 'error', error: { code: 'example.application-failure', data: null } },
+  ]) {
+    accepts(outputFrame, frame);
+    accepts(outputFrame, { ...frame, extra: true }, false);
+  }
+  for (const frame of [null, [], {}, { kind: 'unknown' }, { kind: 'output' }, { kind: 'complete', value: null }, { kind: 'error' }, { kind: 'error', error: { code: '' } }]) {
+    accepts(outputFrame, frame, false);
+  }
+}
 
 // Open carriers are required by the comparison profile. Unknown-member refusal
 // is a behavioral producer/consumer rule, not a schema-validation promise. Keep
@@ -166,4 +245,4 @@ const dependency = { sourceIndex: 0, sourceRef: 'dependency', scope: 'dependency
 accepts(coverage, dependency);
 accepts(coverage, { ...dependency, bindingKey: 'b' }, false);
 accepts(coverage, { ...dependency, status: 'lossy', reasonCode: 'example.loss', message: 'A dependency projection is incomplete.' });
-console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; carrier, presence, support and coverage controls pass`);
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; carrier, presence, support, invocation shape and coverage controls pass`);

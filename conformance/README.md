@@ -14,7 +14,7 @@ Passing examples is not proof of a producer's behavioral claims.
 | binding-invoker / interface-synthesizer: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
-| interface-synthesizer: coverage output shapes, optional attribution and permitted variation | **Shape examples** (`synthesis-coverage/`); no prescribed SDK checker or recovery policy. |
+| interface-synthesizer: coverage output shapes, optional attribution, permitted variation and the complete-synthesis condition | **Shape examples** (`synthesis-coverage/`); no prescribed SDK checker or recovery policy. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
 | operation-invoker / binding-invoker: frame message shapes and exchange meanings | Schema controls here; buffer, cancellation-race and malformed-input policies are tested by implementations. |
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
@@ -87,10 +87,18 @@ unbound operation declarations, additional report fields and malformed field typ
 The repository evaluates the report schema; it does not emulate a synthesis
 provider or require a consumer to reject any schema failure.
 
+Each schema-valid example also carries `completeSynthesis`: whether the report
+meets the guide's [complete synthesis](../interface-synthesizer/#complete-synthesis)
+condition, an exhaustive inventory with no `implementation-unsupported` entry.
+Examples with an implementation gap or a non-exhaustive inventory do not meet it;
+examples with kind-defined exclusions, invalid units or lossy evidence do. The
+repository computes the condition from each report and checks the recorded value.
+
 The previous 26 SDK checker cases remain in the Rust SDK as
 `openbindings.sdk-synthesis-policy-cases@1`. Their duplicate refusal, exact
-dependency correspondence, strict eligibility, source preservation and operation
-path checks are SDK policy regressions, not requirements of this interface.
+dependency correspondence, source preservation and operation path checks are SDK
+policy regressions, not requirements of this interface. Their strict eligibility
+expectations apply the complete-synthesis condition to SDK-checked results.
 
 ## Runtime composition (`composition/`)
 

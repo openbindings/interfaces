@@ -185,8 +185,8 @@ and `source`. No meaning was inferred from the spelling of `sourceRef`; it is
 not a generic binding locator. Naming and target selection are author choices.
 
 This authoring step is not a call to the synthesizer with a selection filter.
-The synthesis input has no such filter. The [synthesis continuation](../interface-synthesizer/#walkthrough-strict-and-partial-synthesis)
-shows whole-source strict synthesis and an explicitly partial result. The
+The synthesis input has no such filter. The [synthesis continuation](../interface-synthesizer/#walkthrough-complete-and-partial-synthesis)
+shows whole-source complete synthesis and an explicitly partial result. The
 [invocation walkthrough](../binding-invoker/#walkthrough-values-and-outcomes)
 uses the selected binding.
 

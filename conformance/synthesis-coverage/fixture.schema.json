@@ -37,6 +37,29 @@
           },
           "schemaValid": {
             "type": "boolean"
+          },
+          "completeSynthesis": {
+            "type": "boolean",
+            "description": "Whether a schema-valid report meets the guide's complete-synthesis condition: exhaustive is true and no entry is implementation-unsupported. Absent when schemaValid is false."
+          }
+        },
+        "if": {
+          "properties": {
+            "schemaValid": {
+              "const": true
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "completeSynthesis"
+          ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "completeSynthesis"
+            ]
           }
         }
       }

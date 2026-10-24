@@ -270,12 +270,23 @@ for (const test of read('conformance/kind-support/cases.json').tests) {
   assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
 }
 const coverageReport = compile(synthesizer, synthesizer.schemas.SynthesisCoverage);
+// The guide's complete-synthesis condition: an exhaustive inventory with no
+// implementation gap. Exclusions, invalid units and lossy entries still meet it.
+const completeSynthesis = (report) => report.exhaustive === true
+  && report.entries.every(entry => entry.status !== 'implementation-unsupported');
 let coverageExamples = 0;
 for (const test of read('conformance/synthesis-coverage/cases.json').tests) {
   accepts(coverageReport, test.report, test.schemaValid);
+  if (test.schemaValid) {
+    assert.equal(completeSynthesis(test.report), test.completeSynthesis, test.description);
+    assert(!test.report.fullyRepresented || test.completeSynthesis, `${test.description}: fully represented implies complete synthesis`);
+  }
   coverageExamples++;
 }
 assert(coverageExamples > 0, 'no coverage shape examples checked');
+const synthesis = synthesizer.operations['openbindings.interface-synthesizer.synthesizeInterface'];
+const synthesisResult = compile(synthesizer, synthesis.output);
+for (const example of Object.values(synthesis.examples)) accepts(synthesisResult, example.output);
 const emptyCoverage = { entries: [], exhaustive: true, fullyRepresented: true };
 accepts(coverageReport, emptyCoverage);
 for (const sourceKeys of [null, 'api', [null], ['']]) {

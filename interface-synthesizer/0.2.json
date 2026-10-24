@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "Interface Synthesizer",
     "version": "0.2.0",
-    "description": "Derive an OpenBindings interface from sources interpreted under their exact kinds. The strict operation describes complete synthesis of admitted targets; the coverage operation can describe partial synthesis with explicit accounting.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nSources and bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Source and binding content preserve absence versus JSON null and are interpreted under the source's exact kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.",
+    "description": "Derive an OpenBindings interface from sources interpreted under their exact kinds. Synthesis returns the document with coverage evidence for the source units it considered. Complete synthesis is a condition on that evidence that callers apply; a partial result makes its gaps explicit.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nSources and bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Source and binding content preserve absence versus JSON null and are interpreted under the source's exact kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.",
     "schemas": {
         "SupportedKind": {
             "type": "object",
@@ -522,16 +522,16 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterface": {
-            "description": "Return an OpenBindings interface representing all callable targets admitted by the kinds of the accepted input sources. A successful strict result describes complete synthesis, not a partial result disguised by a warning. Sound lossy schema projection need not prevent complete callable coverage. With no sources, return a source-free document skeleton. Emitted bindings describe faithful paths under their source kinds, and supplied source values are preserved where emitted, including extensions and content presence. A supplied name is the emitted source key. Requested openbindingsVersion selects the 0.2 line. Metadata overrides retain their input meanings. Editing a returned source or binding afterward creates a new author claim. Synthesis does not intentionally change the sources or perform their operations. The operation does not require generating an internal coverage report, using a particular checker, or assigning every additional operation declaration a binding or dependency. Naming, composition, duplicate handling and failure recovery are implementation choices.",
+            "description": "Return an OpenBindings interface and coverage evidence for the source units considered in the same synthesis. The report distinguishes represented, excluded, invalid, lossy and implementation-unsupported units. exhaustive describes inventory completeness; a non-exhaustive report includes limitation evidence. The result describes complete synthesis, representing every callable target admitted by the kinds of the accepted input sources, when exhaustive is true and no entry is implementation-unsupported. Kind-defined exclusions, invalid units and sound lossy projection do not prevent complete synthesis. Callers apply that condition, fullyRepresented, or their own policy. A partial result makes its gaps explicit without claiming complete synthesis, and disclosure does not make an unsound binding faithful. Coverage is an author claim that consumers may assess independently. With no sources, return a source-free document skeleton. Emitted bindings describe faithful paths under their source kinds, and supplied source values are preserved where emitted, including extensions and content presence. A supplied name is the emitted source key. Requested openbindingsVersion selects the 0.2 line. Metadata overrides retain their input meanings. Editing a returned source or binding afterward creates a new author claim. Synthesis does not intentionally change the sources or perform their operations. The operation does not require using a particular checker or assigning every additional operation declaration a binding or dependency. Optional attribution fields aid persistence and handoff. Naming, composition, report construction, duplicate handling, validation strategy and failure recovery remain implementation choices.",
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"
             },
             "output": {
-                "$ref": "#/schemas/OpenBindingsInterface"
+                "$ref": "#/schemas/SynthesizeInterfaceResult"
             },
             "examples": {
                 "textTools": {
-                    "description": "Complete synthesis for illustrative example.text@1: echo returns its input string; length counts Unicode code points. Source content is absent and binding content names the target. Generated keys are example choices.",
+                    "description": "Complete synthesis for illustrative example.text@1: echo returns its input string; length counts Unicode code points. Source content is absent and binding content names the target. Both targets are represented, so the report is also fully represented. Generated keys are example choices.",
                     "input": {
                         "sources": [
                             {
@@ -544,61 +544,76 @@
                         "name": "Text tools"
                     },
                     "output": {
-                        "openbindings": "0.2.0",
-                        "name": "Text tools",
-                        "operations": {
-                            "repeat": {
-                                "description": "Return the input string.",
-                                "input": {
-                                    "type": "string"
+                        "interface": {
+                            "openbindings": "0.2.0",
+                            "name": "Text tools",
+                            "operations": {
+                                "repeat": {
+                                    "description": "Return the input string.",
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "string"
+                                    }
                                 },
-                                "output": {
-                                    "type": "string"
+                                "count": {
+                                    "description": "Count Unicode code points in the input string.",
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
                                 }
                             },
-                            "count": {
-                                "description": "Count Unicode code points in the input string.",
-                                "input": {
-                                    "type": "string"
+                            "sources": {
+                                "text": {
+                                    "kind": "example.text@1"
+                                }
+                            },
+                            "bindings": {
+                                "repeatText": {
+                                    "operation": "repeat",
+                                    "source": "text",
+                                    "content": "echo"
                                 },
-                                "output": {
-                                    "type": "integer",
-                                    "minimum": 0
+                                "countText": {
+                                    "operation": "count",
+                                    "source": "text",
+                                    "content": "length"
                                 }
                             }
                         },
-                        "sources": {
-                            "text": {
-                                "kind": "example.text@1"
-                            }
-                        },
-                        "bindings": {
-                            "repeatText": {
-                                "operation": "repeat",
-                                "source": "text",
-                                "content": "echo"
-                            },
-                            "countText": {
-                                "operation": "count",
-                                "source": "text",
-                                "content": "length"
-                            }
+                        "coverage": {
+                            "entries": [
+                                {
+                                    "sourceIndex": 0,
+                                    "sourceRef": "echo",
+                                    "scope": "target",
+                                    "status": "represented",
+                                    "sourceKey": "text",
+                                    "operationKey": "repeat",
+                                    "bindingKey": "repeatText"
+                                },
+                                {
+                                    "sourceIndex": 0,
+                                    "sourceRef": "length",
+                                    "scope": "target",
+                                    "status": "represented",
+                                    "sourceKey": "text",
+                                    "operationKey": "count",
+                                    "bindingKey": "countText"
+                                }
+                            ],
+                            "exhaustive": true,
+                            "fullyRepresented": true
                         }
                     }
-                }
-            }
-        },
-        "openbindings.interface-synthesizer.synthesizeInterfaceWithCoverage": {
-            "description": "Return an OpenBindings interface and coverage evidence for the source units considered in the same synthesis. The report distinguishes represented, excluded, invalid, lossy and implementation-unsupported units. exhaustive describes inventory completeness; a non-exhaustive report includes limitation evidence. A partial result makes its gaps explicit without claiming complete synthesis, and disclosure does not make an unsound binding faithful. Coverage is an author claim that consumers may assess independently. Emitted bindings describe faithful paths under their source kinds, and supplied source values are preserved where emitted, including extensions and content presence. A supplied name is the emitted source key. Requested openbindingsVersion selects the 0.2 line. Metadata overrides retain their input meanings. Editing a returned source or binding afterward creates a new author claim. Synthesis does not intentionally change the sources or perform their operations. Optional attribution fields aid persistence and handoff. Report construction, duplicate handling, validation strategy and failure recovery remain implementation choices.",
-            "input": {
-                "$ref": "#/schemas/SynthesizeInterfaceInput"
-            },
-            "output": {
-                "$ref": "#/schemas/SynthesizeInterfaceResult"
-            },
-            "examples": {
+                },
                 "partialTextTools": {
-                    "description": "The same illustrative two-target kind, with complete inventory but only echo represented. sourceIndex refers to the retained request; optional sourceKeys and dependencyKey are absent.",
+                    "description": "The same illustrative two-target kind, with complete inventory but only echo represented. The implementation-unsupported entry means the result is not complete synthesis. sourceIndex refers to the retained request; optional sourceKeys and dependencyKey are absent.",
                     "input": {
                         "sources": [
                             {

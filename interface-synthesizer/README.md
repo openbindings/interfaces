@@ -11,16 +11,11 @@ applies. This description specifies neither a generation algorithm nor an SDK.
 distinct requested kind in first-occurrence order. Support is specific to synthesis
 and does not promise success for every artifact. Kinds use core exact equality.
 
-`synthesizeInterface` returns a document representing all callable targets admitted
-by the kinds of the accepted input sources. A successful strict result describes
-complete synthesis. A partial result is not that result, even if accompanied by a
-transient warning. Sound lossy schema projection need not prevent complete
-callable coverage. This operation does not require constructing a coverage report.
-
-`synthesizeInterfaceWithCoverage` returns a document plus evidence describing the
-source units considered in the same call. It can describe partial synthesis with
-explicit gaps. Disclosure does not turn an unsound binding into a faithful one.
-Neither operation requires the public inspection interface as an intermediate step.
+`synthesizeInterface` returns a document plus coverage evidence describing the
+source units considered in the same call. The evidence shows whether the result
+is [complete synthesis](#complete-synthesis) or partial synthesis with explicit
+gaps. Disclosure does not turn an unsound binding into a faithful one. The
+operation does not require the public inspection interface as an intermediate step.
 
 ## Inputs and generated documents
 
@@ -35,7 +30,7 @@ or a particular deduplication or composition strategy.
 inputs describe the requested name, version and description; omitted defaults
 are implementation choices. `openbindingsVersion` selects the 0.2 line.
 Supported source combinations and failure handling are implementation choices;
-the completeness claim of a successful result still has its stated meaning.
+the coverage evidence of a successful result still has its stated meaning.
 
 Emitted bindings claim faithful invocation paths under their source kinds in the
 observed source state. Runtime credentials, configuration and host availability
@@ -90,6 +85,25 @@ A producer that also inspects uses the same source reference for the same
 target-scope unit. Cross-producer reference equality is meaningful only where
 the kind defines it. These references are not global identities.
 
+## Complete synthesis
+
+Complete synthesis is a condition on the coverage evidence, not a separate
+operation or field. A result meets it when `exhaustive` is true and no entry has
+status `implementation-unsupported`. It then claims a document representing every
+callable target admitted by the kinds of the accepted input sources.
+
+Kind-defined exclusions, invalid units and sound lossy projection do not prevent
+complete synthesis. The kind's own rule leaves an excluded unit out, an invalid
+unit is not upstream-valid, and a lossy entry is a represented path whose
+limitation is disclosed. Every fully represented report meets the condition; a
+report with an exclusion or a lossy entry can meet it without being fully
+represented.
+
+Callers decide what a result must satisfy. A caller can apply this condition,
+require `fullyRepresented`, or apply its own policy to the entries. A result
+that falls short of one caller's requirement is still a synthesis result with
+explicit gaps, which another caller may use.
+
 ## Ownership after synthesis
 
 Editing a generated source, binding or operation creates a new author claim.
@@ -101,10 +115,10 @@ Synthesis does not intentionally change sources or perform their operations.
 Idempotency concerns intended effects; it does not require identical bytes,
 ordering, internal reports, caches or naming algorithms across implementations.
 
-## Walkthrough: strict and partial synthesis
+## Walkthrough: complete and partial synthesis
 
 Continue the [illustrative two-target text example](../source-inspector/#walkthrough-inspect-and-author).
-Both synthesis operations accept this same request value:
+Both results below answer this same request value:
 
 ```json
 {
@@ -120,14 +134,16 @@ Both synthesis operations accept this same request value:
 }
 ```
 
-A successful `synthesizeInterface` result describes both admitted targets,
-`echo` and `length`. Its JSON interface includes the complete document in
+A synthesizer that represents both admitted targets, `echo` and `length`,
+returns a document binding each of them and a report with both entries
+`represented`. `exhaustive` and `fullyRepresented` are true, so the result is
+complete synthesis. Its JSON interface includes the complete response in
 `synthesizeInterface.examples.textTools`. The chosen generated keys are example
 choices, not a naming algorithm required by this interface.
 
-A synthesizer that represents only `echo` can instead describe that partial
-result through `synthesizeInterfaceWithCoverage`. For example, it returns the
-selected OBI from the authoring walkthrough as `interface`, and this `coverage`:
+A synthesizer that represents only `echo` returns a partial result instead. For
+example, it returns the selected OBI from the authoring walkthrough as
+`interface`, and this `coverage`:
 
 ```json
 {
@@ -157,8 +173,11 @@ selected OBI from the authoring walkthrough as `interface`, and this `coverage`:
 
 Here `exhaustive` is true because the report accounts for both targets;
 `fullyRepresented` is false because one admitted target was not represented.
-The complete response envelope appears in the JSON interface's
-`synthesizeInterfaceWithCoverage.examples.partialTextTools`.
+The `implementation-unsupported` entry means the result is not complete
+synthesis. Had a rule of the kind excluded `length`, that entry would instead be
+`excluded` with its `rule`, and the result would be complete synthesis while
+`fullyRepresented` stayed false. The complete response envelope appears in the
+JSON interface's `synthesizeInterface.examples.partialTextTools`.
 
 The caller can use `sourceIndex` with its request to interpret attribution.
 This example omits the optional `sourceKeys` and `dependencyKey` fields. A

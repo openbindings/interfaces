@@ -12,7 +12,8 @@
         "exhaustive": true,
         "fullyRepresented": true
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "A represented path without a report-level source map",
@@ -54,7 +55,8 @@
         "exhaustive": true,
         "fullyRepresented": true
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "Repeated identical evidence is not a schema error or a mandated rejection",
@@ -105,7 +107,8 @@
         "exhaustive": true,
         "fullyRepresented": true
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "Lossy dependency evidence without optional dependencyKey",
@@ -161,7 +164,166 @@
         "exhaustive": true,
         "fullyRepresented": false
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
+    },
+    {
+      "description": "An implementation gap does not meet complete synthesis",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "getUser": {}
+        },
+        "sources": {
+          "api": {
+            "kind": "example.coverage@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
+          }
+        }
+      },
+      "report": {
+        "entries": [
+          {
+            "sourceIndex": 0,
+            "sourceKey": "api",
+            "sourceRef": "#/paths/~1users~1{id}/get",
+            "scope": "target",
+            "status": "represented",
+            "operationKey": "getUser",
+            "bindingKey": "getUser.api"
+          },
+          {
+            "sourceIndex": 0,
+            "sourceRef": "#/paths/~1users/get",
+            "scope": "target",
+            "status": "implementation-unsupported",
+            "reasonCode": "example.listing-unavailable",
+            "message": "This synthesizer does not generate the listing target."
+          }
+        ],
+        "exhaustive": true,
+        "fullyRepresented": false
+      },
+      "schemaValid": true,
+      "completeSynthesis": false
+    },
+    {
+      "description": "Kind-defined exclusions and invalid units still meet complete synthesis",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "getUser": {}
+        },
+        "sources": {
+          "api": {
+            "kind": "example.coverage@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
+          }
+        }
+      },
+      "report": {
+        "entries": [
+          {
+            "sourceIndex": 0,
+            "sourceKey": "api",
+            "sourceRef": "#/paths/~1users~1{id}/get",
+            "scope": "target",
+            "status": "represented",
+            "operationKey": "getUser",
+            "bindingKey": "getUser.api"
+          },
+          {
+            "sourceIndex": 0,
+            "sourceRef": "#/paths/~1health/get",
+            "scope": "target",
+            "status": "excluded",
+            "reasonCode": "example.probe-excluded",
+            "rule": "example.coverage@1 section 3",
+            "message": "The kind does not admit health probes as targets."
+          },
+          {
+            "sourceIndex": 0,
+            "sourceRef": "#/paths/~1users/post",
+            "scope": "target",
+            "status": "invalid",
+            "reasonCode": "example.contradictory-body",
+            "message": "The source declares contradictory request bodies."
+          }
+        ],
+        "exhaustive": true,
+        "fullyRepresented": false
+      },
+      "schemaValid": true,
+      "completeSynthesis": true
+    },
+    {
+      "description": "A non-exhaustive inventory does not meet complete synthesis",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "getUser": {}
+        },
+        "sources": {
+          "api": {
+            "kind": "example.coverage@1",
+            "content": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "content": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
+          }
+        }
+      },
+      "report": {
+        "entries": [
+          {
+            "sourceIndex": 0,
+            "sourceKey": "api",
+            "sourceRef": "#/paths/~1users~1{id}/get",
+            "scope": "target",
+            "status": "represented",
+            "operationKey": "getUser",
+            "bindingKey": "getUser.api"
+          }
+        ],
+        "exhaustive": false,
+        "fullyRepresented": false,
+        "limitation": {
+          "code": "example.unread-reference",
+          "message": "An external reference was not read, so further targets may exist."
+        }
+      },
+      "schemaValid": true,
+      "completeSynthesis": false
     },
     {
       "description": "Optional source and dependency attribution",
@@ -229,7 +391,8 @@
         "exhaustive": true,
         "fullyRepresented": true
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "An additional unbound operation is not an interface prohibition",
@@ -244,7 +407,8 @@
         "exhaustive": true,
         "fullyRepresented": true
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "Application-owned extra report information is allowed",
@@ -258,7 +422,8 @@
         "fullyRepresented": true,
         "applicationNote": "example"
       },
-      "schemaValid": true
+      "schemaValid": true,
+      "completeSynthesis": true
     },
     {
       "description": "Missing entries does not match the report shape",

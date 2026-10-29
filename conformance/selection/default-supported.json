@@ -1,6 +1,6 @@
 {
   "cluster": "default-supported",
-  "description": "Candidate-set formation: the candidate set is the operation's bindings whose sources have kinds the invoker can act on, by exact identifier. Unsupported bindings are excluded before sole-candidate or ambiguity resolution; no invocable binding fails with ERR_BINDING_NOT_FOUND.",
+  "description": "Candidate-set formation: the candidate set is the operation's bindings whose kinds the invoker can act on, by exact identifier. Unsupported bindings are excluded before sole-candidate or ambiguity resolution; no invocable binding fails with ERR_BINDING_NOT_FOUND.",
   "tests": [
     {
       "description": "an unsupported binding is skipped, leaving the supported binding as the sole candidate",
@@ -9,24 +9,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          },
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             },
@@ -34,7 +20,7 @@
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -44,31 +30,23 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "binding": "getThing.rest"
       }
     },
     {
-      "description": "the sole candidate's specification is unsupported: no invocable candidate exists",
+      "description": "the sole candidate's kind is unsupported: no invocable candidate exists",
       "document": {
         "openbindings": "0.2.0",
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             }
@@ -77,7 +55,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "error": true,
@@ -94,7 +72,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "error": true,
@@ -109,18 +87,10 @@
           "getThing": {},
           "listThings": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          }
-        },
         "bindings": {
           "listThings.rest": {
             "operation": "listThings",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things/get"
             },
@@ -130,7 +100,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "error": true,
@@ -144,24 +114,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          },
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             },
@@ -169,7 +125,7 @@
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -179,7 +135,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "binding": "getThing.rest"

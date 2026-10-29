@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "Interface Synthesizer",
     "version": "0.2.0",
-    "description": "Derive an OpenBindings interface from sources interpreted under their exact kinds. Synthesis returns the document with coverage evidence for the source units it considered. Complete synthesis is a condition on that evidence that callers apply; a partial result makes its gaps explicit.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nSources and bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Source and binding content preserve absence versus JSON null and are interpreted under the source's exact kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.",
+    "description": "Synthesize bindings of one kind, with the entries they need, as additions to an OpenBindings interface. Synthesis returns those additions with a report of what it added, how the document's existing bindings of the kind compare, and what it left out. Complete synthesis is a condition on that report that callers apply; a partial result makes its gaps explicit.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nInterface documents and added bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Binding content preserves absence versus JSON null and is read under the binding's kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.",
     "schemas": {
         "SupportedKind": {
             "type": "object",
@@ -11,7 +11,7 @@
                 "kind": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Exact, opaque kind as carried by a source."
+                    "description": "Exact, opaque kind as a binding carries it."
                 },
                 "description": {
                     "type": "string",
@@ -41,50 +41,32 @@
                 "supported"
             ]
         },
-        "SynthesizeInterfaceSource": {
-            "type": "object",
-            "description": "A source to synthesize from. When emitted, its supplied value is preserved, including extensions and content presence; name, when supplied, is its emitted key. Unused sources need not be emitted.",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Key for this source in the emitted interface. Supply it when planning to edit the emitted source."
-                },
-                "source": {
-                    "$ref": "#/schemas/Source"
-                }
-            },
-            "required": [
-                "source"
-            ],
-            "additionalProperties": false
-        },
         "SynthesizeInterfaceInput": {
             "type": "object",
+            "description": "The document to add to, the kind to synthesize, and optionally the sources to read.",
             "properties": {
-                "openbindingsVersion": {
+                "interface": {
+                    "$ref": "#/schemas/OpenBindingsInterface",
+                    "description": "The document to add to. A new document starts as a minimal document, plus the resources entries holding its sources. The document carries its own name, version, description and specification version."
+                },
+                "kind": {
                     "type": "string",
-                    "description": "Target specification version in the supported 0.2 line. Omission also targets that line."
+                    "minLength": 1,
+                    "description": "The kind of the bindings to synthesize, compared by exact equality."
                 },
                 "sources": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/schemas/SynthesizeInterfaceSource"
+                        "type": "string",
+                        "minLength": 1
                     },
-                    "description": "Sources to synthesize from. Omission or an empty array requests a source-free document skeleton. Composition capability and generated naming are implementation choices. A supplied source name names that source when emitted; an emitted source preserves its supplied value."
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Interface name override."
-                },
-                "version": {
-                    "type": "string",
-                    "description": "Interface contract version override."
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Interface description override."
+                    "description": "Keys of resources entries in interface that the synthesizer reads as sources, without duplicates. A source is a value that the kind's content holds or refers to, so its shape is fixed by the kind's content definition. A key that names no resources entry fails the call. Omitted or empty means the kind's own inventory, for a kind that reads no source."
                 }
             },
+            "required": [
+                "interface",
+                "kind"
+            ],
             "additionalProperties": false
         },
         "OpenBindingsInterface": {
@@ -92,263 +74,335 @@
             "description": "A valid OpenBindings interface document.",
             "additionalProperties": true
         },
-        "SynthesisCoverageEntry": {
+        "SynthesisAddedEntry": {
             "type": "object",
-            "description": "Disposition of a source target, alternative, dependency or projection considered by this synthesis. sourceIndex identifies its input source; sourceRef identifies the source-local unit and scope explains what is being described. Represented or lossy binding paths name their emitted source, operation and binding. A dependency disposition describes a consumption point rather than a binding path. The interface does not prescribe an internal identity tuple, duplicate-row policy or one-to-one mapping between source units and emitted dependencies.",
+            "description": "One added binding or added dependency, named by exactly one of binding or dependency. Each added binding and each added dependency has exactly one entry. operation names the added operation it realizes or consumes, and uses names every other addition it needs. A caller keeps the entry by inserting it, its operation and its uses.",
             "properties": {
-                "sourceIndex": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Zero-based index of the input source containing this unit. When coverage.sourceKeys is present, the same index identifies its emitted source key."
-                },
-                "sourceKey": {
+                "binding": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Key of the corresponding emitted source. Required for represented/lossy target, alternative and projection units; absent on dependency units."
+                    "description": "Key of the added binding."
                 },
-                "sourceRef": {
+                "dependency": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Stable source-local identifier for the interaction unit; independent of the shape of any emitted binding content."
+                    "description": "Key of the added dependency."
                 },
-                "scope": {
-                    "type": "string",
-                    "enum": [
-                        "target",
-                        "alternative",
-                        "projection",
-                        "dependency"
-                    ],
-                    "description": "Whether the unit is an addressable target, an independently selectable alternative of a target, a schema/semantic projection whose fidelity is assessed separately, or a dependency the interface declares as a consumption point rather than binds. Scope names what the source unit is; status names what became of it, so every scope can carry every status. A dependency unit that was not emitted is scope dependency with the status that removed it, not a target."
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "represented",
-                        "excluded",
-                        "invalid",
-                        "lossy",
-                        "implementation-unsupported"
-                    ],
-                    "description": "represented: a represented path or dependency; excluded: omitted under a kind-defined rule; invalid: a malformed or contradictory source unit; lossy: representation with a disclosed projection limitation; implementation-unsupported: an admitted unit this implementation did not represent."
-                },
-                "operationKey": {
-                    "type": "string",
-                    "description": "Emitted operation key. Required when status is represented or lossy, except on a dependency unit, which is a consumption point and carries no emitted operation or binding identity."
-                },
-                "bindingKey": {
-                    "type": "string",
-                    "description": "Emitted binding key. Required when status is represented or lossy, except on a dependency unit, which carries no emitted binding identity."
-                },
-                "reasonCode": {
+                "operation": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Stable namespaced reason code for this kind or implementation. Required unless status is represented."
+                    "description": "Key of the added operation the binding realizes or the dependency consumes; it equals that addition's operation."
                 },
-                "rule": {
-                    "type": "string",
-                    "description": "Evidence identifying the kind-owned rule governing this disposition, including enough revision information to locate its defining document or code. Required for excluded. An implementation's restriction of a kind defined elsewhere is implementation-unsupported, not excluded.",
-                    "minLength": 1
+                "uses": {
+                    "$ref": "#/schemas/SynthesisUses"
                 },
-                "message": {
-                    "type": "string",
-                    "description": "Human-readable explanation."
+                "lossy": {
+                    "$ref": "#/schemas/SynthesisLoss"
                 },
                 "requirements": {
                     "type": "array",
-                    "description": "Named runtime prerequisites for a represented unit, such as credentials or a required codec.",
+                    "description": "Named runtime prerequisites for the added binding, such as credentials or a required codec. Only on a binding entry.",
                     "items": {
                         "type": "string",
                         "minLength": 1
                     }
-                },
-                "details": {
-                    "type": "object",
-                    "description": "Kind-specific structured evidence.",
-                    "additionalProperties": true
-                },
-                "dependencyKey": {
-                    "type": "string",
-                    "description": "Optional emitted dependency key for a represented or lossy dependency disposition. When supplied, it identifies the corresponding entry in the returned interface dependencies map."
                 }
             },
             "required": [
-                "sourceIndex",
-                "sourceRef",
-                "scope",
+                "operation"
+            ],
+            "oneOf": [
+                {
+                    "properties": {
+                        "dependency": false
+                    },
+                    "required": [
+                        "binding"
+                    ]
+                },
+                {
+                    "properties": {
+                        "binding": false,
+                        "requirements": false
+                    },
+                    "required": [
+                        "dependency"
+                    ]
+                }
+            ]
+        },
+        "SynthesisExistingEntry": {
+            "type": "object",
+            "description": "How one binding of the requested kind already in the input document compares with what the synthesizer read. Which bindings read a source, and what each corresponds to, is read from their content as the kind defines.",
+            "properties": {
+                "binding": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Key of a binding in the input document."
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "current",
+                        "stale",
+                        "unmatched"
+                    ],
+                    "description": "current: the synthesizer would write the binding and its operation unchanged; stale: it still corresponds to something the synthesizer would bind, but the synthesizer would write it differently now; unmatched: nothing the synthesizer read and would bind corresponds to it any more, and when exhaustive is false it may correspond to something unread."
+                },
+                "proposal": {
+                    "$ref": "#/schemas/SynthesisProposal",
+                    "description": "How the synthesizer would write the binding now. Only on a stale entry."
+                },
+                "reasonCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stable namespaced reason code for an unmatched binding."
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Human-readable explanation of an unmatched binding."
+                },
+                "details": {
+                    "type": "object",
+                    "description": "Kind-specific structured evidence about an unmatched binding.",
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "binding",
                 "status"
             ],
             "oneOf": [
                 {
                     "properties": {
                         "status": {
-                            "const": "represented"
+                            "const": "current"
                         },
-                        "scope": {
-                            "enum": [
-                                "target",
-                                "alternative",
-                                "projection"
-                            ]
-                        }
-                    },
-                    "required": [
-                        "sourceKey",
-                        "operationKey",
-                        "bindingKey"
-                    ]
-                },
-                {
-                    "properties": {
-                        "status": {
-                            "const": "lossy"
-                        },
-                        "scope": {
-                            "enum": [
-                                "target",
-                                "alternative",
-                                "projection"
-                            ]
-                        }
-                    },
-                    "required": [
-                        "sourceKey",
-                        "operationKey",
-                        "bindingKey",
-                        "reasonCode",
-                        "message"
-                    ]
-                },
-                {
-                    "properties": {
-                        "status": {
-                            "const": "excluded"
-                        },
-                        "scope": {
-                            "enum": [
-                                "target",
-                                "alternative",
-                                "projection"
-                            ]
-                        }
-                    },
-                    "required": [
-                        "reasonCode",
-                        "message",
-                        "rule"
-                    ]
-                },
-                {
-                    "properties": {
-                        "status": {
-                            "enum": [
-                                "invalid",
-                                "implementation-unsupported"
-                            ]
-                        },
-                        "scope": {
-                            "enum": [
-                                "target",
-                                "alternative",
-                                "projection"
-                            ]
-                        }
-                    },
-                    "required": [
-                        "reasonCode",
-                        "message"
-                    ]
-                },
-                {
-                    "properties": {
-                        "scope": {
-                            "const": "dependency"
-                        },
-                        "status": {
-                            "enum": [
-                                "represented"
-                            ]
-                        },
-                        "sourceKey": false,
-                        "operationKey": false,
-                        "bindingKey": false
+                        "proposal": false,
+                        "reasonCode": false,
+                        "message": false,
+                        "details": false
                     }
                 },
                 {
                     "properties": {
-                        "scope": {
-                            "const": "dependency"
-                        },
                         "status": {
-                            "const": "excluded"
+                            "const": "stale"
                         },
-                        "sourceKey": false,
-                        "operationKey": false,
-                        "bindingKey": false
+                        "reasonCode": false,
+                        "message": false,
+                        "details": false
                     },
                     "required": [
-                        "reasonCode",
-                        "message",
+                        "proposal"
+                    ]
+                },
+                {
+                    "properties": {
+                        "status": {
+                            "const": "unmatched"
+                        },
+                        "proposal": false
+                    }
+                }
+            ]
+        },
+        "SynthesisProposal": {
+            "type": "object",
+            "description": "How the synthesizer would write a stale binding now. content and operation each appear where the synthesizer would write them differently, and at least one appears. A caller refreshes the binding by copying the proposal onto the existing binding and operation itself, inserting the additions in uses.",
+            "properties": {
+                "content": {
+                    "description": "Proposed content for the binding, read under its kind: any JSON value. Present when the synthesizer would write the content differently."
+                },
+                "operation": {
+                    "type": "object",
+                    "description": "Proposed operation object for the operation the binding realizes. Present when the synthesizer would write that operation differently."
+                },
+                "uses": {
+                    "$ref": "#/schemas/SynthesisUses",
+                    "description": "The additions the proposed content and operation need."
+                }
+            },
+            "anyOf": [
+                {
+                    "required": [
+                        "content"
+                    ]
+                },
+                {
+                    "required": [
+                        "operation"
+                    ]
+                }
+            ]
+        },
+        "SynthesisOmittedEntry": {
+            "type": "object",
+            "description": "Something the sources offer that synthesis did not represent. details describes it but is not an address: no request names an item by it.",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "excluded",
+                        "invalid",
+                        "implementation-unsupported"
+                    ],
+                    "description": "excluded: left out under a kind-defined rule, identified by rule; invalid: a malformed or contradictory part of a source; implementation-unsupported: something the kind admits that this implementation did not represent. An implementation's restriction of a kind defined elsewhere is implementation-unsupported, not excluded."
+                },
+                "reasonCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stable namespaced reason code for this kind or implementation."
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Human-readable explanation."
+                },
+                "rule": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Evidence identifying the kind-owned rule governing the exclusion, including enough revision information to locate its defining document or code. Required for excluded."
+                },
+                "details": {
+                    "type": "object",
+                    "description": "Kind-specific structured evidence describing the omitted item. It is not an address.",
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "status",
+                "reasonCode",
+                "message"
+            ],
+            "oneOf": [
+                {
+                    "properties": {
+                        "status": {
+                            "const": "excluded"
+                        }
+                    },
+                    "required": [
                         "rule"
                     ]
                 },
                 {
                     "properties": {
-                        "scope": {
-                            "const": "dependency"
-                        },
                         "status": {
                             "enum": [
                                 "invalid",
-                                "lossy",
                                 "implementation-unsupported"
                             ]
-                        },
-                        "sourceKey": false,
-                        "operationKey": false,
-                        "bindingKey": false
-                    },
-                    "required": [
-                        "reasonCode",
-                        "message"
-                    ]
+                        }
+                    }
                 }
             ]
         },
-        "SynthesisCoverage": {
+        "SynthesisUses": {
             "type": "object",
-            "description": "Durable accounting of the source interaction units observed by one synthesis call.",
+            "description": "The additions an entry needs besides itself and its operation, by additions map name. Each list holds keys of that map in additions, without duplicates, and names everything the entry needs directly or through another addition, so the lists are closed. An absent list means none.",
             "properties": {
-                "sourceKeys": {
+                "schemas": {
                     "type": "array",
                     "items": {
                         "type": "string",
                         "minLength": 1
                     },
-                    "description": "Optional attribution map: one emitted source key per input source, in request order. When present, each key identifies the preserved corresponding source in the returned interface. Equal inputs may name the same emitted source. Omission makes no durable input-to-source mapping claim; sourceIndex still indexes the request."
+                    "description": "Keys in additions.schemas."
                 },
-                "entries": {
+                "operations": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/schemas/SynthesisCoverageEntry"
-                    }
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": "Keys in additions.operations."
                 },
-                "exhaustive": {
-                    "type": "boolean",
-                    "description": "True describes an inventory covering every interaction unit in every accepted input source under the kind's defined inventory. False leaves a possible remainder, explained by limitation. Repeated evidence does not by itself change completeness."
+                "dependencies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": "Keys in additions.dependencies."
                 },
-                "fullyRepresented": {
-                    "type": "boolean",
-                    "description": "True means the inventory is exhaustive and every upstream-valid unit described by it is represented without exclusion, loss or an implementation gap. Invalid source units do not count as upstream-valid. The flag describes the report; no internal derivation algorithm is prescribed."
+                "bindings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": "Keys in additions.bindings."
                 },
-                "limitation": {
-                    "$ref": "#/schemas/CoverageLimitation"
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "description": "Keys in additions.resources."
+                }
+            }
+        },
+        "SynthesisLoss": {
+            "type": "object",
+            "description": "Disclosed loss of fidelity in an addition, such as an approximated schema. The addition is still an added path; the loss marks what it does not represent exactly.",
+            "properties": {
+                "reasonCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stable namespaced reason code for this kind or implementation."
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Human-readable explanation."
+                },
+                "details": {
+                    "type": "object",
+                    "description": "Kind-specific structured evidence.",
+                    "additionalProperties": true
                 }
             },
             "required": [
-                "entries",
+                "reasonCode",
+                "message"
+            ]
+        },
+        "SynthesisReport": {
+            "type": "object",
+            "description": "The report of one synthesis call: whether the synthesizer read everything, what it added, how existing bindings of the kind compare, and what it left out. The report is an author claim that consumers may assess independently.",
+            "properties": {
+                "exhaustive": {
+                    "type": "boolean",
+                    "description": "True when the synthesizer read all of the given sources, or all of the kind's own inventory when the call names no sources. False leaves a possible remainder, explained by limitation."
+                },
+                "limitation": {
+                    "$ref": "#/schemas/SynthesisLimitation"
+                },
+                "added": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/schemas/SynthesisAddedEntry"
+                    },
+                    "description": "One entry per added binding and per added dependency, each appearing exactly once."
+                },
+                "existing": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/schemas/SynthesisExistingEntry"
+                    },
+                    "description": "One entry for each binding of the requested kind in the input document that reads one of the given sources, or for each binding of that kind when the call names no sources. Absent or empty means none."
+                },
+                "omitted": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/schemas/SynthesisOmittedEntry"
+                    },
+                    "description": "What the sources offer that synthesis did not represent. Absent or empty means none."
+                }
+            },
+            "required": [
                 "exhaustive",
-                "fullyRepresented"
+                "added"
             ],
             "oneOf": [
                 {
@@ -370,9 +424,9 @@
                 }
             ]
         },
-        "CoverageLimitation": {
+        "SynthesisLimitation": {
             "type": "object",
-            "description": "Machine-readable evidence explaining why the synthesis inventory is not exhaustive.",
+            "description": "Machine-readable evidence explaining why synthesis is not exhaustive.",
             "properties": {
                 "code": {
                     "type": "string",
@@ -395,58 +449,79 @@
                 "message"
             ]
         },
+        "SynthesisAdditions": {
+            "type": "object",
+            "description": "Entries to add to the input document, by map. Each key is new to the corresponding map of the input document, and each added operation key is also new to its operation identifier namespace (keys and aliases). Added content and schemas may refer to entries already in the input document, such as the source entries, and to other additions. Inserting the additions into the input document gives the synthesized document.",
+            "properties": {
+                "schemas": {
+                    "type": "object",
+                    "description": "Added schemas entries.",
+                    "additionalProperties": {
+                        "type": [
+                            "object",
+                            "boolean"
+                        ]
+                    }
+                },
+                "operations": {
+                    "type": "object",
+                    "description": "Added operations.",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
+                },
+                "dependencies": {
+                    "type": "object",
+                    "description": "Added dependencies.",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
+                },
+                "bindings": {
+                    "type": "object",
+                    "description": "Added bindings. Each has the requested kind and realizes an added operation, never one already in the input document.",
+                    "additionalProperties": {
+                        "$ref": "#/schemas/Binding"
+                    }
+                },
+                "resources": {
+                    "type": "object",
+                    "description": "Added resources entries, each any JSON value.",
+                    "additionalProperties": true
+                }
+            }
+        },
         "SynthesizeInterfaceResult": {
             "type": "object",
-            "description": "A creation-time-sound OBI and durable coverage evidence derived from the same synthesis observation.",
+            "description": "Additions to the input document and the report of the same synthesis.",
             "properties": {
-                "interface": {
-                    "$ref": "#/schemas/OpenBindingsInterface"
+                "additions": {
+                    "$ref": "#/schemas/SynthesisAdditions"
                 },
-                "coverage": {
-                    "$ref": "#/schemas/SynthesisCoverage"
+                "report": {
+                    "$ref": "#/schemas/SynthesisReport"
                 }
             },
             "required": [
-                "interface",
-                "coverage"
+                "additions",
+                "report"
             ]
-        },
-        "Source": {
-            "type": "object",
-            "description": "A source as an OpenBindings 0.2 document carries it: an exact kind and optional content read under that kind. Absent content and present JSON null are distinct. Only core source fields and x- extensions may appear; the open carrier schema does not fully check that boundary. Handling malformed carriers is implementation policy.",
-            "properties": {
-                "kind": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The source's kind, compared by exact equality."
-                },
-                "content": {
-                    "description": "Content read under the source's kind: any JSON value, absent when the source has none."
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Human-readable description for this source."
-                }
-            },
-            "required": [
-                "kind"
-            ],
-            "additionalProperties": true
         },
         "Binding": {
             "type": "object",
-            "description": "A binding as an OpenBindings 0.2 document carries it, or would carry it, by value. It is interpreted under the accompanying source's kind. Absent content and present JSON null are distinct. Only core binding fields and x- extensions may appear; the open carrier schema does not fully check that boundary. Handling malformed carriers is implementation policy.",
+            "description": "A binding as an OpenBindings 0.2 document carries it. Its kind gives its content meaning. Absent content and present JSON null are distinct. Only core binding fields and x- extensions may appear; the open carrier schema does not fully check that boundary. Handling malformed carriers is implementation policy.",
             "properties": {
                 "operation": {
                     "type": "string",
-                    "description": "The author's operation key, forwarded verbatim without interpretation by this interface."
+                    "description": "Key of the operation this binding realizes."
                 },
-                "source": {
+                "kind": {
                     "type": "string",
-                    "description": "The author's source key, forwarded verbatim without interpretation by this interface."
+                    "minLength": 1,
+                    "description": "The binding's kind, compared by exact equality."
                 },
                 "content": {
-                    "description": "Content read under the source's kind: any JSON value, absent when the binding has none."
+                    "description": "Content read under the binding's kind: any JSON value, absent when the binding has none."
                 },
                 "idempotent": {
                     "type": "boolean",
@@ -467,6 +542,10 @@
                     "description": "The author's deprecation signal, carried as information."
                 }
             },
+            "required": [
+                "operation",
+                "kind"
+            ],
             "additionalProperties": true
         }
     },
@@ -481,7 +560,7 @@
             }
         },
         "openbindings.interface-synthesizer.checkKindSupport": {
-            "description": "Report support for this interface's job for the requested exact kind strings, with one verdict per distinct requested kind in first-occurrence order. supported: true means the implementation knows how to interpret that kind for this job, not that every artifact or case succeeds. supported: false reports no support for that job. Additional fields do not qualify the Boolean. The operation reports capability without performing the requested inspection, synthesis or invocation. Kind equality is the core's exact string equality. Capability detection and representation are implementation choices.",
+            "description": "Report support for this interface's job for the requested exact kind strings, with one verdict per distinct requested kind in first-occurrence order. supported: true means the implementation knows how to interpret that kind for this job, not that every artifact or case succeeds. supported: false reports no support for that job. Additional fields do not qualify the Boolean. The operation reports capability without performing the requested synthesis or invocation. Kind equality is the core's exact string equality. Capability detection and representation are implementation choices.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -522,7 +601,7 @@
             }
         },
         "openbindings.interface-synthesizer.synthesizeInterface": {
-            "description": "Return an OpenBindings interface and coverage evidence for the source units considered in the same synthesis. The report distinguishes represented, excluded, invalid, lossy and implementation-unsupported units. exhaustive describes inventory completeness; a non-exhaustive report includes limitation evidence. The result describes complete synthesis, representing every callable target admitted by the kinds of the accepted input sources, when exhaustive is true and no entry is implementation-unsupported. Kind-defined exclusions, invalid units and sound lossy projection do not prevent complete synthesis. Callers apply that condition, fullyRepresented, or their own policy. A partial result makes its gaps explicit without claiming complete synthesis, and disclosure does not make an unsound binding faithful. Coverage is an author claim that consumers may assess independently. With no sources, return a source-free document skeleton. Emitted bindings describe faithful paths under their source kinds, and supplied source values are preserved where emitted, including extensions and content presence. A supplied name is the emitted source key. Requested openbindingsVersion selects the 0.2 line. Metadata overrides retain their input meanings. Editing a returned source or binding afterward creates a new author claim. Synthesis does not intentionally change the sources or perform their operations. The operation does not require using a particular checker or assigning every additional operation declaration a binding or dependency. Optional attribution fields aid persistence and handoff. Naming, composition, report construction, duplicate handling, validation strategy and failure recovery remain implementation choices.",
+            "description": "Synthesize bindings of the requested kind for the given document and return them as additions, with a report of the same synthesis. Sources are resources entries of the document, named by key; a source is a value that the kind's content holds or refers to, so its shape is fixed by the kind's content definition. A sources key that names no resources entry fails the call. With no sources, synthesis reads the kind's own inventory, for a kind that reads no source. Synthesis adds bindings for what the sources offer that no current or stale existing binding already binds. It never adds a second binding for something already bound: a stale binding gets a proposal, not a duplicate. Only bindings of the requested kind take part. Each added binding realizes an added operation, never an existing one; joining an added binding to an existing operation is the caller's edit. Added keys are new to the corresponding maps of the input document, and added operation keys are also new to its operation identifier namespace, which holds operation keys and aliases. Added content and schemas may refer to entries already in the input document, such as the source entries, and to other additions. Inserting the additions into the input document gives the synthesized document. A dependency has no content, so synthesis cannot recognize existing dependencies: synthesizing again into a document adds its dependencies again, and a caller that does not want them leaves those added entries out. The report's added entries account for each added binding and dependency exactly once, naming the added operation it realizes or consumes, every other addition it needs, any disclosed loss of fidelity and, for a binding, its runtime requirements. Its existing entries report each binding of the kind that reads one of the given sources (with no sources, each binding of the kind) as current, stale with a proposal, or unmatched. Its omitted entries report what the sources offer that was not represented: excluded under a kind-defined rule, invalid, or implementation-unsupported. exhaustive says whether the synthesizer read all of the given sources, or the kind's own inventory; a non-exhaustive report carries limitation evidence. The result is complete synthesis when exhaustive is true and no omitted entry is implementation-unsupported; kind-defined exclusions, invalid parts and lossy additions still meet it. Callers apply that condition or their own policy, and a partial result makes its gaps explicit without claiming complete synthesis. Inspection is synthesis whose result is read and discarded. To bind only some of the result, a caller keeps the chosen added entries, inserting each one, its operation and its uses. Drift is read from existing and added. The report is an author claim that consumers may assess independently, and disclosure does not make an unsound binding faithful. Added bindings describe faithful paths under their kind. Editing an added or existing entry afterward creates a new author claim. Synthesis changes neither the input document nor its sources, and performs none of their operations. Naming, composition, report construction, validation strategy and failure recovery remain implementation choices.",
             "input": {
                 "$ref": "#/schemas/SynthesizeInterfaceInput"
             },
@@ -531,22 +610,17 @@
             },
             "examples": {
                 "textTools": {
-                    "description": "Complete synthesis for illustrative example.text@1: echo returns its input string; length counts Unicode code points. Source content is absent and binding content names the target. Both targets are represented, so the report is also fully represented. Generated keys are example choices.",
+                    "description": "Complete synthesis for illustrative example.text@1, a kind that reads no source: echo returns its input string; length counts Unicode code points. Binding content names the target. Synthesis starts from a minimal document that carries the interface's name and adds a binding for each target. Added keys are example choices.",
                     "input": {
-                        "sources": [
-                            {
-                                "name": "text",
-                                "source": {
-                                    "kind": "example.text@1"
-                                }
-                            }
-                        ],
-                        "name": "Text tools"
-                    },
-                    "output": {
                         "interface": {
                             "openbindings": "0.2.0",
                             "name": "Text tools",
+                            "operations": {}
+                        },
+                        "kind": "example.text@1"
+                    },
+                    "output": {
+                        "additions": {
                             "operations": {
                                 "repeat": {
                                     "description": "Return the input string.",
@@ -568,64 +642,93 @@
                                     }
                                 }
                             },
-                            "sources": {
-                                "text": {
-                                    "kind": "example.text@1"
+                            "bindings": {
+                                "repeatText": {
+                                    "operation": "repeat",
+                                    "kind": "example.text@1",
+                                    "content": "echo"
+                                },
+                                "countText": {
+                                    "operation": "count",
+                                    "kind": "example.text@1",
+                                    "content": "length"
+                                }
+                            }
+                        },
+                        "report": {
+                            "exhaustive": true,
+                            "added": [
+                                {
+                                    "binding": "repeatText",
+                                    "operation": "repeat"
+                                },
+                                {
+                                    "binding": "countText",
+                                    "operation": "count"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "partialTextTools": {
+                    "description": "The same illustrative kind and request, from a synthesizer that adds only echo and cannot confirm the kind's full target list. The non-exhaustive report and the implementation-unsupported omission each mean the result is not complete synthesis. The omission's details describe the target; they are not an address.",
+                    "input": {
+                        "interface": {
+                            "openbindings": "0.2.0",
+                            "name": "Text tools",
+                            "operations": {}
+                        },
+                        "kind": "example.text@1"
+                    },
+                    "output": {
+                        "additions": {
+                            "operations": {
+                                "repeat": {
+                                    "description": "Return the input string.",
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "string"
+                                    }
                                 }
                             },
                             "bindings": {
                                 "repeatText": {
                                     "operation": "repeat",
-                                    "source": "text",
+                                    "kind": "example.text@1",
                                     "content": "echo"
-                                },
-                                "countText": {
-                                    "operation": "count",
-                                    "source": "text",
-                                    "content": "length"
                                 }
                             }
                         },
-                        "coverage": {
-                            "entries": [
+                        "report": {
+                            "exhaustive": false,
+                            "limitation": {
+                                "code": "example.inventory-unconfirmed",
+                                "message": "This synthesizer cannot confirm the kind's full target list, so further targets may exist."
+                            },
+                            "added": [
                                 {
-                                    "sourceIndex": 0,
-                                    "sourceRef": "echo",
-                                    "scope": "target",
-                                    "status": "represented",
-                                    "sourceKey": "text",
-                                    "operationKey": "repeat",
-                                    "bindingKey": "repeatText"
-                                },
-                                {
-                                    "sourceIndex": 0,
-                                    "sourceRef": "length",
-                                    "scope": "target",
-                                    "status": "represented",
-                                    "sourceKey": "text",
-                                    "operationKey": "count",
-                                    "bindingKey": "countText"
+                                    "binding": "repeatText",
+                                    "operation": "repeat"
                                 }
                             ],
-                            "exhaustive": true,
-                            "fullyRepresented": true
+                            "omitted": [
+                                {
+                                    "status": "implementation-unsupported",
+                                    "reasonCode": "example.length-unavailable",
+                                    "message": "This synthesizer does not generate the length target.",
+                                    "details": {
+                                        "target": "length"
+                                    }
+                                }
+                            ]
                         }
                     }
                 },
-                "partialTextTools": {
-                    "description": "The same illustrative two-target kind, with complete inventory but only echo represented. The implementation-unsupported entry means the result is not complete synthesis. sourceIndex refers to the retained request; optional sourceKeys and dependencyKey are absent.",
+                "existingTextTools": {
+                    "description": "The same illustrative kind, synthesized into a document that already binds echo as repeatText and also has shoutText, whose content names a target the kind does not offer. repeatText is current, shoutText is unmatched, and synthesis adds only length. Added keys are example choices.",
                     "input": {
-                        "sources": [
-                            {
-                                "name": "text",
-                                "source": {
-                                    "kind": "example.text@1"
-                                }
-                            }
-                        ],
-                        "name": "Text tools"
-                    },
-                    "output": {
                         "interface": {
                             "openbindings": "0.2.0",
                             "name": "Text tools",
@@ -638,43 +741,74 @@
                                     "output": {
                                         "type": "string"
                                     }
-                                }
-                            },
-                            "sources": {
-                                "text": {
-                                    "kind": "example.text@1"
+                                },
+                                "shout": {
+                                    "description": "Return the input string in upper case.",
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "string"
+                                    }
                                 }
                             },
                             "bindings": {
                                 "repeatText": {
                                     "operation": "repeat",
-                                    "source": "text",
+                                    "kind": "example.text@1",
                                     "content": "echo"
+                                },
+                                "shoutText": {
+                                    "operation": "shout",
+                                    "kind": "example.text@1",
+                                    "content": "shout"
                                 }
                             }
                         },
-                        "coverage": {
-                            "entries": [
+                        "kind": "example.text@1"
+                    },
+                    "output": {
+                        "additions": {
+                            "operations": {
+                                "count": {
+                                    "description": "Count Unicode code points in the input string.",
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
+                                }
+                            },
+                            "bindings": {
+                                "countText": {
+                                    "operation": "count",
+                                    "kind": "example.text@1",
+                                    "content": "length"
+                                }
+                            }
+                        },
+                        "report": {
+                            "exhaustive": true,
+                            "added": [
                                 {
-                                    "sourceIndex": 0,
-                                    "sourceRef": "echo",
-                                    "scope": "target",
-                                    "status": "represented",
-                                    "sourceKey": "text",
-                                    "operationKey": "repeat",
-                                    "bindingKey": "repeatText"
-                                },
-                                {
-                                    "sourceIndex": 0,
-                                    "sourceRef": "length",
-                                    "scope": "target",
-                                    "status": "implementation-unsupported",
-                                    "reasonCode": "example.length-unavailable",
-                                    "message": "This synthesizer does not generate the length target."
+                                    "binding": "countText",
+                                    "operation": "count"
                                 }
                             ],
-                            "exhaustive": true,
-                            "fullyRepresented": false
+                            "existing": [
+                                {
+                                    "binding": "repeatText",
+                                    "status": "current"
+                                },
+                                {
+                                    "binding": "shoutText",
+                                    "status": "unmatched",
+                                    "reasonCode": "example.unknown-target",
+                                    "message": "The kind offers no shout target."
+                                }
+                            ]
                         }
                     }
                 }

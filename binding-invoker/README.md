@@ -1,8 +1,8 @@
 # Binding Invoker
 
-A binding invoker knows how to invoke bindings governed by specific kinds. Given an OBI source (`kind` and optional `content`), a binding object, and a way to receive input, it makes the concrete call as the source's kind defines it and exposes a typed I/O channel for the caller to write inputs and read outputs. Source and binding content may each be absent or any JSON value; a present null is never converted to absence. No generic location or selector field is required.
+A binding invoker knows how to invoke bindings governed by specific kinds. Given an OpenBindings interface document, the key of one binding in it, and a way to receive input, it makes the concrete call as the binding's kind defines it and exposes a typed I/O channel for the caller to write inputs and read outputs. Binding content may be absent or any JSON value; a present null is never converted to absence. No generic location or selector field is required.
 
-The source's kind supplies the meaning, whether written down or defined only
+The binding's kind supplies the meaning, whether written down or defined only
 in code. An artifact or protocol authority applies only to the extent that
 meaning incorporates it. Where a written definition leaves a case open, an
 invoker may complete it locally, but must not present that completion as shared
@@ -19,18 +19,19 @@ kinds. Neither query performs the requested binding operation. Detection is priv
 
 ## Why it's called a *binding* invoker
 
-A binding invoker takes `(source, binding)` directly. It invokes **by value**: the caller supplies the two objects without an OBI document or a binding lookup. `BindingInvocationInput` requires both members; a binding without content is `binding: {}`. The schema describes the initial payload; malformed-request handling is implementation policy.
+A binding invoker runs one named binding of a supplied document. `BindingInvocationInput` carries the document as `interface` and the key of the binding to run as `binding`; both are required. The invoker selects no binding and validates no values. A key that names no binding in the document is `ERR_BINDING_NOT_FOUND`. The schema describes the initial payload; its open document schema is not a complete document-conformance check. Admission of malformed documents and requests is implementation policy; it does not make them conformant.
 
-The source's `kind` selects the interpretation of both content values. A kind may use a selector, a location, transformations, or none of these; this interface does not invent their representation. Its peer, the [operation invoker](../operation-invoker/), receives an interface and resolves an operation or binding **by reference**.
+The binding's `kind` gives its content meaning. A kind may use a selector, a location, a reference into the document, transformations, or none of these; this interface does not invent their representation. Its peer, the [operation invoker](../operation-invoker/), resolves an operation name or alias, selects among the operation's bindings, and validates values against the operation's schemas.
 
-## Sources and bindings by value
+## What the invoker reads
 
-Sources and bindings are OpenBindings 0.2 values. Their core fields have their core meanings and types; x- members are extensions. Source and binding content preserve absence versus JSON null and are interpreted under the source's exact kind. The open carrier schemas are not complete document-conformance checks. Handling malformed carriers is implementation policy; it does not make those carriers conformant.
+The invoker reads the binding's content and whatever in the document that content refers to, as the binding's kind defines, and it reads nothing else on the kind's behalf. In particular, it does not read the operation declaration: adaptation that needs an operation's schemas is expressed in content, which may refer to them. Content preserves absence versus JSON null. The binding's other core fields keep their core meanings; x- members are extensions.
 
-Binding invocation interprets the supplied source and binding under their kind
-and exchanges caller-facing values. Context carries runtime prerequisites.
-The operation declaration and its schemas are not supplied. Loading, caching,
-adaptation implementation and preparation order are private implementation choices.
+The `interface` member is the document itself, carried inline, never a pointer into a store or registry. Because it is a value, the caller may send a smaller document as long as it preserves the binding's meaning. This interface prescribes no slicing algorithm.
+
+Binding invocation exchanges caller-facing values. Context carries runtime
+prerequisites. Acquiring what content refers to, caching, adaptation
+implementation and preparation order are private implementation choices.
 There is no required binding-invoker component inside another service.
 
 ## Context
@@ -39,7 +40,7 @@ A binding invocation usually needs more than the operation input. Credentials, h
 
 ### Context carriage and lifecycle
 
-The interface carries one opaque context object on each invocation. Where its values came from — a caller, a credential broker, a durable store, a short-lived session, or a composition of those — is outside the contract. A runtime that combines several sources decides precedence before calling the invoker and supplies the resulting object.
+The interface carries one opaque context object on each invocation. Where its values came from (a caller, a credential broker, a durable store, a short-lived session, or a composition of those) is outside the contract. A runtime that combines several sources decides precedence before calling the invoker and supplies the resulting object.
 
 This separation is intentional. A stateless remote invoker, an in-process invoker with application-managed credentials, and a runtime backed by a [`document-store`](../document-store/) can all implement the same interface. None must expose storage to the invoker.
 
@@ -52,7 +53,7 @@ reusable secret; the target string alone establishes neither. An in-process
 resolver may deliberately treat its co-located invoker as trusted; a delegate
 or hosted invoker normally requires an independently derived comparison. This
 contract does not pretend that a generic resolver can validate an opaque
-identifier without knowing the source's kind.
+identifier without knowing the binding's kind.
 
 When deriving storage keys, a runtime should avoid including userinfo and other secret material. Host normalization can also improve reuse across kinds. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
 
@@ -93,7 +94,7 @@ When a binding cannot proceed because required context is missing, `invokeBindin
 
 `ContextRequiredDetails` carries:
 
-- `target`: the concrete destination or context scope asserted by the invoker. It is opaque to this contract. A runtime may compare it with independently derived information before releasing secrets; how it verifies, normalizes, or keys that value depends on the source's kind and the runtime's trust model.
+- `target`: the concrete destination or context scope asserted by the invoker. It is opaque to this contract. A runtime may compare it with independently derived information before releasing secrets; how it verifies, normalizes, or keys that value depends on the binding's kind and the runtime's trust model.
 - `alternatives`: an **OR** of ways to satisfy the requirement. Each alternative carries `requirements`, an **AND** of `ContextRequirement`s. This OR-of-AND shape expresses real auth semantics a flat preference list cannot, e.g. "OAuth2 **OR** (apiKey **AND** clientCert)".
 
 A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
@@ -141,20 +142,20 @@ grant access to a stored profile.
 | `auth.basic` | `credentials[name]`, otherwise `basic` (`{ username, password }`) | Prompt for username and password. |
 | `auth.apiKey` | `credentials[name]`, historical `apiKeys[name]`, otherwise `apiKey` | Prompt for a key. |
 
-A requirement MAY carry a `name` — the scheme name as the source artifact declares it — which disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
+A requirement MAY carry a `name`, the scheme name as the referenced artifact declares it. It disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
 
-`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply — a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by source configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
+`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply: a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by artifact configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
 
-- `point` — the configuration point the source's kind defines for this value (`server`, `address`, a kind's decode point, …).
-- `path` — an RFC 6901 JSON Pointer evaluated from `configuration[point]`. The
+- `point`: the configuration point the binding's kind defines for this value (`server`, `address`, a kind's decode point, …).
+- `path`: an RFC 6901 JSON Pointer evaluated from `configuration[point]`. The
   empty pointer denotes the whole point; `/variables/region` denotes a nested
   member, and `/value` denotes a member literally named `value`.
-- `description` — human-readable prompt text.
-- `schema` (optional) — a standalone JSON Schema in object or Boolean form for
+- `description`: human-readable prompt text.
+- `schema` (optional): a standalone JSON Schema in object or Boolean form for
   the addressed value. Its default dialect is JSON Schema 2020-12; a root
   `$schema` can identify another dialect. References follow the applicable JSON
   Schema dialect, including resource boundaries introduced by `$id`. Neither the
-  source artifact nor the OBI supplies an implicit reference environment. Absence states no constraint. For example, `enum`
+  referenced artifact nor the OBI supplies an implicit reference environment. Absence states no constraint. For example, `enum`
   describes allowed values while `examples` merely suggests values. Evaluation,
   resource acquisition and handling unsupported schemas remain consumer choices.
 
@@ -167,7 +168,7 @@ Runtimes MAY define further families (`approval.user`, `account.link`, ...). An 
 
 ### preflightBinding
 
-`preflightBinding` tells a binding that an invocation of this selection may follow, and lets it report context requirements it can already identify from the source and the supplied context. The result is a `ContextRequiredDetails` in the same shape a `CONTEXT_REQUIRED` challenge carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the kind's, and anything else a binding does in response is for its kind to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction, except `ERR_REFUSED`, which means invocation would refuse the same input. The source's kind governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
+`preflightBinding` takes the same input as `invokeBinding`'s opening payload. It tells a binding that an invocation of the same request may follow, and lets it report context requirements it can already identify from the binding's content, what that content refers to, and the supplied context. The result is a `ContextRequiredDetails` in the same shape a `CONTEXT_REQUIRED` challenge carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the kind's, and anything else a binding does in response is for its kind to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction, except `ERR_REFUSED`, which means invocation would refuse the same input. Acquiring what the binding's content refers to, caching and other preparation are implementation choices under the binding's kind. The binding's kind governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
 
 ## Unsuccessful completion
 
@@ -179,7 +180,7 @@ complete unsuccessfully.
 `InvocationError` therefore has a deliberately small shape:
 
 - `code` identifies a reason. Only codes named by a rule of this interface or
-  its operation-invoker peer or the source's kind have
+  its operation-invoker peer or the binding's kind have
   portable semantics. Other strings are open implementation or extension
   identifiers; an ordinary caller does not need to interpret them to observe
   unsuccessful completion. Human-readable descriptions of interface-owned
@@ -187,7 +188,7 @@ complete unsuccessfully.
   interoperable record.
 - `data`, when present, is portable JSON data associated with the unsuccessful
   completion. A rule defining `code` may define its structure and semantics;
-  otherwise the source's kind may use it to preserve an
+  otherwise the binding's kind may use it to preserve an
   opaque application-authored failure value. `CONTEXT_REQUIRED` uses it for a
   `ContextRequiredDetails` object. Presence is significant: an absent member
   means no portable associated value, while `"data": null` is a present JSON
@@ -202,11 +203,12 @@ cross this abstraction boundary. Artifact-specific clients, logs, traces, and
 protocol tooling remain the places to inspect them.
 
 The binding-invoker-owned codes are exactly those required by its own
-mechanics. Their spellings are reserved and a source's kind
+mechanics. Their spellings are reserved and a kind
 cannot redefine them with conflicting meaning:
 
 | Code | Meaning |
 |---|---|
+| `ERR_BINDING_NOT_FOUND` | The requested `binding` key names no binding in the supplied interface. The operation invoker also reports this code, with a broader meaning. |
 | `CONTEXT_REQUIRED` | The binding requests the `ContextRequiredDetails` carried in `data`. The attempt produced no operation output and no observable effect of the requested operation. |
 | `ERR_FRAME_PROTOCOL` | The caller or peer violated this interface's frame protocol. |
 | `ERR_TRANSPORT_CLOSED` | The outer transport closed before a terminal frame arrived. |
@@ -214,7 +216,7 @@ cannot redefine them with conflicting meaning:
 | `ERR_REFUSED` | Unsuccessful completion asserting that **no observable effect of the requested operation occurred**. It makes no claim about whether a protocol request was sent. Whether to trust it or retry remains caller policy. |
 | `ERR_EXECUTION_FAILED` | Generic unsuccessful completion when no more specific portable code is owned by a governing rule. It deliberately implies no cause, blame, retry, authentication, or availability semantics, and carries **no dispatch-state claim**: dispatch and effects remain possible. |
 
-The operation-invoker interface and each source's kind own
+The operation-invoker interface and each kind own
 the additional codes they explicitly define. Implementations may use further
 codes where those authorities are silent, but such codes are implementation
 behavior rather than portable contract meaning. Community convergence around
@@ -233,8 +235,9 @@ its local use is an implementation or application decision.
 
 ## Capability boundary
 
-Binding invocation is by value. It neither selects a binding from an OBI nor
-interprets an operation declaration it has not received. Kind interpretation owns
+Binding invocation runs the one binding the caller names. It selects no
+binding, validates no values, and reads nothing on the kind's behalf beyond the
+binding's content and what that content refers to. The binding's kind owns
 value adaptation. Context storage, acquisition, enrichment, trust and retry policy
 are outside this interface. No copy operation, storage architecture or component
 boundary is prescribed.
@@ -248,31 +251,110 @@ Frame schemas describe the messages. Handling malformed frames, late inputs or i
 The operation exchanges frames; it does not return a prescribed native handle.
 Rust futures, TypeScript iterators, scheduling, backpressure, queues, connection
 pools and cancellation mechanics belong to implementations. Cardinality follows
-the chosen binding's interaction; this interface does not require every provider
+the named binding's interaction; this interface does not require every provider
 to support every streaming pattern. A consumer interprets complete and error as
 terminal outcomes; returning the first output alone does not establish success.
 
 ## Walkthrough: values and outcomes
 
-Use the `echo` binding from the [illustrative text example](../source-inspector/#walkthrough-inspect-and-author).
+This walkthrough defines an illustrative kind, `example.text@1`. Its binding
+content is a string naming a text function: `echo` returns its input string, and
+`length` counts its input string's Unicode code points. The content refers to
+nothing else in the document. These choices belong only to this example.
+
+A document with two bindings of this kind:
+
+```json
+{
+  "openbindings": "0.2.0",
+  "name": "Text tools",
+  "operations": {
+    "repeat": {
+      "description": "Return the input string.",
+      "input": {
+        "type": "string"
+      },
+      "output": {
+        "type": "string"
+      }
+    },
+    "count": {
+      "description": "Count Unicode code points in the input string.",
+      "input": {
+        "type": "string"
+      },
+      "output": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "bindings": {
+    "repeatText": {
+      "operation": "repeat",
+      "kind": "example.text@1",
+      "content": "echo"
+    },
+    "countText": {
+      "operation": "count",
+      "kind": "example.text@1",
+      "content": "length"
+    }
+  }
+}
+```
+
 The arrays below display successive frame values for readability. They are not
 array-valued operation inputs or a prescribed transport envelope. The same
 values can be exchanged by a library or a remote service; scheduling and
 transport are implementation choices.
 
-One possible caller exchange is:
+One possible caller exchange runs `repeatText`. Its opening payload carries the
+document above as `interface`, shown here in full:
 
 ```json
 [
   {
     "kind": "open",
     "input": {
-      "source": {
-        "kind": "example.text@1"
+      "interface": {
+        "openbindings": "0.2.0",
+        "name": "Text tools",
+        "operations": {
+          "repeat": {
+            "description": "Return the input string.",
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "count": {
+            "description": "Count Unicode code points in the input string.",
+            "input": {
+              "type": "string"
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "bindings": {
+          "repeatText": {
+            "operation": "repeat",
+            "kind": "example.text@1",
+            "content": "echo"
+          },
+          "countText": {
+            "operation": "count",
+            "kind": "example.text@1",
+            "content": "length"
+          }
+        }
       },
-      "binding": {
-        "content": "echo"
-      }
+      "binding": "repeatText"
     }
   },
   {
@@ -284,6 +366,14 @@ One possible caller exchange is:
   }
 ]
 ```
+
+The invoker reads `repeatText`'s content, `echo`, under `example.text@1`. It
+does not consult `repeat`'s schemas or select among the document's bindings.
+Because `echo` refers to nothing else in the document, a smaller document
+holding only `repeat` and `repeatText` would preserve the binding's meaning
+equally well. Naming `countText` instead would run the other binding; a key
+such as `shoutText`, which names no binding in the document, ends the attempt
+with `ERR_BINDING_NOT_FOUND`.
 
 One successful service exchange is:
 
@@ -351,13 +441,15 @@ A separate protected-service example can finish an attempt with:
 This outcome describes no operation output or effects. It does not establish
 that the asserted target is trustworthy. If the caller chooses to trust that
 service and supply a token, a new attempt's opening payload can include
-`"context": {"bearerToken": "example-token"}` alongside its source and binding.
+`"context": {"bearerToken": "example-token"}` alongside its interface and binding key.
 The token here is a placeholder. Obtaining it, retaining it, and deciding whether
 to retry are caller decisions. False `durable` makes no safe-reuse claim and says
 nothing about how a caller stores an attempt.
 
-### Addressing the same call through a document
+### Reaching the same binding through an operation
 
 The [operation-invoker examples](../operation-invoker/#walkthrough-document-addressing)
-show the other opening payload. Both roles use the same subsequent value and
-terminal meanings; neither role prescribes a native handle or callback API.
+open the same document by operation name, binding key or ordered selection,
+adding name resolution, binding selection and validation. Both interfaces use
+the same subsequent value and terminal meanings; neither prescribes a native
+handle or callback API.

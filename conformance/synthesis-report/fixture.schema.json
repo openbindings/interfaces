@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openbindings.com/interfaces/conformance/synthesis-coverage/fixture.schema.json",
+  "$id": "https://openbindings.com/interfaces/conformance/synthesis-report/fixture.schema.json",
   "title": "Interface Synthesizer Output Shape Examples",
   "type": "object",
   "required": [
@@ -10,7 +10,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "openbindings.interface-synthesis-shape-cases@1"
+      "const": "openbindings.interface-synthesis-report-cases@1"
     },
     "tests": {
       "type": "array",
@@ -20,6 +20,7 @@
         "required": [
           "description",
           "interface",
+          "additions",
           "report",
           "schemaValid"
         ],
@@ -30,17 +31,23 @@
             "minLength": 1
           },
           "interface": {
-            "type": "object"
+            "type": "object",
+            "description": "The synthesis input document."
+          },
+          "additions": {
+            "type": "object",
+            "description": "The result's additions to interface. Inserting them into interface gives the synthesized document."
           },
           "report": {
-            "type": "object"
+            "type": "object",
+            "description": "The result's report."
           },
           "schemaValid": {
             "type": "boolean"
           },
           "completeSynthesis": {
             "type": "boolean",
-            "description": "Whether a schema-valid report meets the guide's complete-synthesis condition: exhaustive is true and no entry is implementation-unsupported. Absent when schemaValid is false."
+            "description": "Whether a schema-valid report meets the guide's complete-synthesis condition: exhaustive is true and no omitted entry is implementation-unsupported. Absent when schemaValid is false."
           }
         },
         "if": {

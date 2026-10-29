@@ -1,7 +1,7 @@
 {
   "cluster": "explicit-binding",
   "description": "When the caller names a `binding`, that binding is used and other resolution is bypassed: ambiguity does not change it, and deprecation does not disqualify the named binding. An undefined binding key is ERR_BINDING_NOT_FOUND.",
-  "notes": "On the wire, OperationInvocationInput carries `operation` and `binding` mutually exclusively (the operation is derived from an explicit binding); each fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario. Whether the invoker can act on the bypassed binding's specification is an invocation concern, not a selection concern, so no fixture pins the bypass-to-unsupported-specification outcome.",
+  "notes": "On the wire, OperationInvocationInput carries `operation` and `binding` mutually exclusively (the operation is derived from an explicit binding); each fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario. Whether the invoker can act on the bypassed binding's kind is an invocation concern, not a selection concern, so no fixture pins the bypass-to-unsupported-kind outcome.",
   "tests": [
     {
       "description": "an explicit binding key resolves a choice that would otherwise be ambiguous",
@@ -10,24 +10,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          },
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             },
@@ -35,7 +21,7 @@
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -45,8 +31,8 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1",
-        "openbindings.grpc@1"
+        "example.openapi@1",
+        "example.grpc@1"
       ],
       "binding": "getThing.rpc",
       "expected": {
@@ -60,31 +46,17 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          },
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             }
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -94,8 +66,8 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1",
-        "openbindings.grpc@1"
+        "example.openapi@1",
+        "example.grpc@1"
       ],
       "binding": "getThing.rpc",
       "expected": {
@@ -109,18 +81,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             }
@@ -129,7 +93,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "binding": "getThing.nope",
       "expected": {

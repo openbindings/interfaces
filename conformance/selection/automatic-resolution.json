@@ -1,6 +1,6 @@
 {
   "cluster": "automatic-resolution",
-  "description": "Without `binding` or `selection`, a sole invocable binding is selected and several invocable bindings are refused. Preference, deprecation, key order, source order, and implementation order do not invent a choice.",
+  "description": "Without `binding` or `selection`, a sole invocable binding is selected and several invocable bindings are refused. Preference, deprecation, key order, and implementation order do not invent a choice.",
   "tests": [
     {
       "description": "a sole invocable binding is selected even when deprecated and negatively preferred",
@@ -9,18 +9,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -31,7 +23,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.grpc@1"
+        "example.grpc@1"
       ],
       "expected": {
         "binding": "getThing.rpc"
@@ -44,24 +36,10 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          },
-          "rpc": {
-            "kind": "openbindings.grpc@1",
-            "content": {
-              "location": "https://example.com/things/things.protoset"
-            }
-          }
-        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1things~1{id}/get"
             },
@@ -69,7 +47,7 @@
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "source": "rpc",
+            "kind": "example.grpc@1",
             "content": {
               "selector": "things.v1.Things/GetThing"
             },
@@ -80,8 +58,8 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1",
-        "openbindings.grpc@1"
+        "example.openapi@1",
+        "example.grpc@1"
       ],
       "expected": {
         "error": true,
@@ -95,25 +73,17 @@
         "operations": {
           "getThing": {}
         },
-        "sources": {
-          "rest": {
-            "kind": "openbindings.openapi-3.1@1",
-            "content": {
-              "location": "https://example.com/things/openapi.json"
-            }
-          }
-        },
         "bindings": {
           "getThing.z": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1z/get"
             }
           },
           "getThing.a": {
             "operation": "getThing",
-            "source": "rest",
+            "kind": "example.openapi@1",
             "content": {
               "selector": "#/paths/~1a/get"
             }
@@ -122,7 +92,7 @@
       },
       "operation": "getThing",
       "supported": [
-        "openbindings.openapi-3.1@1"
+        "example.openapi@1"
       ],
       "expected": {
         "error": true,

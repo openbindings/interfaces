@@ -62,8 +62,8 @@ A native CLI can accept a filename as a convenience while publishing this
 by-value operation through its appropriate adaptation; file retrieval is not
 the portable enrollment operation.
 
-Passing an OBI by value does not make all of its dependencies or source
-artifacts self-contained, offline, trusted, or immutable. References *inside*
+Passing an OBI by value does not make all of its dependencies or the
+artifacts its bindings use self-contained, offline, trusted, or immutable. References *inside*
 the OBI retain their ordinary semantics. Do not invent a document base from a
 display name or previously fetched URL. Missing reference context or an
 unresolved schema is reported as what it is: neither compatibility nor a
@@ -205,7 +205,7 @@ must use a separately defined facility or serialize administrative changes.
 The output is the committed record's `id`, retained `interface`, `roles`, and
 complete explicit `rolePreferences` map.
 Preserve the supplied document value, including extensions; no silent operation
-pruning, source rewriting, numeric rounding, or substitution with a summary.
+pruning, binding or resource rewriting, numeric rounding, or substitution with a summary.
 Object formatting is not significant. A runtime must refuse values it cannot
 retain faithfully rather than claim successful enrollment of changed data.
 

@@ -18,7 +18,25 @@ for (const file of readdirSync('conformance/selection')) {
   if (!file.endsWith('.json') || file === 'fixture.schema.json') continue;
   for (const test of read(`conformance/selection/${file}`).tests) save('selection', test.document);
 }
-for (const test of read('conformance/synthesis-coverage/cases.json').tests) save('coverage', test.interface);
+// A synthesis report case carries the input document and the additions;
+// inserting them gives the synthesized document, which is checked too, in root
+// field order.
+const ROOT = ['openbindings', 'name', 'version', 'description', 'schemas', 'operations', 'dependencies', 'bindings', 'resources'];
+function insertAdditions(document, additions) {
+  const merged = {};
+  for (const key of ROOT) {
+    const added = additions[key];
+    if (Object.hasOwn(document, key) || (added && Object.keys(added).length)) {
+      merged[key] = added ? { ...(document[key] ?? {}), ...added } : document[key];
+    }
+  }
+  for (const [key, value] of Object.entries(document)) if (!ROOT.includes(key)) merged[key] = value;
+  return merged;
+}
+for (const test of read('conformance/synthesis-report/cases.json').tests) {
+  save('synthesis-input', test.interface);
+  save('synthesis-synthesized', insertAdditions(test.interface, test.additions));
+}
 for (const entry of read('conformance/comparison/manifest.json').files) {
   const fixture = read(`conformance/comparison/${entry.path}`);
   for (const side of ['left', 'right']) save(`comparison-${side}`, fixture[side]);

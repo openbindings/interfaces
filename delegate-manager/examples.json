@@ -150,134 +150,160 @@
                 }
             }
         },
-        "sources": {
-            "api": {
+        "bindings": {
+            "readDocument": {
+                "operation": "readDocument",
                 "kind": "example.delegate-provider@1",
                 "content": {
-                    "openapi": "3.1.2",
-                    "info": {
-                        "title": "Example storage API",
-                        "version": "0.1.0"
-                    },
-                    "servers": [
-                        {
-                            "url": "https://storage.example.invalid"
-                        }
-                    ],
-                    "paths": {
-                        "/documents/readDocument": {
-                            "post": {
-                                "operationId": "readDocument",
-                                "requestBody": {
-                                    "required": true,
-                                    "content": {
-                                        "application/json": {
-                                            "schema": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "key"
-                                                ],
-                                                "additionalProperties": false
-                                            }
-                                        }
-                                    }
-                                },
-                                "responses": {
-                                    "200": {
-                                        "description": "Successful result.",
-                                        "content": {
-                                            "application/json": {
-                                                "schema": {
-                                                    "oneOf": [
-                                                        {
-                                                            "type": "object"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
+                    "resource": "api",
+                    "selector": "#/paths/~1documents~1readDocument/post"
+                }
+            },
+            "writeDocument": {
+                "operation": "writeDocument",
+                "kind": "example.delegate-provider@1",
+                "content": {
+                    "resource": "api",
+                    "selector": "#/paths/~1documents~1writeDocument/post"
+                }
+            },
+            "removeDocument": {
+                "operation": "removeDocument",
+                "kind": "example.delegate-provider@1",
+                "content": {
+                    "resource": "api",
+                    "selector": "#/paths/~1documents~1removeDocument/post"
+                }
+            }
+        },
+        "x-example": {
+            "purpose": "By-value fixture; no service is deployed."
+        },
+        "resources": {
+            "api": {
+                "openapi": "3.1.2",
+                "info": {
+                    "title": "Example storage API",
+                    "version": "0.1.0"
+                },
+                "servers": [
+                    {
+                        "url": "https://storage.example.invalid"
+                    }
+                ],
+                "paths": {
+                    "/documents/readDocument": {
+                        "post": {
+                            "operationId": "readDocument",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "key"
+                                            ],
+                                            "additionalProperties": false
                                         }
                                     }
                                 }
-                            }
-                        },
-                        "/documents/writeDocument": {
-                            "post": {
-                                "operationId": "writeDocument",
-                                "requestBody": {
-                                    "required": true,
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "Successful result.",
                                     "content": {
                                         "application/json": {
                                             "schema": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string"
-                                                    },
-                                                    "value": {
+                                                "oneOf": [
+                                                    {
                                                         "type": "object"
+                                                    },
+                                                    {
+                                                        "type": "null"
                                                     }
-                                                },
-                                                "required": [
-                                                    "key",
-                                                    "value"
-                                                ],
-                                                "additionalProperties": false
-                                            }
-                                        }
-                                    }
-                                },
-                                "responses": {
-                                    "200": {
-                                        "description": "Successful result.",
-                                        "content": {
-                                            "application/json": {
-                                                "schema": {
-                                                    "type": "null"
-                                                }
+                                                ]
                                             }
                                         }
                                     }
                                 }
                             }
-                        },
-                        "/documents/removeDocument": {
-                            "post": {
-                                "operationId": "removeDocument",
-                                "requestBody": {
-                                    "required": true,
+                        }
+                    },
+                    "/documents/writeDocument": {
+                        "post": {
+                            "operationId": "writeDocument",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
+                                                },
+                                                "value": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "key",
+                                                "value"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "Successful result.",
                                     "content": {
                                         "application/json": {
                                             "schema": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "key": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "key"
-                                                ],
-                                                "additionalProperties": false
+                                                "type": "null"
                                             }
                                         }
                                     }
-                                },
-                                "responses": {
-                                    "200": {
-                                        "description": "Successful result.",
-                                        "content": {
-                                            "application/json": {
-                                                "schema": {
-                                                    "type": "null"
+                                }
+                            }
+                        }
+                    },
+                    "/documents/removeDocument": {
+                        "post": {
+                            "operationId": "removeDocument",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string"
                                                 }
+                                            },
+                                            "required": [
+                                                "key"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "Successful result.",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "null"
                                             }
                                         }
                                     }
@@ -287,32 +313,6 @@
                     }
                 }
             }
-        },
-        "bindings": {
-            "readDocument": {
-                "operation": "readDocument",
-                "source": "api",
-                "content": {
-                    "selector": "#/paths/~1documents~1readDocument/post"
-                }
-            },
-            "writeDocument": {
-                "operation": "writeDocument",
-                "source": "api",
-                "content": {
-                    "selector": "#/paths/~1documents~1writeDocument/post"
-                }
-            },
-            "removeDocument": {
-                "operation": "removeDocument",
-                "source": "api",
-                "content": {
-                    "selector": "#/paths/~1documents~1removeDocument/post"
-                }
-            }
-        },
-        "x-example": {
-            "purpose": "By-value fixture; no service is deployed."
         }
     }
 }

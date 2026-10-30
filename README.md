@@ -40,7 +40,7 @@ Each interface is served at a stable URL on openbindings.com:
 
     https://openbindings.com/interfaces/<name>/<version>.json
 
-for example `https://openbindings.com/interfaces/document-store/0.1.json`. That URL is where tools fetch the contract and what you point a compatibility check at (`ob compat <url> <candidate>`, `fetchInterface(url)`). An OBI document carries no identity of its own, so the URL is simply how the contract is addressed, and keeping it stable is the whole job (see Immutability). This repository is the source of truth, laid out as `<name>/<version>.json`; the site vendors and serves it at the URL above.
+for example `https://openbindings.com/interfaces/document-store/0.1.json`. That URL is where tools fetch the contract and what you point a compatibility check at (`ob compat <candidate> <url>`, `fetchInterface(url)`). An OBI document carries no identity of its own, so the URL is simply how the contract is addressed, and keeping it stable is the whole job (see Immutability). This repository is the source of truth, laid out as `<name>/<version>.json`; the site vendors and serves it at the URL above.
 
 ## Immutability
 
@@ -129,7 +129,7 @@ They compose rather than overlap:
 
 A service claims correspondence with one of these interfaces by giving the corresponding operation the contract operation's **key** as one of its own operation's identifiers — its key, or an `alias` alongside a different local key (see the spec's Operations section). Those keys are fully qualified (next section), so a single document can correspond to several of these interfaces at once without the adopted names colliding — a service that both invokes and pulls may carry `openbindings.binding-invoker.invokeBinding` and `openbindings.source-puller.pullSource` beside each other. The name is author-asserted; the spec attaches no verification or trust semantics to it.
 
-Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <contract> <candidate>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
+Correspondence is **per-operation**. Each adopted key is its own claim, and every runtime consumer of correspondence — delegate resolution, operation invocation — matches one operation at a time. Carrying part of a contract is normal: an implementation that adopts only `openbindings.document-store.get` and `.set` is fully usable for those operations; nothing requires carrying a contract's remaining operations to use the ones you have. Checking a whole contract (`ob compat <candidate> <contract>`) is a separate, opt-in assertion that every operation is present and schema-compatible.
 
 A correspondence is a **claim**. A consumer decides whether to rely on it and
 whether to compare it with a reference interface. An inability to establish
@@ -192,7 +192,7 @@ The interfaces in this repository keep their operation schemas within the
 [`OB-2020-12` Schema Comparison Profile](schema-comparison/). This is a project
 authoring policy, not a core OpenBindings restriction and not a claim that
 JSON Schema should be limited to that subset. It makes the advertised workflow
-— `ob compat <contract> <candidate>` — useful for the contracts this project
+— `ob compat <candidate> <contract>` — useful for the contracts this project
 publishes instead of predictably returning `indeterminate`.
 
 The profile includes structural unions, so conditional contract shapes are

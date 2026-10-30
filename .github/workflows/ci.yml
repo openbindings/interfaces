@@ -53,8 +53,8 @@ jobs:
       - name: Validate pull report fixtures
         run: ajv validate -s conformance/pull-report/fixture.schema.json -d conformance/pull-report/cases.json --spec=draft2020
 
-      - name: Validate kind support fixtures
-        run: ajv validate -s conformance/kind-support/fixture.schema.json -d conformance/kind-support/cases.json --spec=draft2020
+      - name: Validate kind descriptor fixtures
+        run: ajv validate -s conformance/kind-descriptor/fixture.schema.json -d conformance/kind-descriptor/cases.json --spec=draft2020
 
       - name: Validate context challenge fixtures
         run: |

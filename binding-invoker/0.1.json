@@ -4,43 +4,6 @@
     "version": "0.1.0",
     "description": "Invoke one named binding of a supplied OpenBindings interface document, read under the exact kind of the source the binding names. invokeBinding exchanges the described input and output frames; no native invocation handle is part of this interface. A kind may be defined in writing, privately or in code.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nThe source's kind gives the source's data and the binding's data their meaning. The invoker reads the binding's data, its source's data and whatever those refer to, as the kind defines, and nothing else on the kind's behalf. It selects no binding and validates no values. Data preserves absence versus JSON null. The open document schema is not a complete document-conformance check. Admission of malformed documents is implementation policy; it does not make those documents conformant.",
     "schemas": {
-        "SupportedKind": {
-            "type": "object",
-            "description": "A kind supported for the work this interface performs.",
-            "properties": {
-                "kind": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Exact, opaque kind as a source carries it."
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Human-readable description of the kind."
-                }
-            },
-            "required": [
-                "kind"
-            ]
-        },
-        "KindSupportVerdict": {
-            "type": "object",
-            "description": "Authoritative support verdict for one exact kind. Future optional fields may annotate the verdict but never qualify or soften supported.",
-            "properties": {
-                "kind": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The exact kind supplied by the caller."
-                },
-                "supported": {
-                    "type": "boolean",
-                    "description": "True reports that this implementation knows how to interpret this exact kind for its job; it does not promise that every case succeeds. False reports no support for that job."
-                }
-            },
-            "required": [
-                "kind",
-                "supported"
-            ]
-        },
         "OpenBindingsInterface": {
             "type": "object",
             "description": "A valid OpenBindings interface document.",
@@ -243,56 +206,6 @@
         }
     },
     "operations": {
-        "openbindings.binding-invoker.listSupportedKinds": {
-            "description": "Return an advisory list of kinds supported for this interface's job. Listed kinds have supported: true in checkKindSupport; absence from the list makes no support claim. This is a capability query, not performance of the job.",
-            "output": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/schemas/SupportedKind"
-                }
-            }
-        },
-        "openbindings.binding-invoker.checkKindSupport": {
-            "description": "Report support for this interface's job for the requested exact kind strings, with one verdict per distinct requested kind in first-occurrence order. supported: true means the implementation knows how to interpret that kind for this job, not that every artifact or case succeeds. supported: false reports no support for that job. Additional fields do not qualify the Boolean. The operation reports capability without performing the requested invocation. Kind equality is the core's exact string equality. Capability detection and representation are implementation choices.",
-            "input": {
-                "type": "object",
-                "properties": {
-                    "kinds": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "minLength": 1
-                        }
-                    }
-                },
-                "required": [
-                    "kinds"
-                ],
-                "additionalProperties": false
-            },
-            "output": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/schemas/KindSupportVerdict"
-                }
-            },
-            "examples": {
-                "oneKind": {
-                    "description": "Illustrative job-specific support query; the example kind is defined for these examples only.",
-                    "input": {
-                        "kinds": [
-                            "example.text@1"
-                        ]
-                    },
-                    "output": [
-                        {
-                            "kind": "example.text@1",
-                            "supported": true
-                        }
-                    ]
-                }
-            }
-        },
         "openbindings.binding-invoker.invokeBinding": {
             "description": "Invoke the named binding of the supplied interface document and exchange caller-facing values as the kind of the binding's source defines. The invoker reads the binding's data, the data of the source it names and whatever those refer to, and nothing else on the kind's behalf; in particular, it does not read the operation declaration. Adaptation that needs an operation's schemas is expressed in binding data, which may refer to them. The invoker selects no binding and validates no values. A key that names no binding in the document is ERR_BINDING_NOT_FOUND. The caller may send a smaller document that preserves the binding's meaning.\n\nThe caller sends an open frame carrying the invocation request, followed by input frames and an optional close. close means no further input values; input_closed reports that the invoked binding is no longer accepting input. Repeated close has the same meaning. A caller close is unnecessary when input has already closed or the invocation has ended. The service returns output and input_closed frames followed by one terminal complete or error. complete reports successful completion; error reports unsuccessful completion. No further frames belong to the invocation after its terminal frame. An output value alone does not report success. A late failure does not retract values already delivered or assert that no effects occurred.\n\nFrame schemas describe the messages. Handling malformed frames, late inputs or interrupted transports is implementation policy; ERR_FRAME_PROTOCOL and ERR_TRANSPORT_CLOSED identify those reported failures. The interface does not prescribe parser order, buffer admission, internal terminal-race arbitration, queue draining, polling or handle disposal. ERR_CANCELLED reports cancellation without promising rollback or that external work has stopped.\n\nCONTEXT_REQUIRED carries ContextRequiredDetails, the context document's challenge: why the attempt could not proceed and a JSON Schema of the context to supply on the next attempt. It means that the attempt produced neither operation output nor observable effects of the requested operation; this meaning also applies if supplied context proved unusable. The caller may acquire what the schema describes and make another attempt; the signal does not require or authorize automatic replay. The interface supplies no store, acquisition mechanism, trust decision or retry policy.\n\nERR_REFUSED means the requested operation had no observable effects; ERR_EXECUTION_FAILED makes no such claim. Other error codes retain the meanings described for them or by their defining kind. The interface does not prescribe how an implementation determines these outcomes.",
             "input": {

@@ -11,87 +11,26 @@
         },
         "BindingContext": {
             "type": "object",
-            "description": "Opaque context supplied by value for one binding invocation. The contract neither requires nor exposes a context store; callers may assemble this object from per-call values, durable state, a credential broker, or any other source before invocation. The general named-credential field is 'credentials': an object keyed by a requirement's nonempty 'name'. For auth.bearer and auth.apiKey its named value is a string; for auth.basic it is an object with username and password; for auth.oauth2 it is an object whose accessToken is the applying credential and whose refreshToken, expiresAt, and clientSecret are optional lifecycle values. Unnamed or unambiguous single-scheme conveniences remain 'bearerToken', 'apiKey', 'basic', and 'accessToken' / 'refreshToken' / 'expiresAt'; the historical 'apiKeys' named map remains accepted for auth.apiKey. Well-known transport fields: 'headers' / 'cookies' / 'environment' (objects with string values) and 'metadata' (object with arbitrary values). Well-known configuration field: 'configuration' (object), keyed by configuration-point name and interpreted by the authority that defines each point. A config.value requirement's JSON Pointer path addresses within configuration[point]; an empty path addresses the entire point. Implementations and callers MAY add fields for session state, consent, or other runtime data; fields without a meaning defined here or by the kind have implementation-specific interpretation. Every value in credentials and the single-scheme credential fields is secret, and any other field may also be secret according to its requirement family, the source's kind, or application policy.",
-            "additionalProperties": true
-        },
-        "ContextRequirement": {
-            "type": "object",
-            "description": "One prerequisite that must be satisfied before a binding can be invoked. `type` names the requirement family; the remaining fields are type-specific. A named well-known `auth.*` requirement resolves at BindingContext.credentials[name]: a string for `auth.bearer` and `auth.apiKey`, a username/password object for `auth.basic`, or an OAuth object beginning with accessToken for `auth.oauth2`. Unnamed or unambiguous single-scheme requirements use the corresponding bearerToken, apiKey, basic, or flat OAuth conveniences; historical apiKeys[name] remains accepted for `auth.apiKey`. OAuth requirements may carry flow fields such as grantType, authorizeUrl, tokenUrl, and scopes. The `config.value` family carries a configuration value a binding needs but the artifact does not supply: it carries 'point' and a JSON Pointer 'path' (plus an optional engine-asserted 'schema') and resolves within BindingContext.configuration. Other families (e.g. 'approval.user', 'account.link') resolve into their own context fields. Resolution architecture and value secrecy beyond the always-secret credential fields are determined by the requirement family, the source's kind, and the caller.",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Requirement family identifier, such as auth.bearer, auth.oauth2, auth.basic, auth.apiKey, approval.user or config.value. A challenge describes context the producer can apply to this interaction. Unknown families have only their independently defined meanings; the caller decides whether it can satisfy them."
-                },
-                "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The scheme name as the referenced artifact declares it (e.g. an OpenAPI securitySchemes key). Distinguishes multiple requirements of the same family and keys scheme-scoped lookup in BindingContext.credentials."
-                },
-                "point": {
-                    "type": "string",
-                    "description": "config.value only: the configuration point the source's kind defines ('server', 'address', a kind's decode point, …)."
-                },
-                "path": {
-                    "type": "string",
-                    "description": "config.value only: RFC 6901 JSON Pointer evaluated from configuration[point]. The empty pointer addresses the whole point; '/variables/region' addresses a nested member; '/value' addresses a member literally named value."
-                },
-                "schema": {
-                    "type": [
-                        "object",
-                        "boolean"
-                    ],
-                    "description": "config.value only: optional JSON Schema (object or Boolean) describing the value at configuration[point] and path. Read as a standalone schema resource, using JSON Schema 2020-12 unless its root declares another dialect with $schema. References follow the applicable JSON Schema dialect, including resource boundaries introduced by $id. The referenced artifact and the OBI supply no implicit reference environment. Absence states no constraint. This describes the value, not a required validator, resource-fetching policy or resolution procedure."
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Human-readable description shown to a user or operator during resolution (e.g. an approval prompt message)."
-                },
-                "durable": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Whether the producer describes resolved context as suitable for reuse (true) or only for the immediate attempt (false, the default). This is a reuse-safety claim, not a storage instruction; it supplies no store, key, trust decision or persistence policy."
-                }
-            },
-            "required": [
-                "type"
-            ],
+            "description": "Opaque context supplied by value for one attempt, as the context document defines it. Its members are whatever a previous challenge's schema described or the caller knows the source's kind reads; this interface defines none of them, requires no store, and prescribes no acquisition mechanism. How a value is used stays inside the kind's implementation. A value may be secret: a challenge marks secrets writeOnly, and callers avoid disclosing context through logs, diagnostics or storage keys.",
             "additionalProperties": true
         },
         "ContextRequiredDetails": {
             "type": "object",
-            "description": "The data of a CONTEXT_REQUIRED error or a preflight result. alternatives are disjunctive; requirements within one alternative are conjunctive. The object describes the context requested for one invocation, not permission to disclose unrelated credentials. Resolution, trust, storage and retry decisions belong to the caller.",
+            "description": "The data of a CONTEXT_REQUIRED error or a preflight result, as the context document defines it: why the attempt could not proceed, in the producer's words, and a JSON Schema of the context object to supply on the next attempt. The schema is ordinary JSON Schema 2020-12: oneOf branches with a title each for alternatives, required for values needed together, writeOnly on secrets, and a property description for where a person obtains a value. It describes the context requested for one attempt, not permission to disclose anything else. Acquisition, trust, storage and retry decisions belong to the caller.",
             "properties": {
-                "target": {
+                "message": {
                     "type": "string",
-                    "description": "Opaque identifier for the destination or context scope asserted by the invoker. The identifier is not proof of identity or permission to release a secret. Interpretation follows the source's kind; trust decisions, normalization and storage keying belong to the caller."
+                    "minLength": 1,
+                    "description": "Why the attempt could not proceed, in the producer's words, for a person to read."
                 },
-                "alternatives": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Alternative ways to satisfy the reported context requirement (OR). Each alternative describes the requirements needed together (AND). The challenge makes no trust or authorization decision for the caller.",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "requirements": {
-                                "type": "array",
-                                "minItems": 1,
-                                "description": "Conjunctive set: every requirement in this alternative must be resolved for the alternative to be satisfied.",
-                                "items": {
-                                    "$ref": "#/schemas/ContextRequirement"
-                                }
-                            }
-                        },
-                        "required": [
-                            "requirements"
-                        ],
-                        "additionalProperties": false
-                    }
+                "schema": {
+                    "type": "object",
+                    "description": "A JSON Schema 2020-12 schema, in object form, of the context object to supply on the next attempt. The context document defines the conventions it uses and the oauth2 annotation an application may act on."
                 }
             },
             "required": [
-                "target",
-                "alternatives"
+                "message",
+                "schema"
             ],
             "additionalProperties": false
         },

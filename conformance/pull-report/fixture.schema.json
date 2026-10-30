@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openbindings.com/interfaces/conformance/synthesis-coverage/fixture.schema.json",
-  "title": "Interface Synthesizer Output Shape Examples",
+  "$id": "https://openbindings.com/interfaces/conformance/pull-report/fixture.schema.json",
+  "title": "Source Puller Output Shape Examples",
   "type": "object",
   "required": [
     "format",
@@ -10,7 +10,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "openbindings.interface-synthesis-shape-cases@1"
+      "const": "openbindings.source-pull-report-cases@1"
     },
     "tests": {
       "type": "array",
@@ -20,6 +20,8 @@
         "required": [
           "description",
           "interface",
+          "source",
+          "additions",
           "report",
           "schemaValid"
         ],
@@ -30,17 +32,28 @@
             "minLength": 1
           },
           "interface": {
-            "type": "object"
+            "type": "object",
+            "description": "The pull's input document."
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The key of the sources entry pulled."
+          },
+          "additions": {
+            "type": "object",
+            "description": "The result's additions to interface. Inserting them into interface gives the pulled document."
           },
           "report": {
-            "type": "object"
+            "type": "object",
+            "description": "The result's report."
           },
           "schemaValid": {
             "type": "boolean"
           },
-          "completeSynthesis": {
+          "completePull": {
             "type": "boolean",
-            "description": "Whether a schema-valid report meets the guide's complete-synthesis condition: exhaustive is true and no entry is implementation-unsupported. Absent when schemaValid is false."
+            "description": "Whether a schema-valid report meets the guide's complete-pull condition: exhaustive is true and no omitted entry is implementation-unsupported. Absent when schemaValid is false."
           }
         },
         "if": {
@@ -52,13 +65,13 @@
         },
         "then": {
           "required": [
-            "completeSynthesis"
+            "completePull"
           ]
         },
         "else": {
           "not": {
             "required": [
-              "completeSynthesis"
+              "completePull"
             ]
           }
         }

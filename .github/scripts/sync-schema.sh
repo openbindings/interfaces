@@ -11,7 +11,7 @@
 # CI runs --check.
 set -euo pipefail
 
-SPEC_REVISION="2f7d754dc2da374058cd517064c17e50f7d95d99"
+SPEC_REVISION="c1419c9fc3ae5a00c2b83da710c11bf67dab7934"
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 vendored="$repo_root/.github/scripts/openbindings.schema.json"

@@ -153,7 +153,7 @@
         "sources": {
             "api": {
                 "kind": "example.delegate-provider@1",
-                "content": {
+                "data": {
                     "openapi": "3.1.2",
                     "info": {
                         "title": "Example storage API",
@@ -292,21 +292,21 @@
             "readDocument": {
                 "operation": "readDocument",
                 "source": "api",
-                "content": {
+                "data": {
                     "selector": "#/paths/~1documents~1readDocument/post"
                 }
             },
             "writeDocument": {
                 "operation": "writeDocument",
                 "source": "api",
-                "content": {
+                "data": {
                     "selector": "#/paths/~1documents~1writeDocument/post"
                 }
             },
             "removeDocument": {
                 "operation": "removeDocument",
                 "source": "api",
-                "content": {
+                "data": {
                     "selector": "#/paths/~1documents~1removeDocument/post"
                 }
             }

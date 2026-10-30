@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Verifies that typed objects in OBI documents emit their known fields in canonical order.
-// Canonical order is the order declared in the openbindings-go and openbindings-ts SDKs and
-// mirrored in openbindings.schema.json. Unknown and "x-" extension keys are skipped: they
+// Object fields follow the specification's tables (source fields per section 5.2, binding
+// fields per section 5.3). The root keeps this repository's convention of placing `schemas`
+// first, so a contract's shared shapes read before the operations that use them; the
+// specification's own order puts `schemas` last. Unknown and "x-" extension keys are skipped: they
 // MAY appear anywhere relative to known keys.
 //
 // The canonical order is the CURRENT spec's. Documents written against an older spec
@@ -19,16 +21,16 @@ import { readFileSync } from "node:fs";
 const CANON = {
   Interface: [
     "openbindings", "name", "version", "description",
-    "schemas", "operations", "dependencies", "sources", "bindings",
+    "schemas", "operations", "sources", "bindings", "dependencies",
   ],
   Operation: [
     "description", "deprecated", "tags", "aliases",
     "input", "output", "examples",
   ],
   Dependency: ["operation", "kinds", "description"],
-  Source: ["kind", "content", "description"],
+  SourceEntry: ["kind", "data", "description"],
   BindingEntry: [
-    "operation", "source", "content", "idempotent", "preference",
+    "operation", "source", "data", "idempotent", "preference",
     "description", "deprecated",
   ],
   OperationExample: ["description", "input", "output"],
@@ -74,7 +76,7 @@ function walk(doc, errors, path = "$") {
   }
 
   for (const [k, s] of Object.entries(doc.sources ?? {})) {
-    checkOrder("Source", s, `${path}.sources[${JSON.stringify(k)}]`, errors);
+    checkOrder("SourceEntry", s, `${path}.sources[${JSON.stringify(k)}]`, errors);
   }
 
   for (const [k, b] of Object.entries(doc.bindings ?? {})) {

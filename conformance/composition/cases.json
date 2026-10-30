@@ -51,17 +51,14 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "send"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
               "send.local": {
                 "operation": "send",
                 "source": "local",
-                "content": {
+                "data": {
                   "selector": "send"
                 }
               }
@@ -122,10 +119,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
@@ -156,10 +150,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
@@ -218,25 +209,25 @@
               }
             },
             "sources": {
-              "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+              "a": {
+                "kind": "example.local@1"
+              },
+              "b": {
+                "kind": "example.local@1"
               }
             },
             "bindings": {
               "deliver.a": {
                 "operation": "deliver",
-                "source": "local",
-                "content": {
+                "source": "a",
+                "data": {
                   "selector": "a"
                 }
               },
               "deliver.b": {
                 "operation": "deliver",
-                "source": "local",
-                "content": {
+                "source": "b",
+                "data": {
                   "selector": "b"
                 }
               }
@@ -294,10 +285,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
@@ -358,10 +346,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
@@ -425,10 +410,7 @@
             },
             "sources": {
               "other": {
-                "kind": "example.other@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.other@1"
               }
             },
             "bindings": {
@@ -489,10 +471,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {
@@ -523,10 +502,7 @@
             },
             "sources": {
               "local": {
-                "kind": "example.local@1",
-                "content": {
-                  "handler": "deliver"
-                }
+                "kind": "example.local@1"
               }
             },
             "bindings": {

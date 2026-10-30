@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, interface-synthesizer coverage evidence, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, source-puller reports, and schema-comparison semantics.
 
 The corpus is reference material. Interface examples illustrate published value
 shapes and capability meanings, not required internal implementations or recovery
@@ -11,10 +11,10 @@ Passing examples is not proof of a producer's behavioral claims.
 
 | Contract rule family | Coverage |
 |---|---|
-| binding-invoker / interface-synthesizer: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
+| binding-invoker: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
 | operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
-| interface-synthesizer: coverage output shapes, optional attribution, permitted variation and the complete-synthesis condition | **Shape examples** (`synthesis-coverage/`); no prescribed SDK checker or recovery policy. |
+| source-puller: additions, report shapes (added entries and what they use, reuse, existing-entry status and change class, omissions), permitted variation and the complete-pull condition | **Shape examples** (`pull-report/`); no prescribed SDK checker or recovery policy. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
 | operation-invoker / binding-invoker: frame message shapes and exchange meanings | Schema controls here; buffer, cancellation-race and malformed-input policies are tested by implementations. |
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
@@ -22,8 +22,8 @@ Passing examples is not proof of a producer's behavioral claims.
 
 ## Kind support (`kind-support/`)
 
-Covers the shared `checkKindSupport` semantics in binding-invoker 0.1 and
-interface-synthesizer 0.2 and source-inspector 0.1. Each case declares the implementation's exact
+Covers the `checkKindSupport` semantics in binding-invoker 0.1. Each case
+declares the implementation's exact
 `warranted` set, its advisory `listed` subset, the input tokens, and the
 ordered verdicts. The fixtures pin empty input, first-occurrence
 deduplication, exact-match refusal of prefix-adjacent tokens, strict boolean
@@ -37,9 +37,9 @@ information.
 
 ## Binding selection (`selection/`)
 
-Covers the operation-invoker contract's selection rules — its README's "Selects a binding" step and the `invokeOperation` operation's "Binding selection" rule in `operation-invoker/0.1.json`:
+Covers the operation-invoker contract's selection rules: its README's "Resolves a binding" step and the selection paragraph of the `invokeOperation` description in `operation-invoker/0.1.json`.
 
-- **Candidate set**: the operation's bindings whose sources have kinds the invoker can act on, by exact identifier (`default-supported.json`).
+- **Candidate set**: the operation's bindings whose sources' kinds the invoker can act on, by exact identifier (`default-supported.json`).
 - **Automatic resolution**: a sole invocable candidate is selected; several are refused without consulting preference, deprecation, or ordering metadata (`automatic-resolution.json`).
 - **Ordered caller choice**: `selection` selects its first invocable listed binding; a listed key that names no binding of the operation, or a list with no invocable entry, is `ERR_BINDING_NOT_FOUND`, never a fallback (`override-selection.json`).
 - **Explicit `binding` key**: bypasses other resolution; unknown key is an error (`explicit-binding.json`).
@@ -58,7 +58,7 @@ One file per rule-cluster, validated by [`selection/fixture.schema.json`](select
       "description": "specific scenario this case exercises",
       "document": { "openbindings": "0.2.0", "operations": { "getThing": {} }, "...": "..." },
       "operation": "getThing",
-      "supported": ["openbindings.openapi-3.1@1", "openbindings.grpc@1"],
+      "supported": ["example.openapi@1", "example.grpc@1"],
       "selection": ["getThing.rpc"],
       "expected": { "binding": "getThing.rpc" }
     }
@@ -70,7 +70,7 @@ Field semantics:
 
 - `document`: a complete, **valid** OpenBindings interface document, embedded inline. Harnesses run it through their implementation's real document validation before selecting; a document that fails validation is a corpus defect, never an expected outcome.
 - `operation`: the operation identifier the invocation addresses (key or alias; core §5.1 defines which operation it identifies).
-- `supported`: the notional invoker's supported set — the exact kinds it can act on, natively or via a delegate. The current fixtures use the project's unreleased first-candidate identifiers (`openbindings.openapi-3.1@1`, `openbindings.grpc@1`, `openbindings.usage@1`, ...); an "unsupported" kind is a real candidate identifier absent from this set, never an invented one.
+- `supported`: the notional invoker's supported set: the exact kinds it can act on, natively or via a delegate. The fixtures use illustrative `example.*` kinds (`example.openapi@1`, `example.grpc@1`, `example.usage@1`); an unsupported kind is one a source in the document carries that is absent from this set.
 - `selection` (optional): the invocation input's ordered `selection`, a nonempty list of binding keys. Every key must name one of the operation's bindings; the first invocable one wins; a list with no invocable entry is an error, never a fallback. Never present together with `binding`.
 - `binding` (optional): the explicit binding key, the wire contract's binding-addressed form. On the wire `operation` and `binding` are mutually exclusive (the operation is *derived* from an explicit binding); the fixture carries the derived operation key alongside so operation-keyed native APIs can drive the same scenario, with the invariant `document.bindings[binding].operation` = the resolved operation (vacuous for unknown-key fixtures).
 - `expected`: either `{ "binding": "<key>" }` or `{ "error": true, "kind": "unknown-binding" | "no-candidate" | "ambiguous" }`. `unknown-binding` is a named key (explicit or listed) that names no binding of the operation; `no-candidate` is no invocable binding among those allowed. Both use `ERR_BINDING_NOT_FOUND`; ambiguity uses `ERR_BINDING_SELECTION_REQUIRED`.
@@ -79,26 +79,41 @@ Field semantics:
 
 Resolution is deterministic without imposing a preference policy: explicit caller choice wins, a sole candidate is inferable, and ambiguity is refused. Every fixture therefore has exactly one correct outcome.
 
-## Synthesis coverage (`synthesis-coverage/`)
+## Pull reports (`pull-report/`)
 
-The `openbindings.interface-synthesis-shape-cases@1` examples carry a report and
-its `schemaValid` result. They include absent optional attribution, repeated rows,
-unbound operation declarations, additional report fields and malformed field types.
-The repository evaluates the report schema; it does not emulate a synthesis
-provider or require a consumer to reject any schema failure.
+The `openbindings.source-pull-report-cases@1` examples carry the input
+`interface`, the pulled `source` key, the result's `additions`, its `report`
+and the report's `schemaValid` result. They cover a minimal result, added
+bindings with the additions they use, a binding that reuses an existing
+operation, lossy additions, each existing-entry status (`current`, `stale`,
+`unmatched`) for bindings, schemas and the source entry, the change class on
+stale entries, each omission status including a conflict, a non-exhaustive
+read, additional report members and malformed shapes. The fixture kind,
+`example.report@1`, is illustrative: its labels and data are not the semantics
+of any real protocol.
 
-Each schema-valid example also carries `completeSynthesis`: whether the report
-meets the guide's [complete synthesis](../interface-synthesizer/#complete-synthesis)
-condition, an exhaustive inventory with no `implementation-unsupported` entry.
-Examples with an implementation gap or a non-exhaustive inventory do not meet it;
-examples with kind-defined exclusions, invalid units or lossy evidence do. The
-repository computes the condition from each report and checks the recorded value.
+The repository evaluates the report and additions schemas. It also inserts each
+case's additions into its input document and checks the result: added keys are
+new, added bindings name the pulled source, the pulled document passes the core
+schema, every added binding appears exactly once in the report with its
+operation (added, or existing when `reused`), `uses` labels and existing-entry
+keys name real entries, and every same-document schema reference in an added
+operation or a proposal resolves within the input document or the entry's
+`uses`. It does not emulate a pull provider or require a consumer to reject
+any schema failure.
+
+Each schema-valid example also carries `completePull`: whether the report
+meets the guide's [complete pull](../source-puller/#complete-pull) condition,
+an exhaustive read with no `implementation-unsupported` omission. Examples with
+an implementation gap or a non-exhaustive read do not meet it; examples with
+kind-defined exclusions, invalid source parts, conflicts or lossy additions do.
+The repository computes the condition from each report and checks the recorded
+value.
 
 The previous 26 SDK checker cases remain in the Rust SDK as
 `openbindings.sdk-synthesis-policy-cases@1`. Their duplicate refusal, exact
-dependency correspondence, source preservation and operation path checks are SDK
-policy regressions, not requirements of this interface. Their strict eligibility
-expectations apply the complete-synthesis condition to SDK-checked results.
+dependency correspondence and operation path checks are SDK policy regressions,
+not requirements of this interface.
 
 ## Runtime composition (`composition/`)
 
@@ -205,15 +220,11 @@ Same convention as the spec corpus: a harness looks for a **sibling checkout** o
 
 ## Versioning
 
-Selection fixtures are authored against **operation-invoker contract 0.1**, synthesis output examples against **interface-synthesizer contract 0.2**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
+Selection fixtures are authored against **operation-invoker contract 0.1**, pull report examples against **source-puller contract 0.1**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
 
-## Carried values (`carried-values/`)
+## Embedded documents
 
-Carrier examples distinguish schema acceptance from membership in the core
-carrier field set. `carrierFieldsValid` records the latter, not a refusal rule.
-The SDK may reject malformed carriers before work; another implementation chooses
-its own handling. Such handling does not change core document conformance.
-
-Coverage examples use a fixture-only kind. Its labels and content are examples,
-not OpenAPI semantics. Schema checks do not prove source correspondence.
-The extractor also validates the embedded OBI document shapes and canonical order.
+CI extracts every OBI document the fixtures carry and validates each against the
+vendored core schema and the repository's field-order check. Fixture kinds are
+illustrative; their labels and data are examples, not the semantics of any
+real protocol.

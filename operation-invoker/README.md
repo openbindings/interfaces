@@ -1,28 +1,28 @@
 # Operation Invoker
 
-An operation invoker invokes an operation described by an OpenBindings interface document. Given an interface and an operation name or a specific binding key, it resolves that name or key against the document, selects a binding, validates against the operation's declared value contracts, and drives the underlying [binding invoker](../binding-invoker/).
+An operation invoker invokes an operation described by an OpenBindings interface document. Given an interface and an operation name or a specific binding key, it resolves that name or key against the document, selects a binding, validates values against the operation's schemas, and drives the underlying [binding invoker](../binding-invoker/).
 
 This is a reusable invocation contract, not a requirement of core OpenBindings. Conformance is claimed and versioned independently of core conformance and of every kind definition.
 
-It is the **by-reference** peer of the binding invoker. The binding invoker invokes *by value* (a source and a binding object); the operation invoker invokes *by reference* (an interface plus a name or key it resolves). Both share one frame protocol.
+It is the resolving peer of the binding invoker, and the two share one frame protocol.
 
-## By value vs by reference
+## Running a binding vs invoking an operation
 
-This axis, not "binding vs operation," is the real distinction between the two interfaces:
+Both interfaces receive the document. The real distinction is what each does with it. The binding invoker runs one named binding, with no selection and no validation. The operation invoker resolves an operation name or alias, selects among the operation's bindings, and validates values against the operation's schemas:
 
 | | Binding invoker | Operation invoker |
 |---|---|---|
-| **Addresses by** | `source` + `binding` | `interface` + `operation` name **or** `binding` key |
-| **Needs an OBI?** | No | Yes (the key is meaningless without the document) |
-| **Knows the schemas?** | No: exchanges caller-facing values and applies kind-defined adaptation | Yes, validates declared input/output contracts |
-| **Selects a binding?** | No, it's given one | Yes (when addressed by operation key) |
+| **Opens with** | `interface` + `binding` key | `interface` + `operation` name **or** `binding` key |
+| **Resolves names?** | No: the key names one binding | Yes: an operation key or any of its aliases |
+| **Selects a binding?** | No, it runs the one it is given | Yes (when addressed by operation name) |
+| **Validates values?** | No: exchanges caller-facing values and applies kind-defined adaptation | Yes, against the operation's input and output schemas |
 | **Context** | Consumes supplied context and may challenge for missing requirements | Forwards supplied context and propagates binding challenges |
 
-"Invoke a binding by key" lives here, not in the binding invoker, because **keys need the document**, and the document is this interface's whole premise.
+An explicit `binding` key here bypasses selection but not validation.
 
-"By reference" names how the call is addressed — a key, resolved against a document — not how the document travels. The `interface` in the open frame is the document itself, carried inline, never a pointer into a store or registry. An interface that is stored nowhere (synthesized mid-pipeline, held only in memory) invokes exactly like a published one.
+The `interface` in the open frame is the document itself, carried inline, never a pointer into a store or registry. An interface that is stored nowhere (built mid-pipeline, held only in memory) invokes exactly like a published one.
 
-Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and any context the selected kind requires. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
+Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and the selected binding's data, the source it names and whatever those refer to. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
 
 ## Publication boundary
 
@@ -38,16 +38,16 @@ The operation describes the following capability. These points describe the
 caller-facing meaning, not a required execution pipeline:
 
 1. **Resolves the name or key.** An `operation` name resolves across the flat key-and-alias namespace (core §5.1) to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it. Bindings are found by the resolved operation key, not the alias used to reach it.
-2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose sources have kinds the invoker can act on. The contract follows caller policy and the source's kind without inventing a ranking:
+2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose sources' kinds the invoker can act on. The contract follows caller policy and each binding's kind without inventing a ranking:
    - an explicit `binding` key is used directly;
    - when the caller supplies an ordered `selection`, the first listed binding the invoker can act on is used. The list passes over only what the invoker cannot act on, the one fact a caller may not know. Every listed key must name one of the operation's bindings, and the list never falls back to a binding it does not name: a key that names no binding of the operation, or a list with none the invoker can act on, fails with `ERR_BINDING_NOT_FOUND`;
    - without `binding` or `selection`, a sole invocable candidate is used;
    - zero candidates fail with `ERR_BINDING_NOT_FOUND`;
    - several candidates fail with `ERR_BINDING_SELECTION_REQUIRED`.
 
-   `preference`, `deprecated`, key order, source order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or an ordered selection.
-3. **Validates declared value contracts.** Each input value is checked before forwarding and each successful output value before relaying, where that side declares a schema. Validity follows [core §5.2](https://github.com/openbindings/spec/blob/release/0.2/openbindings.md#52-schemas): JSON Schema 2020-12, `format` as annotation where assertion is optional, ECMA-262 patterns with Unicode semantics, and the OBI reference environment. An established mismatch is `ERR_OPERATION_VALIDATION_FAILED`; a check that cannot give a verdict is `ERR_SCHEMA_UNRESOLVED`. Neither permits forwarding that value as validated. An absent schema states no contract: values on that side are forwarded without a validation claim. No whole-graph readiness check is required.
-4. **Drives the binding invocation,** forwarding the selected source, the full binding object with content presence preserved, and caller context. The binding invoker applies any kind-defined adaptation. The operation invoker preserves the binding invoker's frame ordering and operation-value payloads, subject to step 3's validation. An unsuccessful terminal frame remains unsuccessful; `CONTEXT_REQUIRED` details and opaque application failure data are relayed unchanged without output-schema validation. This layer may terminate with its own resolution or validation failure, but does not apply a second transformation.
+   `preference`, `deprecated`, key order, and implementation registration order do not silently choose among alternatives. An application may apply any policy it owns, then express the result through an explicit binding or an ordered selection.
+3. **Validates values against the operation's schemas.** Each input value is checked before forwarding and each successful output value before relaying, where that side declares a schema. Validity follows [core §5.2](https://github.com/openbindings/spec/blob/release/0.2/openbindings.md#52-schemas): JSON Schema 2020-12, `format` as annotation where assertion is optional, ECMA-262 patterns with Unicode semantics, and the OBI reference environment. An established mismatch is `ERR_OPERATION_VALIDATION_FAILED`; a check that cannot give a verdict is `ERR_SCHEMA_UNRESOLVED`. Neither permits forwarding that value as validated. An absent schema states no constraint: values on that side are forwarded without a validation claim. No whole-graph readiness check is required.
+4. **Drives the binding invocation,** forwarding the document, the selected binding's key, and caller context. The binding invoker applies any kind-defined adaptation. The operation invoker preserves the binding invoker's frame ordering and operation-value payloads, subject to step 3's validation. An unsuccessful terminal frame remains unsuccessful; `CONTEXT_REQUIRED` details and opaque application failure data are relayed unchanged without output-schema validation. This layer may terminate with its own resolution or validation failure, but does not apply a second transformation.
 
 ## The frame exchange
 
@@ -76,20 +76,19 @@ configuration: it is the caller's instruction for one call, carried by
 
 ## Operation-invoker-owned errors
 
-This interface owns only the codes required by its resolution and validation mechanics. Their spellings and meanings are reserved:
+This interface owns only the codes required by its resolution and validation mechanics, and it reports binding invocation's `ERR_BINDING_NOT_FOUND` with a broader meaning. Their spellings and meanings are reserved:
 
 | Code | Meaning |
 |---|---|
 | `ERR_OPERATION_NOT_FOUND` | The requested operation name cannot be resolved. |
-| `ERR_BINDING_NOT_FOUND` | The explicit binding, or a key in `selection`, names no binding of the operation, or no invocable binding remains among those allowed. |
+| `ERR_BINDING_NOT_FOUND` | The explicit binding, or a key in `selection`, names no binding of the operation, or no invocable binding remains among those allowed. Binding invocation owns this code for a key that names no binding in the document; this interface reports it with the broader meaning. |
 | `ERR_BINDING_SELECTION_REQUIRED` | Multiple invocable bindings remain and the caller supplied neither `binding` nor `selection`. |
-| `ERR_UNKNOWN_SOURCE` | The selected binding references no source in the supplied interface. |
 | `ERR_OPERATION_VALIDATION_FAILED` | An input or output value violates the operation's governing schema. |
 | `ERR_SCHEMA_UNRESOLVED` | A schema check on a value cannot give a verdict, so that value cannot be forwarded as validated. |
 
 These outcomes are code-only: this interface defines no `data` for them.
-Binding-invoker-owned failures and failures owned by the source kind's defining
-document, if any, relay unchanged. Any other implementation code remains non-portable
+Binding-invoker-owned failures and failures owned by the source's kind, if any,
+relay unchanged. Any other implementation code remains non-portable
 under this interface; in particular, this list is not a general failure
 vocabulary for bindings or protocols.
 
@@ -106,11 +105,11 @@ copy strategy, context store, schema compiler or network implementation.
 
 ## Relationship to the binding invoker
 
-The operation-invoker semantics compose with the binding-invoker semantics: after resolution, the selected source and binding objects drive invocation, while the operation layer checks declared value contracts. An implementation may layer the two components or fuse them behind one service. The two addressing contracts do not require a particular process architecture.
+The operation-invoker semantics compose with the binding-invoker semantics: after resolution, the document and the selected binding's key drive invocation, while the operation layer validates values against the operation's schemas. An implementation may layer the two components or fuse them behind one service. The two contracts do not require a particular process architecture.
 
 ## Walkthrough: document addressing
 
-Take the complete OBI from the [text authoring walkthrough](../source-inspector/#walkthrough-inspect-and-author).
+Take the text document from the [binding-invocation walkthrough](../binding-invoker/#walkthrough-values-and-outcomes).
 The opening payload carries that document as `interface`, together with one of
 these addressing choices (shown here as payload fragments):
 
@@ -130,11 +129,14 @@ Use one choice per invocation. `binding` stands alone; `selection` accompanies
 `operation`. The JSON interface includes complete opening frames, with the inline
 OBI, in `invokeOperation.examples`. It does not require a document registry.
 
-The caller can then exchange the `input`, `close`, `output` and terminal values
-from the [binding-invocation walkthrough](../binding-invoker/#walkthrough-values-and-outcomes).
-Here the operation declares string input and output contracts. A validity
-mismatch is described by `ERR_OPERATION_VALIDATION_FAILED`; inability to decide
-validity by `ERR_SCHEMA_UNRESOLVED`. Those meanings do not prescribe a schema
+Each form resolves to `repeatText`, the one binding of `repeat`; the operation
+and selection forms do so only if the invoker can act on `example.text@1`, the
+kind of its source. The
+invoker then forwards the document and the key `repeatText` to binding
+invocation. The caller can exchange the `input`, `close`, `output` and terminal
+values from that walkthrough. Here `repeat` declares string input and output
+schemas. A validity mismatch is described by `ERR_OPERATION_VALIDATION_FAILED`;
+inability to decide validity by `ERR_SCHEMA_UNRESOLVED`. Those meanings do not prescribe a schema
 compiler, validation preparation order, or caching strategy.
 
 A missing binding choice, a context challenge, and an unsuccessful operation

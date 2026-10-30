@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Extract only declared OBI carriages, never arbitrary JSON inside kind content.
+// Extract only declared OBI carriages, never arbitrary JSON inside kind data.
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -18,10 +18,9 @@ for (const file of readdirSync('conformance/selection')) {
   if (!file.endsWith('.json') || file === 'fixture.schema.json') continue;
   for (const test of read(`conformance/selection/${file}`).tests) save('selection', test.document);
 }
-// A synthesis report case carries the input document and the additions;
-// inserting them gives the synthesized document, which is checked too, in root
-// field order.
-const ROOT = ['openbindings', 'name', 'version', 'description', 'schemas', 'operations', 'dependencies', 'bindings', 'resources'];
+// A pull report case carries the input document and the additions; inserting
+// them gives the pulled document, which is checked too, in root field order.
+const ROOT = ['openbindings', 'name', 'version', 'description', 'schemas', 'operations', 'sources', 'bindings', 'dependencies'];
 function insertAdditions(document, additions) {
   const merged = {};
   for (const key of ROOT) {
@@ -33,9 +32,9 @@ function insertAdditions(document, additions) {
   for (const [key, value] of Object.entries(document)) if (!ROOT.includes(key)) merged[key] = value;
   return merged;
 }
-for (const test of read('conformance/synthesis-report/cases.json').tests) {
-  save('synthesis-input', test.interface);
-  save('synthesis-synthesized', insertAdditions(test.interface, test.additions));
+for (const test of read('conformance/pull-report/cases.json').tests) {
+  save('pull-input', test.interface);
+  save('pull-pulled', insertAdditions(test.interface, test.additions));
 }
 for (const entry of read('conformance/comparison/manifest.json').files) {
   const fixture = read(`conformance/comparison/${entry.path}`);

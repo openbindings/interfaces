@@ -2,7 +2,7 @@
     "openbindings": "0.2.0",
     "name": "Binding Invoker",
     "version": "0.1.0",
-    "description": "Invoke one named binding of a supplied OpenBindings interface document, read under the binding's exact kind. invokeBinding exchanges the described input and output frames; no native invocation handle is part of this interface. A kind may be defined in writing, privately or in code.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nThe binding's kind gives its content meaning. The invoker reads the binding's content and whatever in the document that content refers to, as the kind defines, and nothing else on the kind's behalf. It selects no binding and validates no values. Content preserves absence versus JSON null. The open document schema is not a complete document-conformance check. Admission of malformed documents is implementation policy; it does not make those documents conformant.",
+    "description": "Invoke one named binding of a supplied OpenBindings interface document, read under the exact kind of the source the binding names. invokeBinding exchanges the described input and output frames; no native invocation handle is part of this interface. A kind may be defined in writing, privately or in code.\n\nThese operations are offered for voluntary adoption by name. Their schemas and descriptions identify the exchanged values and the capability they describe; they do not prescribe an SDK, internal algorithm, validation or recovery policy, or process architecture. Correspondence is an author claim, not verification of an implementation.\n\nThe source's kind gives the source's data and the binding's data their meaning. The invoker reads the binding's data, its source's data and whatever those refer to, as the kind defines, and nothing else on the kind's behalf. It selects no binding and validates no values. Data preserves absence versus JSON null. The open document schema is not a complete document-conformance check. Admission of malformed documents is implementation policy; it does not make those documents conformant.",
     "schemas": {
         "SupportedKind": {
             "type": "object",
@@ -11,7 +11,7 @@
                 "kind": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Exact, opaque kind as a binding carries it."
+                    "description": "Exact, opaque kind as a source carries it."
                 },
                 "description": {
                     "type": "string",
@@ -48,12 +48,12 @@
         },
         "BindingContext": {
             "type": "object",
-            "description": "Opaque context supplied by value for one binding invocation. The contract neither requires nor exposes a context store; callers may assemble this object from per-call values, durable state, a credential broker, or any other source before invocation. The general named-credential field is 'credentials': an object keyed by a requirement's nonempty 'name'. For auth.bearer and auth.apiKey its named value is a string; for auth.basic it is an object with username and password; for auth.oauth2 it is an object whose accessToken is the applying credential and whose refreshToken, expiresAt, and clientSecret are optional lifecycle values. Unnamed or unambiguous single-scheme conveniences remain 'bearerToken', 'apiKey', 'basic', and 'accessToken' / 'refreshToken' / 'expiresAt'; the historical 'apiKeys' named map remains accepted for auth.apiKey. Well-known transport fields: 'headers' / 'cookies' / 'environment' (objects with string values) and 'metadata' (object with arbitrary values). Well-known configuration field: 'configuration' (object), keyed by configuration-point name and interpreted by the authority that defines each point. A config.value requirement's JSON Pointer path addresses within configuration[point]; an empty path addresses the entire point. Implementations and callers MAY add fields for session state, consent, or other runtime data; fields without a meaning defined here or by the kind have implementation-specific interpretation. Every value in credentials and the single-scheme credential fields is secret, and any other field may also be secret according to its requirement family, the binding's kind, or application policy.",
+            "description": "Opaque context supplied by value for one binding invocation. The contract neither requires nor exposes a context store; callers may assemble this object from per-call values, durable state, a credential broker, or any other source before invocation. The general named-credential field is 'credentials': an object keyed by a requirement's nonempty 'name'. For auth.bearer and auth.apiKey its named value is a string; for auth.basic it is an object with username and password; for auth.oauth2 it is an object whose accessToken is the applying credential and whose refreshToken, expiresAt, and clientSecret are optional lifecycle values. Unnamed or unambiguous single-scheme conveniences remain 'bearerToken', 'apiKey', 'basic', and 'accessToken' / 'refreshToken' / 'expiresAt'; the historical 'apiKeys' named map remains accepted for auth.apiKey. Well-known transport fields: 'headers' / 'cookies' / 'environment' (objects with string values) and 'metadata' (object with arbitrary values). Well-known configuration field: 'configuration' (object), keyed by configuration-point name and interpreted by the authority that defines each point. A config.value requirement's JSON Pointer path addresses within configuration[point]; an empty path addresses the entire point. Implementations and callers MAY add fields for session state, consent, or other runtime data; fields without a meaning defined here or by the kind have implementation-specific interpretation. Every value in credentials and the single-scheme credential fields is secret, and any other field may also be secret according to its requirement family, the source's kind, or application policy.",
             "additionalProperties": true
         },
         "ContextRequirement": {
             "type": "object",
-            "description": "One prerequisite that must be satisfied before a binding can be invoked. `type` names the requirement family; the remaining fields are type-specific. A named well-known `auth.*` requirement resolves at BindingContext.credentials[name]: a string for `auth.bearer` and `auth.apiKey`, a username/password object for `auth.basic`, or an OAuth object beginning with accessToken for `auth.oauth2`. Unnamed or unambiguous single-scheme requirements use the corresponding bearerToken, apiKey, basic, or flat OAuth conveniences; historical apiKeys[name] remains accepted for `auth.apiKey`. OAuth requirements may carry flow fields such as grantType, authorizeUrl, tokenUrl, and scopes. The `config.value` family carries a configuration value a binding needs but the artifact does not supply: it carries 'point' and a JSON Pointer 'path' (plus an optional engine-asserted 'schema') and resolves within BindingContext.configuration. Other families (e.g. 'approval.user', 'account.link') resolve into their own context fields. Resolution architecture and value secrecy beyond the always-secret credential fields are determined by the requirement family, the binding's kind, and the caller.",
+            "description": "One prerequisite that must be satisfied before a binding can be invoked. `type` names the requirement family; the remaining fields are type-specific. A named well-known `auth.*` requirement resolves at BindingContext.credentials[name]: a string for `auth.bearer` and `auth.apiKey`, a username/password object for `auth.basic`, or an OAuth object beginning with accessToken for `auth.oauth2`. Unnamed or unambiguous single-scheme requirements use the corresponding bearerToken, apiKey, basic, or flat OAuth conveniences; historical apiKeys[name] remains accepted for `auth.apiKey`. OAuth requirements may carry flow fields such as grantType, authorizeUrl, tokenUrl, and scopes. The `config.value` family carries a configuration value a binding needs but the artifact does not supply: it carries 'point' and a JSON Pointer 'path' (plus an optional engine-asserted 'schema') and resolves within BindingContext.configuration. Other families (e.g. 'approval.user', 'account.link') resolve into their own context fields. Resolution architecture and value secrecy beyond the always-secret credential fields are determined by the requirement family, the source's kind, and the caller.",
             "properties": {
                 "type": {
                     "type": "string",
@@ -67,7 +67,7 @@
                 },
                 "point": {
                     "type": "string",
-                    "description": "config.value only: the configuration point the binding's kind defines ('server', 'address', a kind's decode point, …)."
+                    "description": "config.value only: the configuration point the source's kind defines ('server', 'address', a kind's decode point, …)."
                 },
                 "path": {
                     "type": "string",
@@ -101,7 +101,7 @@
             "properties": {
                 "target": {
                     "type": "string",
-                    "description": "Opaque identifier for the destination or context scope asserted by the invoker. The identifier is not proof of identity or permission to release a secret. Interpretation follows the binding's kind; trust decisions, normalization and storage keying belong to the caller."
+                    "description": "Opaque identifier for the destination or context scope asserted by the invoker. The identifier is not proof of identity or permission to release a secret. Interpretation follows the source's kind; trust decisions, normalization and storage keying belong to the caller."
                 },
                 "alternatives": {
                     "type": "array",
@@ -142,7 +142,7 @@
                     "description": "Machine-readable reason. Binding invocation owns ERR_BINDING_NOT_FOUND (the requested key names no binding in the supplied interface), CONTEXT_REQUIRED (context requested, no operation output or effects), ERR_REFUSED (no operation effects), ERR_EXECUTION_FAILED (failure making no claim about effects or dispatch), ERR_FRAME_PROTOCOL (reported frame-exchange violation), ERR_TRANSPORT_CLOSED (transport ended before a terminal outcome), and ERR_CANCELLED (caller cancellation, with no rollback or external-stop claim). Operation invocation additionally owns ERR_OPERATION_NOT_FOUND (unresolved operation), ERR_BINDING_SELECTION_REQUIRED (ambiguous binding choice), ERR_OPERATION_VALIDATION_FAILED (value violates a declared schema), and ERR_SCHEMA_UNRESOLVED (validity could not be determined), and also reports ERR_BINDING_NOT_FOUND with a broader meaning (unresolved allowed binding). These meanings do not prescribe detection, recovery or precedence. Other codes have kind-defined or implementation-specific meanings."
                 },
                 "data": {
-                    "description": "Optional portable JSON data associated with the unsuccessful completion. A rule defining `code` may define its structure and semantics; otherwise, the binding's kind may use it to preserve an opaque application-authored failure value. For CONTEXT_REQUIRED, this is a ContextRequiredDetails object. Presence is significant: an absent member means no portable associated value, while an explicit null is a present JSON null value. Statuses, headers, trailers, envelopes, raw debugging bytes, exception prose, stacks, and implementation evidence do not belong here unless they are themselves application data under an explicit governing rule."
+                    "description": "Optional portable JSON data associated with the unsuccessful completion. A rule defining `code` may define its structure and semantics; otherwise, the source's kind may use it to preserve an opaque application-authored failure value. For CONTEXT_REQUIRED, this is a ContextRequiredDetails object. Presence is significant: an absent member means no portable associated value, while an explicit null is a present JSON null value. Statuses, headers, trailers, envelopes, raw debugging bytes, exception prose, stacks, and implementation evidence do not belong here unless they are themselves application data under an explicit governing rule."
                 }
             },
             "required": [
@@ -314,7 +314,7 @@
             }
         },
         "openbindings.binding-invoker.checkKindSupport": {
-            "description": "Report support for this interface's job for the requested exact kind strings, with one verdict per distinct requested kind in first-occurrence order. supported: true means the implementation knows how to interpret that kind for this job, not that every artifact or case succeeds. supported: false reports no support for that job. Additional fields do not qualify the Boolean. The operation reports capability without performing the requested synthesis or invocation. Kind equality is the core's exact string equality. Capability detection and representation are implementation choices.",
+            "description": "Report support for this interface's job for the requested exact kind strings, with one verdict per distinct requested kind in first-occurrence order. supported: true means the implementation knows how to interpret that kind for this job, not that every artifact or case succeeds. supported: false reports no support for that job. Additional fields do not qualify the Boolean. The operation reports capability without performing the requested invocation. Kind equality is the core's exact string equality. Capability detection and representation are implementation choices.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -355,7 +355,7 @@
             }
         },
         "openbindings.binding-invoker.invokeBinding": {
-            "description": "Invoke the named binding of the supplied interface document and exchange caller-facing values as the binding's kind defines. The invoker reads the binding's content and whatever in the document that content refers to, and nothing else on the kind's behalf; in particular, it does not read the operation declaration. Adaptation that needs an operation's schemas is expressed in content, which may refer to them. The invoker selects no binding and validates no values. A key that names no binding in the document is ERR_BINDING_NOT_FOUND. The caller may send a smaller document that preserves the binding's meaning.\n\nThe caller sends an open frame carrying the invocation request, followed by input frames and an optional close. close means no further input values; input_closed reports that the invoked binding is no longer accepting input. Repeated close has the same meaning. A caller close is unnecessary when input has already closed or the invocation has ended. The service returns output and input_closed frames followed by one terminal complete or error. complete reports successful completion; error reports unsuccessful completion. No further frames belong to the invocation after its terminal frame. An output value alone does not report success. A late failure does not retract values already delivered or assert that no effects occurred.\n\nFrame schemas describe the messages. Handling malformed frames, late inputs or interrupted transports is implementation policy; ERR_FRAME_PROTOCOL and ERR_TRANSPORT_CLOSED identify those reported failures. The interface does not prescribe parser order, buffer admission, internal terminal-race arbitration, queue draining, polling or handle disposal. ERR_CANCELLED reports cancellation without promising rollback or that external work has stopped.\n\nCONTEXT_REQUIRED carries ContextRequiredDetails and means that the attempt produced neither operation output nor observable effects of the requested operation. This meaning also applies if supplied context proved unusable. The caller may use a reported alternative to make another attempt; the signal does not require or authorize automatic replay. Requirement family and durable fields describe the requested context and whether reuse is represented as safe; the interface supplies no store, resolver, trust decision or retry policy. auth.bearer, auth.basic, auth.apiKey, auth.oauth2 and config.value use the documented context fields; unknown families have only their independently defined meanings.\n\nERR_REFUSED means the requested operation had no observable effects; ERR_EXECUTION_FAILED makes no such claim. Other error codes retain the meanings described for them or by their defining kind. The interface does not prescribe how an implementation determines these outcomes.",
+            "description": "Invoke the named binding of the supplied interface document and exchange caller-facing values as the kind of the binding's source defines. The invoker reads the binding's data, the data of the source it names and whatever those refer to, and nothing else on the kind's behalf; in particular, it does not read the operation declaration. Adaptation that needs an operation's schemas is expressed in binding data, which may refer to them. The invoker selects no binding and validates no values. A key that names no binding in the document is ERR_BINDING_NOT_FOUND. The caller may send a smaller document that preserves the binding's meaning.\n\nThe caller sends an open frame carrying the invocation request, followed by input frames and an optional close. close means no further input values; input_closed reports that the invoked binding is no longer accepting input. Repeated close has the same meaning. A caller close is unnecessary when input has already closed or the invocation has ended. The service returns output and input_closed frames followed by one terminal complete or error. complete reports successful completion; error reports unsuccessful completion. No further frames belong to the invocation after its terminal frame. An output value alone does not report success. A late failure does not retract values already delivered or assert that no effects occurred.\n\nFrame schemas describe the messages. Handling malformed frames, late inputs or interrupted transports is implementation policy; ERR_FRAME_PROTOCOL and ERR_TRANSPORT_CLOSED identify those reported failures. The interface does not prescribe parser order, buffer admission, internal terminal-race arbitration, queue draining, polling or handle disposal. ERR_CANCELLED reports cancellation without promising rollback or that external work has stopped.\n\nCONTEXT_REQUIRED carries ContextRequiredDetails and means that the attempt produced neither operation output nor observable effects of the requested operation. This meaning also applies if supplied context proved unusable. The caller may use a reported alternative to make another attempt; the signal does not require or authorize automatic replay. Requirement family and durable fields describe the requested context and whether reuse is represented as safe; the interface supplies no store, resolver, trust decision or retry policy. auth.bearer, auth.basic, auth.apiKey, auth.oauth2 and config.value use the documented context fields; unknown families have only their independently defined meanings.\n\nERR_REFUSED means the requested operation had no observable effects; ERR_EXECUTION_FAILED makes no such claim. Other error codes retain the meanings described for them or by their defining kind. The interface does not prescribe how an implementation determines these outcomes.",
             "input": {
                 "$ref": "#/schemas/BindingInvokerInputFrame"
             },
@@ -364,7 +364,7 @@
             },
             "examples": {
                 "openText": {
-                    "description": "One opening frame that runs repeatText in the illustrative text document. Under example.text@1, binding content echo returns the input string. Further input/output and a terminal outcome belong to this exchange.",
+                    "description": "One opening frame that runs repeatText in the illustrative text document. Under example.text@1, binding data echo returns the input string. Further input/output and a terminal outcome belong to this exchange.",
                     "input": {
                         "kind": "open",
                         "input": {
@@ -392,16 +392,21 @@
                                         }
                                     }
                                 },
+                                "sources": {
+                                    "text": {
+                                        "kind": "example.text@1"
+                                    }
+                                },
                                 "bindings": {
                                     "repeatText": {
                                         "operation": "repeat",
-                                        "kind": "example.text@1",
-                                        "content": "echo"
+                                        "source": "text",
+                                        "data": "echo"
                                     },
                                     "countText": {
                                         "operation": "count",
-                                        "kind": "example.text@1",
-                                        "content": "length"
+                                        "source": "text",
+                                        "data": "length"
                                     }
                                 }
                             },
@@ -451,7 +456,7 @@
             }
         },
         "openbindings.binding-invoker.preflightBinding": {
-            "description": "Report context requirements identifiable for a possible invocation, as ContextRequiredDetails, or null for no prediction. Preflight does not perform the requested operation, consume its inputs or produce its outputs. It is advisory: null is a valid result even when invocation will need context; invocation does not depend on prior preflight. An unsuccessful completion reports inability to answer; ERR_REFUSED additionally reports that the same request would be refused without operation effects. Acquiring what the binding's content refers to, caching and other preparation are implementation choices under the binding's kind.",
+            "description": "Report context requirements identifiable for a possible invocation, as ContextRequiredDetails, or null for no prediction. Preflight does not perform the requested operation, consume its inputs or produce its outputs. It is advisory: null is a valid result even when invocation will need context; invocation does not depend on prior preflight. An unsuccessful completion reports inability to answer; ERR_REFUSED additionally reports that the same request would be refused without operation effects. Acquiring what the binding's data and its source's data refer to, caching and other preparation are implementation choices under the source's kind.",
             "input": {
                 "$ref": "#/schemas/BindingInvocationInput"
             },

@@ -49,11 +49,16 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "send.local": {
                 "operation": "send",
-                "kind": "example.local@1",
-                "content": {
+                "source": "local",
+                "data": {
                   "selector": "send"
                 }
               }
@@ -112,10 +117,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }
@@ -138,10 +148,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }
@@ -193,18 +208,26 @@
                 }
               }
             },
+            "sources": {
+              "a": {
+                "kind": "example.local@1"
+              },
+              "b": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.a": {
                 "operation": "deliver",
-                "kind": "example.local@1",
-                "content": {
+                "source": "a",
+                "data": {
                   "selector": "a"
                 }
               },
               "deliver.b": {
                 "operation": "deliver",
-                "kind": "example.local@1",
-                "content": {
+                "source": "b",
+                "data": {
                   "selector": "b"
                 }
               }
@@ -260,10 +283,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }
@@ -316,10 +344,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }
@@ -375,10 +408,15 @@
                 }
               }
             },
+            "sources": {
+              "other": {
+                "kind": "example.other@1"
+              }
+            },
             "bindings": {
               "deliver.other": {
                 "operation": "deliver",
-                "kind": "example.other@1"
+                "source": "other"
               }
             }
           }
@@ -431,10 +469,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }
@@ -457,10 +500,15 @@
                 }
               }
             },
+            "sources": {
+              "local": {
+                "kind": "example.local@1"
+              }
+            },
             "bindings": {
               "deliver.local": {
                 "operation": "deliver",
-                "kind": "example.local@1"
+                "source": "local"
               }
             }
           }

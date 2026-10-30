@@ -1,6 +1,6 @@
 {
   "cluster": "override-selection",
-  "description": "Caller choice: `selection` is an ordered list of binding keys, the first invocable entry winning. Every listed key must name a binding of the resolved operation; a key that does not is ERR_BINDING_NOT_FOUND. Entries whose kind the invoker cannot act on are passed over. When no listed entry is invocable, the list fails with ERR_BINDING_NOT_FOUND and never falls back to an unlisted binding.",
+  "description": "Caller choice: `selection` is an ordered list of binding keys, the first invocable entry winning. Every listed key must name a binding of the resolved operation; a key that does not is ERR_BINDING_NOT_FOUND. Entries whose source's kind the invoker cannot act on are passed over. When no listed entry is invocable, the list fails with ERR_BINDING_NOT_FOUND and never falls back to an unlisted binding.",
   "tests": [
     {
       "description": "the override displaces the default policy: a listed key wins over the policy's preferred candidate",
@@ -9,19 +9,27 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 100
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             },
             "preference": 1
@@ -47,19 +55,27 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 1
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             },
             "preference": 100
@@ -86,19 +102,27 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 100
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           }
@@ -126,26 +150,34 @@
           "getThing": {},
           "listThings": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 100
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           },
           "listThings.rest": {
             "operation": "listThings",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things/get"
             }
           }
@@ -166,24 +198,32 @@
       }
     },
     {
-      "description": "a listed key whose kind is unsupported is skipped; the next invocable entry wins",
+      "description": "a listed key whose source's kind is unsupported is skipped; the next invocable entry wins",
       "document": {
         "openbindings": "0.2.0",
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             }
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           }
@@ -208,19 +248,27 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 100
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           }
@@ -247,18 +295,26 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             }
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           }
@@ -283,25 +339,36 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          },
+          "cli": {
+            "kind": "example.usage@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             }
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             }
           },
           "getThing.cli": {
             "operation": "getThing",
-            "kind": "example.usage@1",
-            "content": {
+            "source": "cli",
+            "data": {
               "selector": "things get"
             }
           }
@@ -327,18 +394,26 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             }
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             },
             "deprecated": true

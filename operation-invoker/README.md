@@ -20,9 +20,9 @@ Both interfaces receive the document. The real distinction is what each does wit
 
 An explicit `binding` key here bypasses selection but not validation.
 
-The `interface` in the open frame is the document itself, carried inline, never a pointer into a store or registry. An interface that is stored nowhere (synthesized mid-pipeline, held only in memory) invokes exactly like a published one.
+The `interface` in the open frame is the document itself, carried inline, never a pointer into a store or registry. An interface that is stored nowhere (built mid-pipeline, held only in memory) invokes exactly like a published one.
 
-Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and the selected binding's content and whatever it refers to. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
+Because the document is a value, the caller may construct a smaller document before sending it. Such a document must preserve the intended name resolution, binding choices, schema reference environment (including anchors and dynamic scope), and the selected binding's data, the source it names and whatever those refer to. Removing apparently unused members alone does not prove this: the resulting document must be conformant and preserve the behavior the caller needs. This interface does not prescribe a generic document-slicing algorithm.
 
 ## Publication boundary
 
@@ -38,7 +38,7 @@ The operation describes the following capability. These points describe the
 caller-facing meaning, not a required execution pipeline:
 
 1. **Resolves the name or key.** An `operation` name resolves across the flat key-and-alias namespace (core §5.1) to the operation and a selected binding; a `binding` key resolves to that binding, and the operation is derived from it. Bindings are found by the resolved operation key, not the alias used to reach it.
-2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose kinds the invoker can act on. The contract follows caller policy and each binding's kind without inventing a ranking:
+2. **Resolves a binding** (operation-key case). The candidate set is the operation's bindings whose sources' kinds the invoker can act on. The contract follows caller policy and each binding's kind without inventing a ranking:
    - an explicit `binding` key is used directly;
    - when the caller supplies an ordered `selection`, the first listed binding the invoker can act on is used. The list passes over only what the invoker cannot act on, the one fact a caller may not know. Every listed key must name one of the operation's bindings, and the list never falls back to a binding it does not name: a key that names no binding of the operation, or a list with none the invoker can act on, fails with `ERR_BINDING_NOT_FOUND`;
    - without `binding` or `selection`, a sole invocable candidate is used;
@@ -87,7 +87,7 @@ This interface owns only the codes required by its resolution and validation mec
 | `ERR_SCHEMA_UNRESOLVED` | A schema check on a value cannot give a verdict, so that value cannot be forwarded as validated. |
 
 These outcomes are code-only: this interface defines no `data` for them.
-Binding-invoker-owned failures and failures owned by the binding's kind, if any,
+Binding-invoker-owned failures and failures owned by the source's kind, if any,
 relay unchanged. Any other implementation code remains non-portable
 under this interface; in particular, this list is not a general failure
 vocabulary for bindings or protocols.
@@ -130,7 +130,8 @@ Use one choice per invocation. `binding` stands alone; `selection` accompanies
 OBI, in `invokeOperation.examples`. It does not require a document registry.
 
 Each form resolves to `repeatText`, the one binding of `repeat`; the operation
-and selection forms do so only if the invoker can act on `example.text@1`. The
+and selection forms do so only if the invoker can act on `example.text@1`, the
+kind of its source. The
 invoker then forwards the document and the key `repeatText` to binding
 invocation. The caller can exchange the `input`, `close`, `output` and terminal
 values from that walkthrough. Here `repeat` declares string input and output

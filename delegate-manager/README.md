@@ -25,7 +25,7 @@ The shared management interface is independent of the managed responsibilities.
 It contains no invocation, storage, identity, notification, or provider-specific
 operation dependency. An application may implement this interface and consume
 additional operations in its own OBI. The same machinery can manage storage
-delegates in one application and synthesizers or invokers in another.
+delegates in one application and pullers or invokers in another.
 
 This is a non-normative, opt-in interface above OpenBindings Core, not an
 addition to Core. There is no universal role vocabulary, mandatory transport,
@@ -57,7 +57,7 @@ of the entire Core meta-schema.
 
 There is no `location`, `contract`, URL resolver, fetch policy, remote refresh,
 or interface-name lookup on this management surface. A caller can fetch an OBI,
-read one from disk, synthesize it, or build it in memory before passing it in.
+read one from disk, pull it together, or build it in memory before passing it in.
 A native CLI can accept a filename as a convenience while publishing this
 by-value operation through its appropriate adaptation; file retrieval is not
 the portable enrollment operation.
@@ -205,7 +205,7 @@ must use a separately defined facility or serialize administrative changes.
 The output is the committed record's `id`, retained `interface`, `roles`, and
 complete explicit `rolePreferences` map.
 Preserve the supplied document value, including extensions; no silent operation
-pruning, binding or resource rewriting, numeric rounding, or substitution with a summary.
+pruning, source or binding rewriting, numeric rounding, or substitution with a summary.
 Object formatting is not significant. A runtime must refuse values it cannot
 retain faithfully rather than claim successful enrollment of changed data.
 
@@ -435,5 +435,5 @@ sequence. These example values are specifications, not evidence of a running rol
 delegate manager.
 
 The bound provider example uses `example.delegate-provider@1`, a private harness
-kind. Its content demonstrates registration carriage and does not claim OpenAPI
-interpretation or an executable protocol adapter.
+kind. Its source and binding data demonstrate registration carriage and do not
+claim OpenAPI interpretation or an executable protocol adapter.

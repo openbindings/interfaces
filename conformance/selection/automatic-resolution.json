@@ -9,11 +9,16 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             },
             "preference": -100,
@@ -36,19 +41,27 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "rest": {
+            "kind": "example.openapi@1"
+          },
+          "rpc": {
+            "kind": "example.grpc@1"
+          }
+        },
         "bindings": {
           "getThing.rest": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "rest",
+            "data": {
               "selector": "#/paths/~1things~1{id}/get"
             },
             "preference": 100
           },
           "getThing.rpc": {
             "operation": "getThing",
-            "kind": "example.grpc@1",
-            "content": {
+            "source": "rpc",
+            "data": {
               "selector": "things.v1.Things/GetThing"
             },
             "preference": 1,
@@ -73,18 +86,26 @@
         "operations": {
           "getThing": {}
         },
+        "sources": {
+          "z": {
+            "kind": "example.openapi@1"
+          },
+          "a": {
+            "kind": "example.openapi@1"
+          }
+        },
         "bindings": {
           "getThing.z": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "z",
+            "data": {
               "selector": "#/paths/~1z/get"
             }
           },
           "getThing.a": {
             "operation": "getThing",
-            "kind": "example.openapi@1",
-            "content": {
+            "source": "a",
+            "data": {
               "selector": "#/paths/~1a/get"
             }
           }

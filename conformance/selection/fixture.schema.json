@@ -50,7 +50,7 @@
             "type": "array",
             "items": { "type": "string", "minLength": 1 },
             "uniqueItems": true,
-            "description": "The notional invoker's supported set: the exact kinds it can act on (natively or via a delegate). The candidate set is the operation's bindings whose kind appears here, by exact identifier."
+            "description": "The notional invoker's supported set: the exact kinds it can act on (natively or via a delegate). The candidate set is the operation's bindings whose source's kind appears here, by exact identifier."
           },
           "selection": {
             "type": "array",

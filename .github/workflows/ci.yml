@@ -50,8 +50,8 @@ jobs:
             ajv validate -s conformance/selection/fixture.schema.json -d "$f" --spec=draft2020
           done
 
-      - name: Validate synthesis report fixtures
-        run: ajv validate -s conformance/synthesis-report/fixture.schema.json -d conformance/synthesis-report/cases.json --spec=draft2020
+      - name: Validate pull report fixtures
+        run: ajv validate -s conformance/pull-report/fixture.schema.json -d conformance/pull-report/cases.json --spec=draft2020
 
       - name: Validate kind support fixtures
         run: ajv validate -s conformance/kind-support/fixture.schema.json -d conformance/kind-support/cases.json --spec=draft2020
@@ -62,7 +62,7 @@ jobs:
       - name: Validate Delegate Manager documents and fixtures
         run: node delegate-manager/verification.mjs
 
-      - name: Check core and kind-content contract alignment
+      - name: Check core and kind-data contract alignment
         run: node .github/scripts/check-core-alignment.mjs
 
       - name: Validate comparison corpus against its schemas

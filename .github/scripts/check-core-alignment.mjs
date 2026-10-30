@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Contract-boundary regressions for the kind/content core model. This checks
-// artifacts and schema behavior; it is not an invoker implementation.
+// Contract-boundary regressions for the sources core model. This checks
+// artifacts and schema behavior; it is not an invoker or puller implementation.
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -64,21 +64,26 @@ for (const doc of contracts.values()) {
 
 const invoker = contracts.get('binding-invoker');
 const invocation = compile(invoker, invoker.schemas.BindingInvocationInput);
-const synthesizer = contracts.get('interface-synthesizer');
+const puller = contracts.get('source-puller');
 // The opening payload names one binding of a carried document. A key that names
 // no binding is a run-time outcome (ERR_BINDING_NOT_FOUND), not a shape error.
-// Content presence lives in the document, so each variant is a core document.
+// Data presence lives in the document, on the binding and on its source, so
+// each variant is a core document.
 const invocationDocument = {
   openbindings: '0.2.0',
   operations: { op: {} },
-  bindings: { b: { operation: 'op', kind: 'example.invocation@1' } },
+  sources: { s: { kind: 'example.invocation@1' } },
+  bindings: { b: { operation: 'op', source: 's' } },
 };
 const absent = Symbol('absent');
-for (const content of [absent, null, false, 0, '', [], { target: 'native' }]) {
-  const document = structuredClone(invocationDocument);
-  if (content !== absent) document.bindings.b.content = content;
-  assert(core(document), JSON.stringify(core.errors));
-  accepts(invocation, { interface: document, binding: 'b' });
+for (const data of [absent, null, false, 0, '', [], { target: 'native' }]) {
+  for (const carrier of ['binding', 'source']) {
+    const document = structuredClone(invocationDocument);
+    const entry = carrier === 'binding' ? document.bindings.b : document.sources.s;
+    if (data !== absent) entry.data = data;
+    assert(core(document), JSON.stringify(core.errors));
+    accepts(invocation, { interface: document, binding: 'b' });
+  }
 }
 accepts(invocation, { interface: invocationDocument, binding: 'missing' });
 accepts(invocation, { interface: invocationDocument, binding: 'b', context: {} });
@@ -92,6 +97,7 @@ for (const request of [
   { interface: invocationDocument, binding: null },
   { interface: invocationDocument, binding: 'b', operation: 'op' },
   { interface: invocationDocument, binding: 'b', selection: ['b'] },
+  { interface: invocationDocument, binding: 'b', source: 's' },
   { source: { kind: 'k' }, binding: {} },
 ]) accepts(invocation, request, false);
 for (const context of [null, false, '', []]) {
@@ -214,12 +220,11 @@ for (const [role, prefix, request] of [
   }
 }
 
-for (const name of ['binding-invoker', 'interface-synthesizer']) {
-  const doc = contracts.get(name);
-  const check = doc.operations[`openbindings.${name}.checkKindSupport`];
-  const list = doc.operations[`openbindings.${name}.listSupportedKinds`];
+{
+  const check = invoker.operations['openbindings.binding-invoker.checkKindSupport'];
+  const list = invoker.operations['openbindings.binding-invoker.listSupportedKinds'];
   assert(check && list);
-  const input = compile(doc, check.input), output = compile(doc, check.output);
+  const input = compile(invoker, check.input), output = compile(invoker, check.output);
   accepts(input, { kinds: [] });
   accepts(input, { kinds: ['acme.private@1', 'acme.private@1'] });
   accepts(input, { kinds: [''] }, false);
@@ -233,17 +238,20 @@ for (const test of read('conformance/kind-support/cases.json').tests) {
   assert(test.listed.every(kind => warranted.has(kind)), test.description);
   assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
 }
-const reportSchema = compile(synthesizer, synthesizer.schemas.SynthesisReport);
-const additionsSchema = compile(synthesizer, synthesizer.schemas.SynthesisAdditions);
-// The guide's complete-synthesis condition: an exhaustive report with no
-// implementation gap. Exclusions, invalid parts and lossy additions still meet it.
-const completeSynthesis = (report) => report.exhaustive === true
+
+const reportSchema = compile(puller, puller.schemas.PullReport);
+const additionsSchema = compile(puller, puller.schemas.PullAdditions);
+// The guide's complete-pull condition: an exhaustive report with no
+// implementation gap. Exclusions, invalid parts, conflicts and lossy additions
+// still meet it.
+const completePull = (report) => report.exhaustive === true
   && (report.omitted ?? []).every(entry => entry.status !== 'implementation-unsupported');
 // Insert additions as the interface describes them: each added key is new to
-// its map, and added operation keys are new to the identifier namespace.
+// its map, added operation keys are new to the identifier namespace, and added
+// bindings name the pulled source.
 const has = (map, key) => Object.hasOwn(map ?? {}, key);
-const MAPS = ['schemas', 'operations', 'dependencies', 'bindings', 'resources'];
-function insertAdditions(document, additions, label) {
+const MAPS = ['operations', 'schemas', 'bindings'];
+function insertAdditions(document, source, additions, label) {
   const identifiers = new Set();
   for (const [key, operation] of Object.entries(document.operations ?? {})) {
     identifiers.add(key);
@@ -254,6 +262,7 @@ function insertAdditions(document, additions, label) {
     for (const [key, value] of Object.entries(additions[map] ?? {})) {
       assert(!has(document[map], key), `${label}: added ${map} key ${key} is not new`);
       if (map === 'operations') assert(!identifiers.has(key), `${label}: added operation key ${key} is an existing identifier`);
+      if (map === 'bindings') assert.equal(value.source, source, `${label}: added binding ${key} names the pulled source`);
       merged[map] = { ...(merged[map] ?? {}), [key]: value };
     }
   }
@@ -275,99 +284,124 @@ function schemaReferences(value, found = new Set()) {
   }
   return found;
 }
-// uses keys name additions, and a kept entry is self-sufficient: every schema
-// its operation refers to, directly or through a used schema, is in the input
-// document or in uses.schemas.
-function checkUses(document, additions, operation, uses, label) {
-  for (const map of MAPS) {
-    for (const key of uses?.[map] ?? []) assert(has(additions[map], key), `${label}: uses.${map} names an addition, ${key}`);
+// uses labels are <map>/<key> and name additions; a kept entry is
+// self-sufficient: every schema its operation refers to, directly or through a
+// used schema, is in the input document or among the used schemas.
+function parseUses(uses, label) {
+  const used = { operations: new Set(), schemas: new Set(), bindings: new Set() };
+  for (const entry of uses ?? []) {
+    const slash = entry.indexOf('/');
+    assert(slash > 0 && slash < entry.length - 1, `${label}: uses label ${entry} is <map>/<key>`);
+    const map = entry.slice(0, slash), key = entry.slice(slash + 1);
+    assert(Object.hasOwn(used, map), `${label}: uses label ${entry} names an additions map`);
+    assert(!used[map].has(key), `${label}: ${entry} appears once in uses`);
+    used[map].add(key);
   }
-  const used = new Set(uses?.schemas ?? []);
-  for (const value of [operation?.input, operation?.output, ...[...used].map(key => additions.schemas[key])]) {
+  return used;
+}
+function checkUses(document, additions, operation, uses, label) {
+  const used = parseUses(uses, label);
+  for (const map of MAPS) {
+    for (const key of used[map]) assert(has(additions[map], key), `${label}: ${map}/${key} names an addition`);
+  }
+  for (const value of [operation?.input, operation?.output, ...[...used.schemas].map(key => additions.schemas[key])]) {
     for (const key of schemaReferences(value)) {
-      assert(has(document.schemas, key) || used.has(key), `${label}: #/schemas/${key} is in the input document or in uses.schemas`);
+      assert(has(document.schemas, key) || used.schemas.has(key), `${label}: #/schemas/${key} is in the input document or in uses`);
     }
   }
 }
 // Report keys point where the interface says they do.
-function checkAttribution(document, additions, report, label) {
-  const attributed = { bindings: new Set(), dependencies: new Set() };
+function checkAttribution(document, source, additions, report, label) {
+  const attributed = new Set();
   for (const entry of report.added) {
-    const [map, key] = Object.hasOwn(entry, 'binding') ? ['bindings', entry.binding] : ['dependencies', entry.dependency];
-    assert(has(additions[map], key), `${label}: added entry ${key} names an added ${map} entry`);
-    assert(!attributed[map].has(key), `${label}: ${key} appears once in added`);
-    attributed[map].add(key);
-    assert(has(additions.operations, entry.operation), `${label}: ${key} names an added operation`);
-    assert.equal(additions[map][key].operation, entry.operation, `${label}: ${key} carries the entry's operation`);
-    checkUses(document, additions, additions.operations[entry.operation], entry.uses, `${label}: ${key}`);
+    assert(has(additions.bindings, entry.binding), `${label}: added entry ${entry.binding} names an added binding`);
+    assert(!attributed.has(entry.binding), `${label}: ${entry.binding} appears once in added`);
+    attributed.add(entry.binding);
+    const binding = additions.bindings[entry.binding];
+    assert.equal(binding.operation, entry.operation, `${label}: ${entry.binding} carries the entry's operation`);
+    if (entry.reused) {
+      assert(has(document.operations, entry.operation) && !has(additions.operations, entry.operation), `${label}: ${entry.binding} reuses an existing operation`);
+      checkUses(document, additions, undefined, entry.uses, `${label}: ${entry.binding}`);
+    } else {
+      assert(has(additions.operations, entry.operation), `${label}: ${entry.binding} names an added operation`);
+      checkUses(document, additions, additions.operations[entry.operation], entry.uses, `${label}: ${entry.binding}`);
+    }
   }
-  for (const map of ['bindings', 'dependencies']) {
-    for (const key of Object.keys(additions[map] ?? {})) assert(attributed[map].has(key), `${label}: added ${map} key ${key} appears in added`);
-  }
-  const existing = new Set();
+  for (const key of Object.keys(additions.bindings ?? {})) assert(attributed.has(key), `${label}: added binding ${key} appears in added`);
+  const existing = { binding: new Set(), schema: new Set(), source: new Set() };
   for (const entry of report.existing ?? []) {
-    assert(has(document.bindings, entry.binding), `${label}: existing names an input binding, ${entry.binding}`);
-    assert(!existing.has(entry.binding), `${label}: ${entry.binding} appears once in existing`);
-    existing.add(entry.binding);
-    checkUses(document, additions, entry.proposal?.operation, entry.proposal?.uses, `${label}: ${entry.binding}`);
+    const names = ['binding', 'schema', 'source'].filter(name => Object.hasOwn(entry, name));
+    assert.equal(names.length, 1, `${label}: an existing entry names exactly one entry`);
+    const [name] = names, key = entry[name];
+    assert(!existing[name].has(key), `${label}: ${name} ${key} appears once in existing`);
+    existing[name].add(key);
+    if (name === 'binding') {
+      assert(has(document.bindings, key), `${label}: existing names an input binding, ${key}`);
+      assert.equal(document.bindings[key].source, source, `${label}: ${key} names the pulled source`);
+      if (entry.proposal) checkUses(document, additions, { input: entry.proposal.input, output: entry.proposal.output }, entry.proposal.uses, `${label}: ${key}`);
+    } else if (name === 'schema') {
+      assert(has(document.schemas, key), `${label}: existing names an input schema, ${key}`);
+      assert(!has(additions.schemas, key), `${label}: schema ${key} is not also added`);
+    } else {
+      assert.equal(key, source, `${label}: the source entry names the pulled source`);
+    }
   }
 }
 let reportCases = 0;
-for (const test of read('conformance/synthesis-report/cases.json').tests) {
+for (const test of read('conformance/pull-report/cases.json').tests) {
   accepts(reportSchema, test.report, test.schemaValid);
   accepts(additionsSchema, test.additions);
-  insertAdditions(test.interface, test.additions, test.description);
+  assert(has(test.interface.sources, test.source), `${test.description}: source names a sources entry`);
+  insertAdditions(test.interface, test.source, test.additions, test.description);
   if (test.schemaValid) {
-    checkAttribution(test.interface, test.additions, test.report, test.description);
-    assert.equal(completeSynthesis(test.report), test.completeSynthesis, test.description);
+    checkAttribution(test.interface, test.source, test.additions, test.report, test.description);
+    assert.equal(completePull(test.report), test.completePull, test.description);
   }
   reportCases++;
 }
-assert(reportCases > 0, 'no synthesis report cases checked');
-const synthesis = synthesizer.operations['openbindings.interface-synthesizer.synthesizeInterface'];
-const synthesisInput = compile(synthesizer, synthesis.input);
-const synthesisResult = compile(synthesizer, synthesis.output);
-// The examples' descriptions say which results are complete synthesis.
-const exampleComplete = { textTools: true, partialTextTools: false, existingTextTools: true };
-for (const [name, example] of Object.entries(synthesis.examples)) {
-  accepts(synthesisInput, example.input);
-  accepts(synthesisResult, example.output);
-  const { interface: document, kind } = example.input;
+assert(reportCases > 0, 'no pull report cases checked');
+const pull = puller.operations['openbindings.source-puller.pullSource'];
+const pullInput = compile(puller, pull.input);
+const pullResult = compile(puller, pull.output);
+// The examples' descriptions say which results are complete pulls.
+const exampleComplete = { textTools: true, partialTextTools: false, existingTextTools: true, staleTextTools: true, reusedTextTools: true };
+for (const [name, example] of Object.entries(pull.examples)) {
+  accepts(pullInput, example.input);
+  accepts(pullResult, example.output);
+  const { interface: document, source } = example.input;
   const { additions, report } = example.output;
-  insertAdditions(document, additions, name);
-  checkAttribution(document, additions, report, name);
-  assert(Object.hasOwn(exampleComplete, name), `${name}: no recorded complete-synthesis value`);
-  assert.equal(completeSynthesis(report), exampleComplete[name], name);
-  for (const binding of Object.values(additions.bindings ?? {})) {
-    assert.equal(binding.kind, kind, `${name}: added bindings carry the requested kind`);
-  }
-  for (const entry of report.existing ?? []) {
-    assert.equal(document.bindings[entry.binding].kind, kind, `${name}: existing entries name bindings of the requested kind`);
-  }
+  assert(has(document.sources, source), `${name}: source names a sources entry`);
+  insertAdditions(document, source, additions, name);
+  checkAttribution(document, source, additions, report, name);
+  assert(Object.hasOwn(exampleComplete, name), `${name}: no recorded complete-pull value`);
+  assert.equal(completePull(report), exampleComplete[name], name);
 }
-const minimal = { openbindings: '0.2.0', operations: {} };
-accepts(synthesisInput, { interface: minimal, kind: 'example.text@1' });
-accepts(synthesisInput, { interface: minimal, kind: 'k', sources: [] });
-accepts(synthesisInput, { interface: minimal, kind: 'k', sources: ['api', 'events'] });
+const minimal = { openbindings: '0.2.0', operations: {}, sources: { api: { kind: 'k' } } };
+accepts(pullInput, { interface: minimal, source: 'api' });
+accepts(pullInput, { interface: minimal, source: 'api', context: {} });
+accepts(pullInput, { interface: minimal, source: 'api', context: { token: 'placeholder' } });
 for (const request of [
-  { kind: 'k' },
+  { source: 'api' },
   { interface: minimal },
-  { interface: minimal, kind: '' },
-  { interface: minimal, kind: 'k', sources: [''] },
-  { interface: minimal, kind: 'k', sources: 'api' },
-  { interface: minimal, kind: 'k', name: 'n' },
-  { interface: minimal, kind: 'k', version: '1.0' },
-  { interface: minimal, kind: 'k', description: 'd' },
-  { interface: minimal, kind: 'k', openbindingsVersion: '0.2.0' },
+  { interface: null, source: 'api' },
+  { interface: minimal, source: '' },
+  { interface: minimal, source: ['api'] },
+  { interface: minimal, source: null },
+  { interface: minimal, kind: 'k' },
+  { interface: minimal, source: 'api', kind: 'k' },
+  { interface: minimal, source: 'api', sources: ['api'] },
+  { interface: minimal, source: 'api', name: 'n' },
+  { interface: minimal, source: 'api', context: null },
+  { interface: minimal, source: 'api', context: 'token' },
   { sources: [{ source: { kind: 'k' } }] },
-]) accepts(synthesisInput, request, false);
+]) accepts(pullInput, request, false);
 const bare = { exhaustive: true, added: [] };
-accepts(synthesisResult, { additions: {}, report: bare });
+accepts(pullResult, { additions: {}, report: bare });
 for (const result of [{ additions: {} }, { report: bare }, { additions: [], report: bare }]) {
-  accepts(synthesisResult, result, false);
+  accepts(pullResult, result, false);
 }
 // Report shape controls.
-const limitation = { code: 'example.unread', message: 'Part of a source was not read.' };
+const limitation = { code: 'example.unread', message: 'Part of the source was not read.' };
 accepts(reportSchema, bare);
 accepts(reportSchema, { ...bare, 'x-note': 'an implementation extension' });
 accepts(reportSchema, { ...bare, existing: [], omitted: [] });
@@ -384,75 +418,91 @@ for (const report of [
   { ...bare, existing: [null] },
   { ...bare, omitted: {} },
 ]) accepts(reportSchema, report, false);
-const added = compile(synthesizer, synthesizer.schemas.SynthesisAddedEntry);
+const added = compile(puller, puller.schemas.PullAddedEntry);
 const addedBinding = { binding: 'b', operation: 'op' };
-const addedDependency = { dependency: 'd', operation: 'op' };
 const loss = { reasonCode: 'example.loss', message: 'A schema is approximated.' };
 for (const entry of [
   addedBinding,
-  addedDependency,
-  { ...addedBinding, uses: {} },
-  { ...addedBinding, uses: { schemas: ['S'], operations: [], dependencies: ['d'], bindings: ['c'], resources: ['r'] } },
+  { ...addedBinding, uses: [] },
+  { ...addedBinding, uses: ['schemas/S', 'operations/op2', 'bindings/c'] },
+  { ...addedBinding, reused: true },
   { ...addedBinding, lossy: loss },
   { ...addedBinding, lossy: { ...loss, details: { construct: 'discriminator' } } },
-  { ...addedBinding, requirements: ['example.api-key'] },
-  { ...addedDependency, uses: { schemas: ['S'] }, lossy: loss },
   { ...addedBinding, 'x-note': 'an implementation extension' },
 ]) accepts(added, entry);
 for (const entry of [
   { operation: 'op' },
   { binding: 'b' },
-  { ...addedBinding, dependency: 'd' },
-  { ...addedBinding, dependency: 'd', requirements: ['example.api-key'] },
-  { ...addedDependency, requirements: ['example.api-key'] },
   { ...addedBinding, binding: '' },
   { ...addedBinding, operation: '' },
-  { ...addedBinding, uses: { schemas: 'S' } },
-  { ...addedBinding, uses: { schemas: [''] } },
+  { ...addedBinding, uses: 'schemas/S' },
+  { ...addedBinding, uses: [''] },
+  { ...addedBinding, uses: { schemas: ['S'] } },
+  { ...addedBinding, reused: false },
+  { ...addedBinding, reused: 'yes' },
   { ...addedBinding, lossy: { reasonCode: 'example.loss' } },
   { ...addedBinding, lossy: { message: 'A schema is approximated.' } },
   { ...addedBinding, lossy: true },
-  { ...addedBinding, requirements: [''] },
 ]) accepts(added, entry, false);
-const existing = compile(synthesizer, synthesizer.schemas.SynthesisExistingEntry);
+const existing = compile(puller, puller.schemas.PullExistingEntry);
 const current = { binding: 'b', status: 'current' };
-const stale = { binding: 'b', status: 'stale' };
+const stale = { binding: 'b', status: 'stale', change: 'non-breaking' };
 const unmatched = { binding: 'b', status: 'unmatched' };
 for (const entry of [
   current,
-  { ...stale, proposal: { content: { selector: '#/paths/~1users/get' } } },
-  { ...stale, proposal: { content: null } },
-  { ...stale, proposal: { operation: {} } },
-  { ...stale, proposal: { content: 'echo', operation: { output: { $ref: '#/schemas/S' } }, uses: { schemas: ['S'] } } },
-  { ...stale, proposal: { content: 'echo', 'x-note': 'an implementation extension' } },
+  { ...stale, proposal: { data: { selector: '#/paths/~1users/get' } } },
+  { ...stale, proposal: { data: null } },
+  { ...stale, change: 'breaking', proposal: { input: {} } },
+  { ...stale, change: 'dangerous', proposal: { output: true } },
+  { ...stale, proposal: { data: 'echo', output: { $ref: '#/schemas/S' }, uses: ['schemas/S'] } },
+  { ...stale, proposal: { data: 'echo' }, reasonCode: 'example.moved', message: 'The target moved.', details: { from: '/a', to: '/b' } },
+  { ...stale, proposal: { data: 'echo', 'x-note': 'an implementation extension' } },
   unmatched,
   { ...unmatched, reasonCode: 'example.removed', message: 'The source no longer offers it.', details: { path: '/legacy' } },
   { ...current, 'x-note': 'an implementation extension' },
+  { schema: 'S', status: 'current' },
+  { schema: 'S', status: 'stale', change: 'non-breaking', proposal: { type: 'object' } },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: false },
+  { source: 'api', status: 'current' },
+  { source: 'api', status: 'stale', change: 'non-breaking', proposal: { data: { location: 'https://example.com/openapi.json' } } },
+  { source: 'api', status: 'stale', change: 'non-breaking', proposal: { data: null } },
 ]) accepts(existing, entry);
 for (const entry of [
   { status: 'current' },
   { binding: 'b' },
   { ...current, binding: '' },
   { ...current, status: 'excluded' },
-  { ...current, proposal: { content: 'echo' } },
+  { ...current, proposal: { data: 'echo' } },
+  { ...current, change: 'non-breaking' },
   { ...current, message: 'm' },
+  { binding: 'b', status: 'stale' },
+  { binding: 'b', status: 'stale', proposal: { data: 'echo' } },
   stale,
   { ...stale, proposal: {} },
-  { ...stale, content: 'echo', operation: {} },
   { ...stale, proposal: null },
-  { ...stale, proposal: { uses: { schemas: ['S'] } } },
-  { ...stale, proposal: { operation: 'op' } },
-  { ...stale, proposal: { content: 'echo', uses: { schemas: [''] } } },
-  { ...stale, proposal: { content: 'echo' }, reasonCode: 'example.changed' },
-  { ...unmatched, proposal: { content: 'echo' } },
+  { ...stale, proposal: { uses: ['schemas/S'] } },
+  { ...stale, proposal: { operation: {} } },
+  { ...stale, proposal: { content: 'echo' } },
+  { ...stale, proposal: { data: 'echo' }, change: 'minor' },
+  { ...stale, proposal: { data: 'echo', uses: [''] } },
+  { ...stale, proposal: { data: 'echo', input: 'string' } },
+  { ...unmatched, proposal: { data: 'echo' } },
+  { ...unmatched, change: 'breaking' },
   { ...unmatched, reasonCode: '' },
+  { binding: 'b', schema: 'S', status: 'current' },
+  { binding: 'b', source: 'api', status: 'current' },
+  { schema: 'S', status: 'stale', change: 'non-breaking', proposal: 'string' },
+  { source: 'api', status: 'stale', change: 'non-breaking', proposal: {} },
+  { source: 'api', status: 'stale', change: 'non-breaking', proposal: true },
+  { source: 'api', status: 'unmatched', proposal: { data: null } },
 ]) accepts(existing, entry, false);
-const omitted = compile(synthesizer, synthesizer.schemas.SynthesisOmittedEntry);
+const omitted = compile(puller, puller.schemas.PullOmittedEntry);
 const omission = { reasonCode: 'example.reason', message: 'Not represented.' };
 for (const entry of [
   { status: 'excluded', ...omission, rule: 'example.kind@1 section 4' },
   { status: 'invalid', ...omission },
   { status: 'implementation-unsupported', ...omission, details: { path: '/users' } },
+  { status: 'conflict', ...omission, details: { operation: 'getUser' } },
   { status: 'invalid', ...omission, 'x-note': 'an implementation extension' },
 ]) accepts(omitted, entry);
 for (const entry of [
@@ -466,4 +516,4 @@ for (const entry of [
   { status: 'lossy', ...omission },
   { status: 'stale', ...omission },
 ]) accepts(omitted, entry, false);
-console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, support, frame shape, synthesis and report controls pass`);
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, support, frame shape, pull and report controls pass`);

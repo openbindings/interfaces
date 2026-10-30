@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbindings.com/interfaces/conformance/kind-descriptor/fixture.schema.json",
+  "title": "Kind Descriptor Shape Examples",
+  "type": "object",
+  "required": [
+    "format",
+    "tests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "openbindings.kind-descriptor-cases@1"
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "operation",
+          "output",
+          "schemaValid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operation": {
+            "enum": [
+              "listKinds",
+              "describeKind",
+              "checkSource"
+            ],
+            "description": "The short name of the kind-descriptor operation the case exercises."
+          },
+          "input": {
+            "description": "The operation's input value. Absent for listKinds, which takes none."
+          },
+          "output": {
+            "description": "The operation's output value."
+          },
+          "schemaValid": {
+            "type": "boolean",
+            "description": "Whether the input, where the operation takes one, and the output both match the contract's schemas."
+          }
+        }
+      }
+    }
+  }
+}

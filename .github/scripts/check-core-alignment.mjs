@@ -220,23 +220,65 @@ for (const [role, prefix, request] of [
   assert(challengeCases > 0, 'no context challenge cases checked');
 }
 
-{
-  const check = invoker.operations['openbindings.binding-invoker.checkKindSupport'];
-  const list = invoker.operations['openbindings.binding-invoker.listSupportedKinds'];
-  assert(check && list);
-  const input = compile(invoker, check.input), output = compile(invoker, check.output);
-  accepts(input, { kinds: [] });
-  accepts(input, { kinds: ['acme.private@1', 'acme.private@1'] });
-  accepts(input, { kinds: [''] }, false);
-  accepts(input, { bindingSpecs: ['k'] }, false);
-  accepts(output, [{ kind: 'acme.private@1', supported: true }]);
-  accepts(output, [{ kind: 'k', supported: 'partial' }], false);
+// Kind support lives with the kind descriptor: the invoker carries no query of
+// its own, and a kind is supported per operation, named by key.
+for (const name of ['listSupportedKinds', 'checkKindSupport']) {
+  assert(!Object.hasOwn(invoker.operations, `openbindings.binding-invoker.${name}`), `${name} moved to kind-descriptor`);
 }
-// Literal portable cases remain separate from this small consistency oracle.
-for (const test of read('conformance/kind-support/cases.json').tests) {
-  const warranted = new Set(test.warranted);
-  assert(test.listed.every(kind => warranted.has(kind)), test.description);
-  assert.deepEqual(test.expected, [...new Set(test.kinds)].map(kind => ({ kind, supported: warranted.has(kind) })), test.description);
+const descriptor = contracts.get('kind-descriptor');
+const descriptorOperation = (name) => descriptor.operations[`openbindings.kind-descriptor.${name}`];
+function checkSupports(supports, label) {
+  const seen = new Set();
+  for (const key of supports) {
+    assert(/^[^\s.]+(\.[^\s.]+)+$/.test(key), `${label}: ${key} is an operation key`);
+    assert(!seen.has(key), `${label}: ${key} appears once in supports`);
+    seen.add(key);
+  }
+}
+function checkDescription(input, output, label) {
+  assert.equal(output.kind, input.kind, `${label}: the description names the kind asked about`);
+  checkSupports(output.supports, label);
+  for (const side of ['sourceData', 'bindingData']) {
+    if (Object.hasOwn(output, side)) ajv.compile(output[side]);
+  }
+}
+function checkCheckedEntry(input, output, label) {
+  assert.equal(output.kind, input.kind, `${label}: the checked entry names the kind asked about`);
+  const carrier = { openbindings: '0.2.0', operations: {}, sources: { checked: output } };
+  assert(core(carrier), `${label}: the checked entry is a core sources entry: ${JSON.stringify(core.errors)}`);
+}
+{
+  const list = descriptorOperation('listKinds'), describe = descriptorOperation('describeKind'), check = descriptorOperation('checkSource');
+  assert(list && describe && check);
+  assert(!Object.hasOwn(list, 'input'), 'listKinds takes no input');
+  for (const example of Object.values(list.examples)) for (const summary of example.output) checkSupports(summary.supports, `listKinds.${summary.kind}`);
+  for (const [name, example] of Object.entries(describe.examples)) checkDescription(example.input, example.output, `describeKind.${name}`);
+  for (const [name, example] of Object.entries(check.examples)) checkCheckedEntry(example.input, example.output, `checkSource.${name}`);
+  const validators = Object.fromEntries(['listKinds', 'describeKind', 'checkSource'].map(name => {
+    const operation = descriptorOperation(name);
+    return [name, { input: Object.hasOwn(operation, 'input') ? compile(descriptor, operation.input) : null, output: compile(descriptor, operation.output) }];
+  }));
+  let descriptorCases = 0;
+  for (const test of read('conformance/kind-descriptor/cases.json').tests) {
+    const { input: inputValidator, output: outputValidator } = validators[test.operation];
+    const inputValid = inputValidator ? inputValidator(test.input) : !Object.hasOwn(test, 'input');
+    const outputValid = outputValidator(test.output);
+    assert.equal(inputValid && outputValid, test.schemaValid, `${test.description}: ${JSON.stringify(inputValidator?.errors ?? outputValidator.errors)}`);
+    if (test.schemaValid) {
+      if (test.operation === 'listKinds') for (const summary of test.output) checkSupports(summary.supports, test.description);
+      if (test.operation === 'describeKind') checkDescription(test.input, test.output, test.description);
+      if (test.operation === 'checkSource') checkCheckedEntry(test.input, test.output, test.description);
+    }
+    descriptorCases++;
+  }
+  assert(descriptorCases > 0, 'no kind descriptor cases checked');
+  const describeInput = validators.describeKind.input, checkInput = validators.checkSource.input;
+  accepts(describeInput, { kind: 'k' });
+  for (const value of [{}, { kind: '' }, { kinds: ['k'] }, { kind: 'k', data: {} }]) accepts(describeInput, value, false);
+  accepts(checkInput, { kind: 'k' });
+  accepts(checkInput, { kind: 'k', data: null });
+  accepts(checkInput, { kind: 'k', data: { origin: 'https://example.com' }, context: {} });
+  for (const value of [{}, { kind: '' }, { data: {} }, { kind: 'k', context: null }, { kind: 'k', source: {} }]) accepts(checkInput, value, false);
 }
 
 const reportSchema = compile(puller, puller.schemas.PullReport);
@@ -516,4 +558,4 @@ for (const entry of [
   { status: 'lossy', ...omission },
   { status: 'stale', ...omission },
 ]) accepts(omitted, entry, false);
-console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, support, frame shape, challenge, pull and report controls pass`);
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, frame shape, challenge, kind description, pull and report controls pass`);

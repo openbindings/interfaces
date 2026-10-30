@@ -12,10 +12,12 @@ portable meaning. This contract supplies no new core field for such behavior.
 
 The [publication boundary](../#publication-boundary) applies. These are voluntarily
 adopted operation descriptions; no native SDK or execution architecture is required.
-`checkKindSupport` returns one verdict per distinct requested kind, in request
-first-occurrence order. Kind equality is exact; support is per job and need not
-cover every case. `listSupportedKinds` is advisory and lists positively supported
-kinds. Neither query performs the requested binding operation. Detection is private.
+Which kinds an invoker reads is answered by the [kind descriptor](../kind-descriptor/),
+whose `listKinds` and `describeKind` an invoker implementation may carry beside
+this interface; a kind is supported for invocation when that listing names
+`openbindings.binding-invoker.invokeBinding` under it. Kind equality is exact,
+and support need not cover every case. An invoker that carries no descriptor
+is complete for invocation; a caller that cannot ask learns by attempting.
 
 ## Why it's called a *binding* invoker
 

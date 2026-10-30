@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, source-puller reports, context challenges, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers kind descriptions, operation-invoker binding resolution, runtime interface composition, source-puller reports, context challenges, and schema-comparison semantics.
 
 The corpus is reference material. Interface examples illustrate published value
 shapes and capability meanings, not required internal implementations or recovery
@@ -11,7 +11,7 @@ Passing examples is not proof of a producer's behavioral claims.
 
 | Contract rule family | Coverage |
 |---|---|
-| binding-invoker: authoritative kind support (exact matching, deduplication, first-occurrence order, strict verdicts, listed-subset warrant) | **Complete** (`kind-support/`). |
+| kind-descriptor: listing, description and check shapes (`supports` as operation keys, the two data schemas, the check disclosure, the completed source entry) | **Shape examples** (`kind-descriptor/`); descriptions' schemas compile, and a check's output names the checked kind. |
 | operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | source-puller: additions, report shapes (added entries and what they use, reuse, existing-entry status and change class, omissions), permitted variation and the complete-pull condition | **Shape examples** (`pull-report/`); no prescribed SDK checker or recovery policy. |
@@ -21,20 +21,21 @@ Passing examples is not proof of a producer's behavioral claims.
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
 | Other contracts (binding-invoker resolution, document-store, ...) | Not yet fixtured; candidates as offline-decidable rules are identified. |
 
-## Kind support (`kind-support/`)
+## Kind descriptions (`kind-descriptor/`)
 
-Covers the `checkKindSupport` semantics in binding-invoker 0.1. Each case
-declares the implementation's exact
-`warranted` set, its advisory `listed` subset, the input tokens, and the
-ordered verdicts. The fixtures pin empty input, first-occurrence
-deduplication, exact-match refusal of prefix-adjacent tokens, strict boolean
-answers, and the law `listed ⊆ warranted`.
-
-The fixture's `warranted` array models the kinds the implementation
-has actually implemented; it is not a pattern language. A harness compares
-tokens by exact string equality. `listed` is deliberately allowed to omit
-warranted identifiers because absence from the advisory list carries no
-information.
+The `openbindings.kind-descriptor-cases@1` examples carry, per case, the
+operation (`listKinds`, `describeKind` or `checkSource`), its input where it
+takes one, its output and `schemaValid`. They cover a listing whose kinds name
+their operations by key (including a kind supported for invocation only and a
+kind performed nothing under), descriptions with both data schemas and with
+neither, a check that executes and one that only reads, a check completing
+the fetch form of an illustrative kind into its embedded form, a check carrying
+context, and malformed shapes (a listing without `supports`, a description
+without its text, a check disclosure without `executes`, an input with an
+extra member, an output without its kind). The repository validates each
+input and output against the contract, compiles every data schema a
+description carries, and asserts that a described or checked entry names the
+kind that was asked about. The fixture kinds are illustrative.
 
 ## Context challenges (`context/`)
 
@@ -236,7 +237,7 @@ Same convention as the spec corpus: a harness looks for a **sibling checkout** o
 
 ## Versioning
 
-Selection fixtures are authored against **operation-invoker contract 0.1**, pull report examples against **source-puller contract 0.1**, context challenges against **context document 0.1**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
+Selection fixtures are authored against **operation-invoker contract 0.1**, pull report examples against **source-puller contract 0.1**, kind descriptions against **kind-descriptor contract 0.1**, context challenges against **context document 0.1**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
 
 ## Embedded documents
 

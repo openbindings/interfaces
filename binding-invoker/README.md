@@ -36,139 +36,96 @@ There is no required binding-invoker component inside another service.
 
 ## Context
 
-A binding invocation usually needs more than the operation input. Credentials, headers, cookies, environment variables, session state, consent flags, custom invoker-specific values: all of it is **context**. Context is opaque to the contract and broader than auth. Credentials are one common kind, not the whole concept.
+A binding invocation usually needs more than the operation input: a credential,
+an approval, a configuration value the artifact does not supply. All of it is
+**context**. Context is opaque to this contract and broader than auth. The
+[context document](../context/) defines the context object, the challenge and
+the acquisition annotation; this section says how they apply to invocation.
 
-### Context carriage and lifecycle
+### Context carriage
 
-The interface carries one opaque context object on each invocation. Where its values came from (a caller, a credential broker, a durable store, a short-lived session, or a composition of those) is outside the contract. A runtime that combines several sources decides precedence before calling the invoker and supplies the resulting object.
+The caller provides one opaque context object on each attempt, by value. Where
+its values came from (the caller, a store, a credential broker, a previous
+challenge answered) is outside the contract. A runtime that combines several
+sources decides precedence before calling the invoker and supplies the
+resulting object. This interface defines no member of the object: its members
+are whatever a challenge's schema described or the caller knows the source's
+kind reads. How the kind uses a value, in a header, a cookie, a handshake,
+stays inside the kind's implementation.
 
-This separation is intentional. A stateless remote invoker, an in-process invoker with application-managed credentials, and a runtime backed by a [`document-store`](../document-store/) can all implement the same interface. None must expose storage to the invoker.
+A stateless remote invoker, an in-process invoker with application-managed
+credentials, and a runtime backed by a [`document-store`](../document-store/)
+can all implement the same interface. None must expose storage to the invoker.
 
-### Targets and context reuse
+### Interactive acquisition
 
-A `CONTEXT_REQUIRED` challenge reports a **target**: an opaque identifier for the concrete destination or context scope the invoker is about to use. A runtime may use that value to scope resolution or reuse, but key derivation, normalization, persistence, hierarchy, and cross-target sharing are runtime policy rather than this interface's semantics.
-
-The target is an invoker assertion, not self-authenticating proof. A resolver decides what evidence and trust are sufficient before releasing a
-reusable secret; the target string alone establishes neither. An in-process
-resolver may deliberately treat its co-located invoker as trusted; a delegate
-or hosted invoker normally requires an independently derived comparison. This
-contract does not pretend that a generic resolver can validate an opaque
-identifier without knowing the source's kind.
-
-When deriving storage keys, a runtime should avoid including userinfo and other secret material. Host normalization can also improve reuse across kinds. Those are implementation concerns, not a universal promise that every target is a URL or that every runtime has a store.
-
-### Well-known context fields
-
-Context is an opaque object, but these well-known field names provide cross-invoker interoperability:
-
-| Field | Type | Purpose |
-|---|---|---|
-| `bearerToken` | `string` | Bearer token (OAuth2, JWT, etc.) |
-| `apiKey` | `string` | API key (the single-key convenience) |
-| `credentials` | `{ [name]: credential }` | General scheme-scoped credentials keyed by the requirement's artifact-authored `name`: bearer/API-key strings, Basic `{ username, password }`, or OAuth `{ accessToken, refreshToken?, expiresAt?, clientSecret? }` |
-| `apiKeys` | `{ [name]: string }` | Historical named-API-key convenience; implementations accept it after `credentials[name]` and before the flat `apiKey` fallback |
-| `basic` | `{ username, password }` | HTTP Basic credentials |
-| `accessToken` / `refreshToken` / `expiresAt` | `string` | OAuth lifecycle |
-| `headers` | `{ [k]: string }` | HTTP headers (per-target) |
-| `cookies` | `{ [k]: string }` | HTTP cookies (per-target) |
-| `environment` | `{ [k]: string }` | Environment variables (for exec-style invokers) |
-| `metadata` | `{ [k]: any }` | Invoker-specific metadata (e.g., gRPC metadata) |
-| `configuration` | `{ [point]: any }` | Per-invocation configuration-point values, keyed by point name; each point's defining authority supplies its meaning and consultation rules |
-
-Implementations and callers may add fields for session state, consent, or other kind-specific needs. Fields without a meaning defined by the interface or kind have implementation-specific interpretation; this guide adds no handling policy.
-
-**Security guidance.** Credential fields contain secrets; other context can be
-sensitive too. Consumers should avoid disclosure through logs, diagnostics and
-storage keys. Secret handling and trust checks are host responsibilities; the
-interface describes the values and supplies no security implementation.
-
-### Interactive resolution
-
-Interactive resolution is deliberately outside this contract. An in-process implementation may accept host callbacks, a remote service may drive a flow server-side, and a headless caller may use pre-provisioned values. No callback vocabulary is standardized here because function references and user-interface capabilities do not cross every implementation boundary. Whatever mechanism is used, the resulting values enter the next attempt only through `context`.
+Interactive acquisition is deliberately outside this contract. An in-process
+implementation may accept host callbacks, a remote service may drive a flow
+server-side, and a headless caller may use pre-provisioned values. No callback
+vocabulary is standardized here because function references and user-interface
+capabilities do not cross every implementation boundary. Whatever mechanism is
+used, the resulting values enter the next attempt only through `context`.
 
 ## Context negotiation (CONTEXT_REQUIRED)
 
-A binding often needs context the caller has not supplied: credentials, an approval, a configuration value. The OBI document does not declare these. Instead the invoker discovers them at call time and asks for them, so the same mechanism works for every kind and for prerequisites beyond auth.
+A binding often needs context the caller has not supplied. The OBI document
+does not declare it. Instead the invoker discovers the need at call time and
+asks for it, so the same mechanism works for every kind and for prerequisites
+beyond auth.
 
-When a binding cannot proceed because required context is missing, `invokeBinding` emits a terminal `error` frame with code `CONTEXT_REQUIRED` and a `ContextRequiredDetails` payload, **before** any `output` frame and **before** any observable effect of the requested operation on the target. That pre-execution guarantee is what makes resolve-and-retry safe for non-idempotent operations.
+When a binding cannot proceed because required context is missing,
+`invokeBinding` emits a terminal `error` frame with code `CONTEXT_REQUIRED` and
+the context document's challenge as its `data`, **before** any `output` frame
+and **before** any observable effect of the requested operation on the target.
+That pre-execution guarantee is what makes acquire-and-retry safe for
+non-idempotent operations. It is this interface's own promise, not part of the
+context document.
 
-`ContextRequiredDetails` carries:
+The challenge is `{message, schema}`:
 
-- `target`: the concrete destination or context scope asserted by the invoker. It is opaque to this contract. A runtime may compare it with independently derived information before releasing secrets; how it verifies, normalizes, or keys that value depends on the source's kind and the runtime's trust model.
-- `alternatives`: an **OR** of ways to satisfy the requirement. Each alternative carries `requirements`, an **AND** of `ContextRequirement`s. This OR-of-AND shape expresses real auth semantics a flat preference list cannot, e.g. "OAuth2 **OR** (apiKey **AND** clientCert)".
+- `message` says why, in the binding's words, for a person to read.
+- `schema` is a JSON Schema of the context object to supply on the next
+  attempt. Alternatives are `oneOf` branches with a `title` each, values
+  needed together are `required`, secrets are `writeOnly`, and a property
+  `description` says where a person obtains a value. A property may carry the
+  context document's `oauth2` annotation, which an application can act on.
 
-A `ContextRequirement` names a `type` (the resolver family) plus type-specific fields, and an optional `durable` flag:
+The kind holds those facts; the application acquires the values; the kind
+consumes them on the next attempt. Nothing outside the schema is asked for.
 
-- `durable: true`: the producer describes context as suitable for reuse; persistence and keying remain runtime decisions. This is a producer claim about safe reuse, not an instruction to persist a value.
-- absent or `durable: false` (the default): the producer describes context as suitable only for the immediate attempt, without a safe-reuse claim. A one-shot user approval and a short-lived challenge response are not durable.
-
-### Resolve and retry
+### Acquire and retry
 
 On `CONTEXT_REQUIRED`, a runtime may:
 
-1. Pick one `alternative` whose every `requirement` it can satisfy.
-2. Resolve each requirement into context by whatever mechanism it owns.
-3. Decide whether to retain or reuse values under its own policy. False or absent
-   `durable` provides no safe-reuse claim; retention and reuse are different decisions.
-4. Start a new `invokeBinding` attempt with the augmented context.
+1. Read the `message` and the `schema`, and pick one branch it can satisfy.
+2. Acquire each value by whatever mechanism it owns: look it up, ask a person,
+   run the flow an annotation describes.
+3. Decide whether to keep what it acquired, under its own policy. The challenge
+   makes no claim about reuse.
+4. Start a new `invokeBinding` attempt with the context object.
 
-Retry limits and deciding whether another attempt is useful are caller policy. A binding MAY issue a fresh
-`CONTEXT_REQUIRED` after supplied context proves unusable (for example, an
-expired credential) only when its governing rules can still guarantee that no
-output or observable operation side effect occurred. A native failure status
-alone does not prove that guarantee. When it cannot prove the safe boundary,
-the attempt completes unsuccessfully instead of being replayed automatically.
+Retry limits and deciding whether another attempt is useful are caller policy.
+A binding MAY issue a fresh `CONTEXT_REQUIRED` after supplied context proves
+unusable (for example, an expired credential) only when its governing rules can
+still guarantee that no output or observable operation side effect occurred. A
+native failure status alone does not prove that guarantee. When it cannot prove
+the safe boundary, the attempt completes unsuccessfully instead of being
+replayed automatically.
 
 ### Least privilege
 
-The challenge describes context needed for one alternative. It is not permission
-to disclose unrelated secrets. Supplying only the necessary values is recommended
-security practice. The request carries context by value; the interface specifies
-no private store access or storage architecture.
+The challenge describes context needed for one attempt. It is not permission to
+disclose anything else: supply what the schema asks and nothing else. The
+request carries context by value; the interface specifies no private store
+access or storage architecture.
 
-For a separate or third-party invoker, a caller can limit disclosure to the
-chosen alternative and assess the asserted target before supplying context.
-Those are host security decisions. The challenge does not establish trust or
-grant access to a stored profile.
-
-### Requirement types
-
-`auth.*` is the first standard family and resolves into the well-known credential context fields:
-
-| Requirement type | Resolves to | Typical flow |
-|---|---|---|
-| `auth.bearer` | `credentials[name]`, otherwise `bearerToken` | Prompt for a token. |
-| `auth.oauth2` | `credentials[name]`, otherwise the flat OAuth fields beginning with `accessToken` | Drive the flow named by `grantType` (`authorization_code`, `implicit`, `password`, `client_credentials`) from `authorizeUrl` / `tokenUrl` / `scopes`. |
-| `auth.basic` | `credentials[name]`, otherwise `basic` (`{ username, password }`) | Prompt for username and password. |
-| `auth.apiKey` | `credentials[name]`, historical `apiKeys[name]`, otherwise `apiKey` | Prompt for a key. |
-
-A requirement MAY carry a `name`, the scheme name as the referenced artifact declares it. It disambiguates two requirements of the same type within one alternative (two ANDed API keys are otherwise indistinguishable) and keys the scheme-scoped credential lookup.
-
-`config.value` is the second standard family. It carries a configuration value a binding needs but the artifact does not supply: a server variable with no default, a channel address a service generates at runtime, a base URL for a document whose only server is the implied `/`. It exists so a missing-but-**resolvable** configuration value becomes a negotiable `CONTEXT_REQUIRED` instead of an ordinary unsuccessful completion caused by artifact configuration that no runtime can repair. Configuration is not automatically public; its sensitivity follows its meaning. A `config.value` requirement carries:
-
-- `point`: the configuration point the source's kind defines for this value (`server`, `address`, a kind's decode point, …).
-- `path`: an RFC 6901 JSON Pointer evaluated from `configuration[point]`. The
-  empty pointer denotes the whole point; `/variables/region` denotes a nested
-  member, and `/value` denotes a member literally named `value`.
-- `description`: human-readable prompt text.
-- `schema` (optional): a standalone JSON Schema in object or Boolean form for
-  the addressed value. Its default dialect is JSON Schema 2020-12; a root
-  `$schema` can identify another dialect. References follow the applicable JSON
-  Schema dialect, including resource boundaries introduced by `$id`. Neither the
-  referenced artifact nor the OBI supplies an implicit reference environment. Absence states no constraint. For example, `enum`
-  describes allowed values while `examples` merely suggests values. Evaluation,
-  resource acquisition and handling unsupported schemas remain consumer choices.
-
-It resolves into the `configuration` context field at the deterministic address
-above. `durable` defaults to `false`; an invoker sets `durable: true` only when
-reuse is safe. A runtime that cannot satisfy `config.value` simply cannot
-select that alternative, exactly as for any other family.
-
-Runtimes MAY define further families (`approval.user`, `account.link`, ...). An unrecognized `type` is simply unsatisfiable by a runtime that has no way to satisfy it; that alternative cannot be selected. An extension challenge claims that its requirements can be applied faithfully to the selected interaction. Handling an unsupported prerequisite is an implementation choice; it does not make that claim true.
+For a separate or third-party invoker, a caller decides what it is willing to
+provide to that invoker before providing it. That is a host security decision.
+The challenge does not establish trust or grant access to a stored profile.
 
 ### preflightBinding
 
-`preflightBinding` takes the same input as `invokeBinding`'s opening payload. It tells a binding that an invocation of the same request may follow, and lets it report context requirements it can already identify from the binding's data, its source's data, what those refer to, and the supplied context. The result is a `ContextRequiredDetails` in the same shape a `CONTEXT_REQUIRED` challenge carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the kind's, and anything else a binding does in response is for its kind to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction, except `ERR_REFUSED`, which means invocation would refuse the same input. Acquiring what the binding's data and its source's data refer to, caching and other preparation are implementation choices under the source's kind. The source's kind governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
+`preflightBinding` takes the same input as `invokeBinding`'s opening payload. It tells a binding that an invocation of the same request may follow, and lets it report the challenge it can already identify from the binding's data, its source's data, what those refer to, and the supplied context. The result is the same `{message, schema}` challenge a `CONTEXT_REQUIRED` frame carries, or `null`. It is advisory: it may omit requirements, `null` is always conformant, and the live challenge remains authoritative. Invocation never requires a prior preflight. Context supplied to preflight is supplied for that call alone. Preflight never dispatches the requested operation, consumes its input, emits its outputs, or spends an approval for it; the boundary of the requested operation is the kind's, and anything else a binding does in response is for its kind to require and otherwise the implementation's. Requirements are reported only as the result; an unsuccessful completion means the binding could not answer and carries no prediction, except `ERR_REFUSED`, which means invocation would refuse the same input. Acquiring what the binding's data and its source's data refer to, caching and other preparation are implementation choices under the source's kind. The source's kind governs the boundary of the requested operation; what an implementation does to answer is documented with that implementation.
 
 ## Unsuccessful completion
 
@@ -433,29 +390,30 @@ A separate protected-service example can finish an attempt with:
   "error": {
     "code": "CONTEXT_REQUIRED",
     "data": {
-      "target": "example:text-service",
-      "alternatives": [
-        {
-          "requirements": [
-            {
-              "type": "auth.bearer",
-              "durable": false
-            }
-          ]
-        }
-      ]
+      "message": "The text service needs an access token.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "writeOnly": true,
+            "description": "A bearer token for the text service."
+          }
+        },
+        "required": ["accessToken"]
+      }
     }
   }
 }
 ```
 
-This outcome describes no operation output or effects. It does not establish
-that the asserted target is trustworthy. If the caller chooses to trust that
-service and supply a token, a new attempt's opening payload can include
-`"context": {"bearerToken": "example-token"}` alongside its interface and binding key.
-The token here is a placeholder. Obtaining it, retaining it, and deciding whether
-to retry are caller decisions. False `durable` makes no safe-reuse claim and says
-nothing about how a caller stores an attempt.
+This outcome describes no operation output or effects, and it does not
+establish that the service is trustworthy. If the caller chooses to provide a
+token, a new attempt's opening payload can include
+`"context": {"accessToken": "example-token"}` alongside its interface and
+binding key. The token here is a placeholder. Obtaining it, keeping it, and
+deciding whether to retry are caller decisions; `writeOnly` says the value is a
+secret and nothing about how a caller stores it.
 
 ### Reaching the same binding through an operation
 

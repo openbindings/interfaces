@@ -61,18 +61,15 @@ mechanism is prescribed. An interruption does not promise rollback.
 
 ## Context is forwarded, not reinterpreted
 
-The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` challenge from that invocation that the implementation does not resolve propagates unchanged, so a caller can resolve the challenge and start a new operation attempt without learning protocol-specific details. Resolution strategy and deciding whether to make another attempt are caller policy.
+The operation invoker forwards the supplied context to the resolved binding invocation. A `CONTEXT_REQUIRED` challenge from that invocation that the implementation does not resolve propagates unchanged, so a caller can acquire what the challenge's schema describes and start a new operation attempt without learning protocol-specific details. Acquisition and deciding whether to make another attempt are caller policy; the [context document](../context/) defines the challenge.
 
-The contract does not prescribe where resolution runs, what triggers it, or whether context is stored. A monolithic runtime may compose selection, resolution, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
+The contract does not prescribe where acquisition runs, what triggers it, or whether context is stored. A monolithic runtime may compose selection, acquisition, and protocol invocation in one process; a distributed system may place them in separate services. The observable requirement is the same: the operation layer does not reinterpret binding-specific context and does not broaden the challenge's scope.
 
 `CONTEXT_REQUIRED` is a negotiation signal, and its position is load-bearing: it arrives **before any `output` frame and before any observable operation side effect**, so a new attempt follows one that reported no operation output or effects. This does not claim that no protocol request was sent. A binding may re-challenge after supplied context proves unusable only while its governing rules can still prove that boundary; a native failure status is not sufficient evidence by itself. A necessary consequence is that context cannot be renegotiated **mid-stream**: once a streaming invocation has emitted outputs, a new requirement cannot surface as `CONTEXT_REQUIRED` on that same stream. An implementation may refresh expiring context internally; otherwise the invocation ends and a new one begins.
 
-One well-known context field rides through this layer: **`configuration`**, an
-object keyed by configuration-point name. This interface defines no
-configuration point; kinds define them, and the authority defining each point
-owns its value's meaning and consultation rules. Choosing a binding is not
-configuration: it is the caller's instruction for one call, carried by
-`binding` or `selection` in the invocation input.
+Context members are whatever a challenge's schema described; this interface
+defines none. Choosing a binding is not context: it is the caller's instruction
+for one call, carried by `binding` or `selection` in the invocation input.
 
 ## Operation-invoker-owned errors
 

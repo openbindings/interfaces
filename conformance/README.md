@@ -1,6 +1,6 @@
 # Interfaces Conformance Corpus
 
-Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, source-puller reports, and schema-comparison semantics.
+Portable test fixtures for the **published contracts' and profiles'** portable, offline-decidable rules. The corpus currently covers authoritative kind support queries, operation-invoker binding resolution, runtime interface composition, source-puller reports, context challenges, and schema-comparison semantics.
 
 The corpus is reference material. Interface examples illustrate published value
 shapes and capability meanings, not required internal implementations or recovery
@@ -15,6 +15,7 @@ Passing examples is not proof of a producer's behavioral claims.
 | operation-invoker: binding resolution (explicit choice, ordered `selection`, sole-candidate inference, ambiguity refusal, candidate-set formation) | **Complete** (`selection/`, one file per rule-cluster). |
 | SDK reference runtime composition policy: correspondence, tri-state contract evidence, hard binding-spec constraints, provider election, and realization ambiguity | **Initial portable decision corpus** (`composition/cases.json`); executed byte-for-byte by the Go and TypeScript SDKs. |
 | source-puller: additions, report shapes (added entries and what they use, reuse, existing-entry status and change class, omissions), permitted variation and the complete-pull condition | **Shape examples** (`pull-report/`); no prescribed SDK checker or recovery policy. |
+| context document: the challenge shape (`message` and `schema`, nothing else), valid and invalid challenges | **Shape examples** (`context/`); the adopting contracts' copies of the challenge schema are checked against `context/challenge.schema.json`. |
 | schema-comparison profile: normalization, the profile boundary (fail-closed keywords, annotations, boolean forms), directional subsumption, suppression, exact values | Legacy cases plus the required JSON-text exact-value pack in `comparison/`. Whole-profile implementation qualification requires both packs against the identified implementation revision. |
 | operation-invoker / binding-invoker: frame message shapes and exchange meanings | Schema controls here; buffer, cancellation-race and malformed-input policies are tested by implementations. |
 | delegate-manager: role-scoped by-value admission and management transcript | **Initial fixture definitions** (`delegate-manager/`); artifact checks validate structure, not a runtime implementation. |
@@ -34,6 +35,21 @@ has actually implemented; it is not a pattern language. A harness compares
 tokens by exact string equality. `listed` is deliberately allowed to omit
 warranted identifiers because absence from the advisory list carries no
 information.
+
+## Context challenges (`context/`)
+
+[`context/challenge.schema.json`](context/challenge.schema.json) is the shape
+of the [context document's](../context/) challenge: `message` and `schema`,
+nothing else. Each adopting contract carries the same shape as
+`ContextRequiredDetails`; the core-alignment check compares the copies with
+this file. [`context/cases.json`](context/cases.json), validated by
+[`context/fixture.schema.json`](context/fixture.schema.json), holds valid
+challenges (alternatives with the `oauth2` annotation, one secret, a
+configuration value, values needed together, an approval) and invalid ones (a
+missing member, an empty message, a boolean schema, an extra member, the
+earlier target-and-alternatives shape). Harnesses validate each `challenge`
+against the challenge schema and assert `schemaValid`. The cases pin the shape,
+not any acquisition behavior.
 
 ## Binding selection (`selection/`)
 
@@ -220,7 +236,7 @@ Same convention as the spec corpus: a harness looks for a **sibling checkout** o
 
 ## Versioning
 
-Selection fixtures are authored against **operation-invoker contract 0.1**, pull report examples against **source-puller contract 0.1**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
+Selection fixtures are authored against **operation-invoker contract 0.1**, pull report examples against **source-puller contract 0.1**, context challenges against **context document 0.1**, and comparison fixtures against **schema-comparison profile 0.1**, all against OpenBindings spec **0.2.0** (each fixture document's `openbindings` field). Contract or profile changes that affect the pinned semantics require fixture updates.
 
 ## Embedded documents
 

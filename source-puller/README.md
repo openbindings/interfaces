@@ -32,13 +32,13 @@ The document carries its own name, version, description and specification
 version. `source` is the key of the `sources` entry to pull; a key that names no
 `sources` entry fails the call.
 
-`context` carries values the source's kind needs to read the source, in the
-form the [binding invoker's](../binding-invoker/#context) `BindingContext`
-describes. A pull that cannot proceed without a value it was not given
-completes unsuccessfully with `CONTEXT_REQUIRED` and the binding invoker's
-`ContextRequiredDetails` as its data, exactly as an invocation would; a later
-call carries the resolved values. A pull only reads, so it promises nothing
-about effects.
+`context` carries values the source's kind needs to read the source, as the
+[context document](../context/) defines: an opaque object whose members a
+challenge described. A pull that cannot proceed without a value it was not
+given completes unsuccessfully with `CONTEXT_REQUIRED` and the challenge,
+`{message, schema}`, as its data, exactly as an invocation would; a later call
+carries the values the schema described. A pull only reads, so it promises
+nothing about effects.
 
 ## What the puller reads
 

@@ -20,10 +20,10 @@ Like every interface in this catalog it is **non-normative**: the core spec requ
 
 A **context store** is this interface used with caller-chosen scope keys, holding context objects carried by `binding-invoker`. The store itself never learns that: it sees an opaque key and an opaque JSON object. Everything domain-specific about that pairing —
 
-- what a context object contains (the `bearerToken` / `apiKey` / `basic` / `headers` / … well-known field conventions), and
+- what a context object contains (whatever a challenge's schema described; the [context document](../context/) defines no member names), and
 - how a storage key is derived, normalized, or scoped
 
-— belongs to the caller or runtime, **not** to this store. See binding-invoker's *Context* section for the shared field taxonomy. A runtime resolving `CONTEXT_REQUIRED` may persist durable results here, but `durable: true` permits persistence rather than requiring it.
+— belongs to the caller or runtime, **not** to this store. A runtime that acquires what a `CONTEXT_REQUIRED` challenge asks for may keep the result here; whether to keep it is the runtime's decision, since a challenge makes no claim about reuse.
 
 Confidentiality is likewise a **deployment-boundary** concern, not a property of this contract: whether documents are encrypted, access-controlled, or redacted on read depends on where the store runs and who can reach it. By contract, `get` returns what `set` stored. Because `set`'s `value` is always a JSON object, no entry ever holds `null`, so `get`'s `null` uniformly means "no entry" and never an entry holding null; to remove an entry, use `delete`.
 

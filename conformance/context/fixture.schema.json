@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbindings.com/interfaces/conformance/context/fixture.schema.json",
+  "title": "Context Challenge Shape Examples",
+  "type": "object",
+  "required": [
+    "format",
+    "tests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "openbindings.context-challenge-cases@1"
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "challenge",
+          "schemaValid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "challenge": {
+            "description": "The value a producer returns as the data of CONTEXT_REQUIRED or of a preflight."
+          },
+          "schemaValid": {
+            "type": "boolean",
+            "description": "Whether the challenge matches challenge.schema.json."
+          }
+        }
+      }
+    }
+  }
+}

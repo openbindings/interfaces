@@ -155,41 +155,25 @@ for (const [role, prefix, request] of [
   ['operation-invoker', 'OperationInvoker', { interface: { openbindings: '0.2.0' }, operation: 'echo' }],
 ]) {
   const document = contracts.get(role);
-  const requirement = compile(document, document.schemas.ContextRequirement);
   const challenge = compile(document, document.schemas.ContextRequiredDetails);
   const failure = compile(document, document.schemas.InvocationError);
   const inputFrame = compile(document, document.schemas[`${prefix}InputFrame`]);
   const outputFrame = compile(document, document.schemas[`${prefix}OutputFrame`]);
   const preflight = compile(document, document.operations[`openbindings.${role}.preflight${prefix === 'BindingInvoker' ? 'Binding' : 'Operation'}`].output);
-  const custom = { type: 'example.custom', familyValue: { exact: null } };
-  const details = { target: '', alternatives: [{ requirements: [custom] }] };
-
-  for (const value of [custom, { ...custom, name: 'custom' }, { ...custom, durable: false }, { ...custom, durable: true }]) {
-    accepts(requirement, value);
-  }
-  for (const value of [{}, { type: '' }, { ...custom, name: '' }, { ...custom, durable: null }, { ...custom, durable: 'true' }]) {
-    accepts(requirement, value, false);
-  }
-  const config = { type: 'config.value', point: 'server', path: '', description: 'A value' };
-  accepts(requirement, config);
-  for (const schema of [{ type: 'string' }, { enum: ['a', 'b'] }, {}, true, false]) {
-    accepts(requirement, { ...config, schema });
-  }
-  for (const schema of [null, [], 'string', 1]) {
-    accepts(requirement, { ...config, schema }, false);
-  }
-  for (const value of [{ ...config, point: null }, { ...config, path: false }, { ...config, description: 1 }]) {
-    accepts(requirement, value, false);
-  }
-  accepts(challenge, details); // An opaque target may be empty; family fields stay open.
+  assert(!Object.hasOwn(document.schemas, 'ContextRequirement'), `${role}: requirement families left with the context document`);
+  // The challenge is the context document's: a message and a schema, nothing else.
+  const details = { message: 'A token is needed.', schema: { type: 'object', properties: { accessToken: { type: 'string', writeOnly: true } }, required: ['accessToken'] } };
+  accepts(challenge, details);
+  accepts(challenge, { message: 'm', schema: {} });
+  accepts(challenge, { message: 'm', schema: { oneOf: [{ title: 'A', type: 'object' }, { title: 'B', type: 'object' }] } });
   accepts(preflight, null);
   accepts(preflight, details);
   for (const value of [
-    null, {}, { ...details, target: null }, { ...details, extra: true },
+    null, {}, { message: 'm' }, { schema: {} }, { message: '', schema: {} }, { message: null, schema: {} },
+    { message: 'm', schema: true }, { message: 'm', schema: null }, { message: 'm', schema: [] }, { message: 'm', schema: 'string' },
+    { ...details, target: 'example:text-service' },
     { ...details, alternatives: [] },
-    { ...details, alternatives: [{ requirements: [] }] },
-    { ...details, alternatives: [{ requirements: [custom], extra: true }] },
-    { ...details, alternatives: [{ requirements: [{ type: '' }] }] },
+    { target: '', alternatives: [{ requirements: [{ type: 'auth.bearer' }] }] },
   ]) {
     accepts(challenge, value, false);
     if (value !== null) accepts(preflight, value, false);
@@ -218,6 +202,22 @@ for (const [role, prefix, request] of [
   for (const frame of [null, [], {}, { kind: 'unknown' }, { kind: 'output' }, { kind: 'complete', value: null }, { kind: 'error' }, { kind: 'error', error: { code: '' } }]) {
     accepts(outputFrame, frame, false);
   }
+}
+
+// The challenge is written once, in the context document's corpus; each
+// adopting contract carries an identical copy.
+{
+  const { $schema: _dialect, $id: _id, title: _title, ...canonical } = read('conformance/context/challenge.schema.json');
+  for (const role of ['binding-invoker', 'operation-invoker']) {
+    assert.deepEqual(contracts.get(role).schemas.ContextRequiredDetails, canonical, `${role}: ContextRequiredDetails equals conformance/context/challenge.schema.json`);
+  }
+  const challenge = compile(invoker, invoker.schemas.ContextRequiredDetails);
+  let challengeCases = 0;
+  for (const test of read('conformance/context/cases.json').tests) {
+    accepts(challenge, test.challenge, test.schemaValid);
+    challengeCases++;
+  }
+  assert(challengeCases > 0, 'no context challenge cases checked');
 }
 
 {
@@ -516,4 +516,4 @@ for (const entry of [
   { status: 'lossy', ...omission },
   { status: 'stale', ...omission },
 ]) accepts(omitted, entry, false);
-console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, support, frame shape, pull and report controls pass`);
+console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, support, frame shape, challenge, pull and report controls pass`);

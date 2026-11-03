@@ -171,9 +171,13 @@ entry and in what the puller would write counts as the same when its target is
 something the source offers that this report accounts for, a `schemas` entry
 the report lists or the `input` or `output` of an operation a binding the
 report lists realizes, so a change behind it is reported once, at its target's
-own entry. Any other reference is followed, and an entry that then differs only
-through a target the report does not account for is `unassessed`, since nothing
-the puller would write at the entry carries the change. Binding data and source
+own entry. The comparison keeps each such reference as a leaf, equal to one
+spelled the same, and applies every other normalization of the profile; the
+reference's siblings, and an `allOf` that holds it, are kept unmerged, as the
+profile keeps a merge it cannot make. Any other reference is followed, and an
+entry that then differs only through a target the report does not account for
+is `unassessed`, since nothing the puller would write at the entry carries the
+change. Binding data and source
 data compare as JSON values.
 
 A proposal carries only what the kind owns. For a binding it is
@@ -195,10 +199,13 @@ data means.
 affected operation: `breaking` (a caller that satisfied the old input or relied
 on the old output may fail), `dangerous` (a caller may fail depending on how it
 was written) or `non-breaking` (no caller is affected). A kind that cannot
-classify a change says `dangerous`. A `non-breaking` stale entry still
-realizes its operation as core §5.3 states realization, so the author may
-decline its proposal without breaking the binding's claim; the entry stays
-`stale`, and the drift stays reported. For a schema several operations reach, as
+classify a change says `dangerous`. A `non-breaking` proposal that carries
+only an operation's `input` or `output` leaves the existing binding realizing
+its operation as core §5.3 states realization, so the author may decline it
+without breaking the binding's claim; the entry stays `stale`, and the drift
+stays reported. A proposal of binding or source data says the kind would now
+write the data differently, and the existing data may no longer reach what the
+source offers, whatever its `change`. For a schema several operations reach, as
 the input of one and the output of another, the label is the most severe
 across them. The label lets an agent or a policy decide without diffing
 schemas itself; it is not an instruction to apply.

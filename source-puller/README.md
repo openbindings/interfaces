@@ -306,7 +306,7 @@ from `existing` and `added`:
 - A `stale` entry is one the document already has, with a proposal for how the
   puller would write it now and the class of the change.
 - An `unmatched` entry is a binding that binds nothing the source offers now,
-  such as a removed or renamed target.
+  such as a removed target, or a renamed one the kind cannot follow.
 - An `unassessed` entry is one the puller could not judge; the source still
   offers what it corresponds to, so it is no reason to remove the entry.
 - An added binding is something the source offers that the document does not

@@ -77,7 +77,10 @@ and `output` with the existing operation's. Equal under the
 binding realizes the existing operation, naming its own key, and its report
 entry says `reused`: one operation, several bindings, arrived at by pulling
 several sources. Different, the item is `omitted` as a `conflict` and the
-author decides: bind the source to the existing operation by hand, adapting in
+author decides. A comparison that cannot finish (a reference cycle, a reference
+it cannot resolve, an unsatisfiable merge) decides neither: the item is
+`omitted` as `implementation-unsupported`, and an entry already there whose
+comparison cannot finish is `unassessed`. The author decides a conflict: bind the source to the existing operation by hand, adapting in
 binding data as the kind defines, or add it under another key. The comparison
 is the puller's and is the same for every kind; the kind projects from its
 source alone and reads nothing in the document to choose a name or a shape.
@@ -182,8 +185,10 @@ data means.
 affected operation: `breaking` (a caller that satisfied the old input or relied
 on the old output may fail), `dangerous` (a caller may fail depending on how it
 was written) or `non-breaking` (no caller is affected). A kind that cannot
-classify a change says `dangerous`. The label lets an agent or a policy decide
-without diffing schemas itself; it is not an instruction to apply.
+classify a change says `dangerous`. For a schema several operations reach, as
+the input of one and the output of another, the label is the most severe
+across them. The label lets an agent or a policy decide without diffing
+schemas itself; it is not an instruction to apply.
 
 A caller applies a proposal by copying what it carries onto the existing
 entry, removing what its `remove` names, and inserting the additions its `uses`

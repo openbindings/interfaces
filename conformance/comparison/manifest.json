@@ -210,6 +210,22 @@
       "findings": []
     },
     {
+      "path": "structural/normalize-defs-kept-for-retained-reference-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "structural/normalize-defs-kept-for-retained-reference-incompatible.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "identity"
+      ]
+    },
+    {
       "path": "structural/normalize-ref-inline-identical.json",
       "mode": "identical",
       "direction": "input",

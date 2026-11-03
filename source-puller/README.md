@@ -165,9 +165,13 @@ identical mode compares schemas, so a difference only in what the profile
 strips as annotations (a description, a default, a format) never makes an
 entry stale: annotations are the author's. A reference spelled the same in the
 entry and in what the puller would write counts as the same when its target is
-something the source offers, a `schemas` entry under that key or another
-operation's `input` or `output`, so a change behind it is reported once, at its
-target. Binding data and source data compare as JSON values.
+something the source offers that this report accounts for, a `schemas` entry
+the report lists or the `input` or `output` of an operation a binding the
+report lists realizes, so a change behind it is reported once, at its target's
+own entry. Any other reference is followed, and an entry that then differs only
+through a target the report does not account for is `unassessed`, since nothing
+the puller would write at the entry carries the change. Binding data and source
+data compare as JSON values.
 
 A proposal carries only what the kind owns. For a binding it is
 `{data?, input?, output?, remove?, uses?}`: `data` is the binding data the
@@ -219,12 +223,14 @@ through?, details?}`:
   `schemas/<key>`. It is present whenever the omitted part has a key.
 - `existing`, on a conflict and required there, labels what the document
   holds that differs: `operations/<key>` by the operation's own key, even when
-  the item offers it under an alias, or `schemas/<key>`, the entry that
-  declares the identifier when that is what clashes.
+  the item offers it under an alias, or `schemas/<key>`. For a conflict over an
+  identifier it labels the place that declares it: `schemas/<key>`,
+  `operations/<key>/input` or `operations/<key>/output`.
 - `offered`, on a conflict and required there, is the item's version of what
   `existing` labels: for an operation, an object carrying the offered `input`
   and `output`, each absent where the item offers none; for a `schemas` entry,
-  the schema the item needs under that key.
+  the schema the item needs under that key; for a conflict over an identifier,
+  the schema in the item's additions that would declare it.
 - `through`, on a conflict, names what `existing` and `offered` differ
   through when the two read the same: `schemas/<key>` for a `schemas` entry,
   `operations/<key>/input` or `operations/<key>/output` for another

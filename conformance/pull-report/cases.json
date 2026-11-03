@@ -1235,6 +1235,99 @@
       "completePull": true
     },
     {
+      "description": "An item whose additions would declare again a $id a schemas entry declares is a conflict over that identifier",
+      "interface": {
+        "openbindings": "0.2.0",
+        "schemas": {
+          "MyTask": {
+            "$id": "urn:example:task",
+            "type": "object"
+          }
+        },
+        "operations": {},
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {},
+      "report": {
+        "exhaustive": true,
+        "added": [],
+        "omitted": [
+          {
+            "status": "conflict",
+            "reasonCode": "example.identifier-conflict",
+            "message": "getTask's Task declares urn:example:task, which MyTask declares.",
+            "item": "operations/getTask",
+            "existing": "schemas/MyTask",
+            "offered": {
+              "$id": "urn:example:task",
+              "type": "object",
+              "required": [
+                "id"
+              ]
+            },
+            "identifier": "urn:example:task"
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
+      "description": "A conflict over an identifier declared inside an operation's input labels that input",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "legacy": {
+            "input": {
+              "$id": "urn:example:task",
+              "type": "object"
+            }
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {},
+      "report": {
+        "exhaustive": true,
+        "added": [],
+        "omitted": [
+          {
+            "status": "conflict",
+            "reasonCode": "example.identifier-conflict",
+            "message": "getTask's Task declares urn:example:task, which legacy's input declares.",
+            "item": "operations/getTask",
+            "existing": "operations/legacy/input",
+            "offered": {
+              "$id": "urn:example:task",
+              "type": "object",
+              "required": [
+                "id"
+              ]
+            },
+            "identifier": "urn:example:task"
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
       "description": "A report without added does not match the report shape",
       "interface": {
         "openbindings": "0.2.0",

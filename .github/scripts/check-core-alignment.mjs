@@ -395,11 +395,18 @@ function checkAttribution(document, source, additions, report, label) {
   // own key; an item offered under an alias of it names that alias.
   for (const entry of report.omitted ?? []) {
     if (entry.status !== 'conflict') continue;
-    const slash = entry.existing.indexOf('/');
-    const map = entry.existing.slice(0, slash), key = entry.existing.slice(slash + 1);
+    // existing is <map>/<key>, or, for a conflict over an identifier,
+    // operations/<key>/input or operations/<key>/output.
+    const parts = entry.existing.split('/');
+    const map = parts[0], key = parts.length === 3 ? parts[1] : parts.slice(1).join('/');
     assert(map === 'operations' || map === 'schemas', `${label}: existing ${entry.existing} labels an operation or a schema`);
-    assert(has(document[map], key), `${label}: existing ${entry.existing} names an entry of the input document`);
-    if (map === 'operations' && entry.item?.startsWith('operations/')) {
+    if (parts.length === 3) {
+      assert(map === 'operations' && Object.hasOwn(entry, 'identifier') && (parts[2] === 'input' || parts[2] === 'output'), `${label}: existing ${entry.existing} labels an operation's input or output only for an identifier`);
+      assert(has(document.operations, key) && Object.hasOwn(document.operations[key], parts[2]), `${label}: existing ${entry.existing} names a schema of the input document`);
+    } else {
+      assert(has(document[map], key), `${label}: existing ${entry.existing} names an entry of the input document`);
+    }
+    if (map === 'operations' && parts.length === 2 && entry.item?.startsWith('operations/')) {
       // The offered operation's identifiers are its key and the aliases its
       // offered value carries; one of them identifies the existing operation.
       const identifiers = [entry.item.slice('operations/'.length), ...(entry.offered?.aliases ?? [])];

@@ -86,6 +86,12 @@ as starting a command, and false when it only reads. An application asks
 before running a check that executes, showing the sentence. An absent `check`
 means this implementation does not check entries of the kind.
 
+`pull` says the same of this implementation's `pullSource` for the kind: one
+sentence and `executes`, true when the pull runs something the source data
+names, such as starting a server to list its tools. An application asks before
+running a pull that executes, as before a check. `pull` is present exactly when
+`supports` names `openbindings.source-puller.pullSource`.
+
 ## checkSource
 
 The input is a proposed source entry, `{kind, data?, context?}`. The output is
@@ -137,6 +143,7 @@ enumerating the two targets, and a check that reads nothing:
   "description": "A fixed set of text functions: echo returns its input string and length counts its Unicode code points. Each becomes an operation; a binding's data names the function.",
   "supports": ["openbindings.binding-invoker.invokeBinding", "openbindings.source-puller.pullSource", "openbindings.kind-descriptor.checkSource"],
   "check": {"description": "Confirms the kind is known and derives the source's description. Reads nothing.", "executes": false},
+  "pull": {"description": "Lists the kind's fixed functions as operations. Reads nothing.", "executes": false},
   "bindingData": {"type": "string", "title": "The text function", "enum": ["echo", "length"]}
 }
 ```

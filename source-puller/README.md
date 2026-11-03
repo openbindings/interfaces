@@ -37,8 +37,11 @@ version. `source` is the key of the `sources` entry to pull; a key that names no
 challenge described. A pull that cannot proceed without a value it was not
 given completes unsuccessfully with `CONTEXT_REQUIRED` and the challenge,
 `{message, schema}`, as its data, exactly as an invocation would; a later call
-carries the values the schema described. A pull only reads, so it promises
-nothing about effects.
+carries the values the schema described. A pull performs none of the
+source's operations and promises nothing about effects. Reading a source may
+still run what its data names, such as starting a server to list its tools; a
+kind whose pull does so says so in the [kind descriptor's](../kind-descriptor/)
+`pull` disclosure, and an application asks before running it.
 
 ## What the puller reads
 
@@ -115,7 +118,7 @@ evidence offered by the producer, not verification of its claim.
 
 `exhaustive` is true when the puller read the whole source. When it is false,
 `limitation` (`{code, message, details?}`) explains what may be missing and
-why.
+why; an exhaustive report carries none.
 
 ### Added
 
@@ -185,7 +188,10 @@ data means.
 affected operation: `breaking` (a caller that satisfied the old input or relied
 on the old output may fail), `dangerous` (a caller may fail depending on how it
 was written) or `non-breaking` (no caller is affected). A kind that cannot
-classify a change says `dangerous`. For a schema several operations reach, as
+classify a change says `dangerous`. A `non-breaking` stale entry still
+realizes its operation as core §5.3 states realization, so the author may
+decline its proposal without breaking the binding's claim; the entry stays
+`stale`, and the drift stays reported. For a schema several operations reach, as
 the input of one and the output of another, the label is the most severe
 across them. The label lets an agent or a policy decide without diffing
 schemas itself; it is not an instruction to apply.
@@ -219,8 +225,13 @@ through?, details?}`:
   `existing` labels: for an operation, an object carrying the offered `input`
   and `output`, each absent where the item offers none; for a `schemas` entry,
   the schema the item needs under that key.
-- `through`, on a conflict, names the schemas through which `existing` and
-  `offered` differ when the two read the same, as `schemas/<key>` labels.
+- `through`, on a conflict, names what `existing` and `offered` differ
+  through when the two read the same: `schemas/<key>` for a `schemas` entry,
+  `operations/<key>/input` or `operations/<key>/output` for another
+  operation's input or output.
+- `identifier`, on a conflict over an identifier, is the `$id` or plain name
+  the item's additions would declare again; `existing` then labels the entry
+  that declares it.
 
 An implementation gap is not a kind exclusion: an implementation's restriction
 of a kind defined elsewhere is `implementation-unsupported`. `details`

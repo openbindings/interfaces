@@ -60,9 +60,28 @@
                 "executes"
             ]
         },
+        "PullDescription": {
+            "type": "object",
+            "description": "What this implementation's pullSource does for the kind, so an application can decide whether to run a pull and tell a person what will happen.",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "One sentence from the kind saying what its pull does, such as which document it fetches or which process it starts."
+                },
+                "executes": {
+                    "type": "boolean",
+                    "description": "True when the pull runs something the source data names, such as starting a command; false when it only reads. An application asks before running a pull that executes."
+                }
+            },
+            "required": [
+                "description",
+                "executes"
+            ]
+        },
         "KindDescription": {
             "type": "object",
-            "description": "Everything an application needs to add a source of this kind and to bind to it: the kind's description, the operations this implementation performs under it, what its check does, and the two shapes the kind reads. An absent sourceData means sources of this kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check source entries of this kind.",
+            "description": "Everything an application needs to add a source of this kind and to bind to it: the kind's description, the operations this implementation performs under it, what its check and its pull do, and the two shapes the kind reads. An absent sourceData means sources of this kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check source entries of this kind, and an absent pull that it does not pull sources of this kind; pull is present exactly when supports names openbindings.source-puller.pullSource.",
             "properties": {
                 "kind": {
                     "type": "string",
@@ -79,6 +98,9 @@
                 },
                 "check": {
                     "$ref": "#/schemas/CheckDescription"
+                },
+                "pull": {
+                    "$ref": "#/schemas/PullDescription"
                 },
                 "sourceData": {
                     "$ref": "#/schemas/DataSchema",
@@ -232,6 +254,10 @@
                             "description": "Confirms the kind is known and derives the source's description. Reads nothing.",
                             "executes": false
                         },
+                        "pull": {
+                            "description": "Lists the kind's fixed functions as operations. Reads nothing.",
+                            "executes": false
+                        },
                         "bindingData": {
                             "type": "string",
                             "title": "The text function",
@@ -257,6 +283,10 @@
                         ],
                         "check": {
                             "description": "Fetches the OpenAPI document when asked to embed it, or confirms it is served at origin. Sends no other request.",
+                            "executes": false
+                        },
+                        "pull": {
+                            "description": "Reads the embedded OpenAPI document, or fetches the one the data names. Sends no other request.",
                             "executes": false
                         },
                         "sourceData": {

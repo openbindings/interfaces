@@ -24,7 +24,7 @@ It is not a general-purpose subschema checker: it is scoped to a keyword subset 
 Schemas at operation `input`/`output` positions take JSON Schema 2020-12's two forms:
 
 - **Object form** — compared as described below.
-- **Boolean form** — mapped to its equivalent object spelling before comparison: `true` becomes `{}` and `false` becomes `{"not": {}}`. `true` therefore behaves exactly like the empty schema (Top). `false` is **discriminating**: `{"not": {}}` uses the `not` keyword, which is outside the profile, so a `false` schema yields an *indeterminate* outcome rather than silently collapsing into Top.
+- **Boolean form** — mapped to its equivalent object spelling before comparison: `true` becomes `{}` and `false` becomes `{"not": {}}`. `true` therefore behaves exactly like the empty schema (Top). `false` is **discriminating**: `{"not": {}}` uses the `not` keyword, which is outside the profile, so in a directional comparison a `false` schema against anything not identical to it yields an *indeterminate* outcome rather than silently collapsing into Top. Identity still holds: `false` is identical to `false`, and to `{"not": {}}`, in both modes (rule 0).
 - **Absent** — an operation that omits a schema leaves that contract **unspecified**. Unspecified is not Top: directional comparison of that slot is *skipped entirely* and reports no finding (see Suppression). Only a *present* schema — including the empty `{}` — is compared. Identical mode is the exception: an absent slot is identical only to an absent slot (see Identical mode, under Suppression), as core §5.1 tells a stated schema from none.
 
 The empty schema `{}` is **Top** ("admits anything"):

@@ -238,6 +238,7 @@ function checkSupports(supports, label) {
 function checkDescription(input, output, label) {
   assert.equal(output.kind, input.kind, `${label}: the description names the kind asked about`);
   checkSupports(output.supports, label);
+  assert.equal(Object.hasOwn(output, 'pull'), output.supports.includes('openbindings.source-puller.pullSource'), `${label}: pull is disclosed exactly when the kind is supported for pullSource`);
   for (const side of ['sourceData', 'bindingData']) {
     if (Object.hasOwn(output, side)) ajv.compile(output[side]);
   }

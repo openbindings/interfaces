@@ -400,8 +400,11 @@ function checkAttribution(document, source, additions, report, label) {
     assert(map === 'operations' || map === 'schemas', `${label}: existing ${entry.existing} labels an operation or a schema`);
     assert(has(document[map], key), `${label}: existing ${entry.existing} names an entry of the input document`);
     if (map === 'operations' && entry.item?.startsWith('operations/')) {
-      const offeredKey = entry.item.slice('operations/'.length);
-      assert(offeredKey === key || (document.operations[key].aliases ?? []).includes(offeredKey), `${label}: ${entry.item} identifies ${entry.existing}`);
+      // The offered operation's identifiers are its key and the aliases its
+      // offered value carries; one of them identifies the existing operation.
+      const identifiers = [entry.item.slice('operations/'.length), ...(entry.offered?.aliases ?? [])];
+      const held = [key, ...(document.operations[key].aliases ?? [])];
+      assert(identifiers.some(id => held.includes(id)), `${label}: ${entry.item} identifies ${entry.existing} by one of its identifiers`);
     }
   }
 }
@@ -484,8 +487,8 @@ for (const entry of [
   { ...addedBinding, uses: [] },
   { ...addedBinding, uses: ['schemas/S', 'operations/op2', 'bindings/c'] },
   { ...addedBinding, reused: true },
-  { ...addedBinding, lossy: loss },
-  { ...addedBinding, lossy: { ...loss, details: { construct: 'discriminator' } } },
+  { ...addedBinding, lossy: [loss] },
+  { ...addedBinding, lossy: [{ ...loss, details: { construct: 'discriminator' } }, { reasonCode: 'example.alias-dropped', message: 'An alias is held elsewhere.' }] },
   { ...addedBinding, 'x-note': 'an implementation extension' },
 ]) accepts(added, entry);
 for (const entry of [
@@ -498,9 +501,11 @@ for (const entry of [
   { ...addedBinding, uses: { schemas: ['S'] } },
   { ...addedBinding, reused: false },
   { ...addedBinding, reused: 'yes' },
-  { ...addedBinding, lossy: { reasonCode: 'example.loss' } },
-  { ...addedBinding, lossy: { message: 'A schema is approximated.' } },
+  { ...addedBinding, lossy: [{ reasonCode: 'example.loss' }] },
+  { ...addedBinding, lossy: [{ message: 'A schema is approximated.' }] },
   { ...addedBinding, lossy: true },
+  { ...addedBinding, lossy: loss },
+  { ...addedBinding, lossy: [] },
 ]) accepts(added, entry, false);
 const existing = compile(puller, puller.schemas.PullExistingEntry);
 const current = { binding: 'b', status: 'current' };

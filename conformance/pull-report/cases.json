@@ -220,13 +220,15 @@
           {
             "binding": "getUser.api",
             "operation": "getUser",
-            "lossy": {
-              "reasonCode": "example.schema-approximated",
-              "message": "The response schema is approximated as an object.",
-              "details": {
-                "construct": "discriminator"
+            "lossy": [
+              {
+                "reasonCode": "example.schema-approximated",
+                "message": "The response schema is approximated as an object.",
+                "details": {
+                  "construct": "discriminator"
+                }
               }
-            }
+            ]
           }
         ]
       },
@@ -1075,6 +1077,157 @@
                 "type": "string"
               }
             }
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
+      "description": "An offered operation whose alias names an operation of the document reuses it when its input and output are equal",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "acme.tasks.list": {
+            "output": {
+              "type": "array"
+            }
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {
+        "bindings": {
+          "acme.tasks.list.api": {
+            "operation": "acme.tasks.list",
+            "source": "api",
+            "data": {
+              "selector": "#/paths/~1tasks/get"
+            }
+          }
+        }
+      },
+      "report": {
+        "exhaustive": true,
+        "added": [
+          {
+            "binding": "acme.tasks.list.api",
+            "operation": "acme.tasks.list",
+            "reused": true
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
+      "description": "An offered operation whose identifiers name two different operations of the document is a conflict",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "listTasks": {
+            "output": {
+              "type": "array"
+            }
+          },
+          "acme.tasks.list": {
+            "output": {
+              "type": "array"
+            }
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {},
+      "report": {
+        "exhaustive": true,
+        "added": [],
+        "omitted": [
+          {
+            "status": "conflict",
+            "reasonCode": "example.identifiers-split",
+            "message": "listTasks and its alias acme.tasks.list name two operations.",
+            "item": "operations/listTasks",
+            "existing": "operations/acme.tasks.list",
+            "offered": {
+              "aliases": [
+                "acme.tasks.list"
+              ],
+              "output": {
+                "type": "array"
+              }
+            }
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
+      "description": "An addition that lost fidelity twice lists both losses",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {},
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {
+        "operations": {
+          "getUser": {
+            "output": {
+              "type": "object"
+            }
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "data": {
+              "selector": "#/paths/~1users~1{id}/get"
+            }
+          }
+        }
+      },
+      "report": {
+        "exhaustive": true,
+        "added": [
+          {
+            "binding": "getUser.api",
+            "operation": "getUser",
+            "lossy": [
+              {
+                "reasonCode": "example.schema-approximated",
+                "message": "The response schema is approximated as an object."
+              },
+              {
+                "reasonCode": "example.alias-dropped",
+                "message": "The alias the source gives is held by another operation."
+              }
+            ]
           }
         ]
       },

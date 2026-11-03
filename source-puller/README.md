@@ -71,16 +71,18 @@ or `unassessed` binding of that source already binds. It never adds a second
 binding for something already bound: a stale binding gets a proposal, and an
 unassessed one is left as it is, never duplicated.
 
-An added binding realizes an added operation, with one exception. When the
-source offers an operation whose key already identifies an operation of the
-document, as its key or one of its aliases (an alias identifies an operation
-exactly as its key does, core §5.1), the puller compares the offered `input`
+An added binding realizes an added operation, with one exception. When one of
+an offered operation's identifiers, its key or one of its aliases, already
+identifies an operation of the document, as its key or one of its aliases (an
+alias identifies an operation exactly as its key does, core §5.1), the puller
+compares the offered `input`
 and `output` with the existing operation's. Equal under the
 [schema-comparison profile's](../schema-comparison/) identical mode, the added
 binding realizes the existing operation, naming its own key, and its report
 entry says `reused`: one operation, several bindings, arrived at by pulling
 several sources. Different, the item is `omitted` as a `conflict` and the
-author decides. A comparison that cannot finish (a reference cycle, a reference
+author decides, and so it is when the offered operation's identifiers identify
+two different operations of the document. A comparison that cannot finish (a reference cycle, a reference
 it cannot resolve, an unsatisfiable merge) decides neither: the item is
 `omitted` as `implementation-unsupported`, and an entry already there whose
 comparison cannot finish is `unassessed`. The author decides a conflict: bind the source to the existing operation by hand, adapting in
@@ -140,9 +142,10 @@ why; an exhaustive report carries none.
   refers to `Address`, so both are listed. A caller keeps an entry by inserting
   it, its operation when that operation is added, and everything the list
   names.
-- `lossy` (`{reasonCode, message, details?}`) discloses lost fidelity, such as
-  an approximated schema. The addition is still an added path; the loss marks
-  what it does not represent exactly.
+- `lossy` (`[{reasonCode, message, details?}]`) discloses each loss of
+  fidelity, such as an approximated schema; an addition that lost fidelity
+  twice lists both. The addition is still an added path; the losses mark what
+  it does not represent exactly.
 
 ### Existing
 
@@ -216,7 +219,7 @@ identifier?, through?, details?}`:
 | `excluded` | Left out under a kind-defined rule, identified by `rule`. |
 | `invalid` | A malformed or contradictory part of the source. |
 | `implementation-unsupported` | Something the kind admits that this implementation did not represent. |
-| `conflict` | The item needs something the document already holds with another shape: an operation under a key or alias the document has whose input or output differ from the item's, a `schemas` entry under the key the item refers to, another operation's input or output the item refers to, or an identifier, a `$id` or a plain name, that its additions would declare again. The author decides. |
+| `conflict` | The item needs something the document already holds with another shape: an operation that one of its identifiers identifies whose input or output differ from the item's, or two operations its identifiers identify at once, a `schemas` entry under the key the item refers to, another operation's input or output the item refers to, or an identifier, a `$id` or a plain name, that its additions would declare again. The author decides. |
 
 - `item` labels the item left out as `<map>/<key>`, the way `uses` labels an
   addition: `operations/<key>` with the key the source offers, or
@@ -228,7 +231,8 @@ identifier?, through?, details?}`:
   `operations/<key>/input` or `operations/<key>/output`.
 - `offered`, on a conflict and required there, is the item's version of what
   `existing` labels: for an operation, an object carrying the offered `input`
-  and `output`, each absent where the item offers none; for a `schemas` entry,
+  and `output`, each absent where the item offers none, and the offered
+  `aliases`, absent when it offers none; for a `schemas` entry,
   the schema the item needs under that key; for a conflict over an identifier,
   the schema in the item's additions that would declare it.
 - `through`, on a conflict, names what `existing` and `offered` differ

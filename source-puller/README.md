@@ -68,19 +68,24 @@ binding of that source already binds. It never adds a second binding for
 something already bound: a stale binding gets a proposal, not a duplicate.
 
 An added binding realizes an added operation, with one exception. When the
-source offers an operation whose key the document already has, the puller
-compares the offered `input` and `output` with the existing operation's. Equal
-under the [schema-comparison profile's](../schema-comparison/) identical mode,
-the added binding realizes the existing operation and its report entry says
-`reused`: one operation, several bindings, arrived at by pulling several
-sources. Different, the item is `omitted` as a `conflict` and the author
-decides: bind the source to the existing operation by hand, adapting in binding
-data as the kind defines, or add it under another key. The comparison is the
-puller's and is the same for every kind; the kind projects from its source
-alone and reads nothing in the document to choose a name or a shape.
+source offers an operation whose key already identifies an operation of the
+document, as its key or one of its aliases (an alias identifies an operation
+exactly as its key does, core §5.1), the puller compares the offered `input`
+and `output` with the existing operation's. Equal under the
+[schema-comparison profile's](../schema-comparison/) identical mode, the added
+binding realizes the existing operation, naming its own key, and its report
+entry says `reused`: one operation, several bindings, arrived at by pulling
+several sources. Different, the item is `omitted` as a `conflict` and the
+author decides: bind the source to the existing operation by hand, adapting in
+binding data as the kind defines, or add it under another key. The comparison
+is the puller's and is the same for every kind; the kind projects from its
+source alone and reads nothing in the document to choose a name or a shape.
 
 Added schemas and binding data may refer to entries already in the input
 document and to other additions. Each kind defines how its data refers to them.
+An addition never claims the author's shape: an item that needs a `schemas`
+entry, or another operation's `input` or `output`, that the document holds
+with another shape than the source's is `omitted` as a `conflict` too.
 
 Added bindings claim faithful invocation paths under their source's kind in
 the observed source state. Runtime context, configuration and host
@@ -144,16 +149,29 @@ to report about it, the source entry itself. Exactly one of `binding`,
 | `current` | The puller would write the entry unchanged. |
 | `stale` | The entry still corresponds to something the source offers, but the puller would write it differently now. The entry carries a `proposal` and a `change`. |
 | `unmatched` | Nothing the puller read and would write corresponds to the entry any more. When `exhaustive` is false, it may correspond to something unread. Optional `reasonCode`, `message` and `details` say why. |
+| `unassessed` | The entry corresponds to something the source offers, but the puller could not judge it, as when it cannot represent that item. `reasonCode` and `message` say why. |
+
+"Unchanged" is judged as the [schema-comparison profile's](../schema-comparison/)
+identical mode compares schemas, so a difference only in what the profile
+strips as annotations (a description, a default, a format) never makes an
+entry stale: annotations are the author's. A reference spelled the same in the
+entry and in what the puller would write counts as the same when its target is
+something the source offers, a `schemas` entry under that key or another
+operation's `input` or `output`, so a change behind it is reported once, at its
+target. Binding data and source data compare as JSON values.
 
 A proposal carries only what the kind owns. For a binding it is
-`{data?, input?, output?, uses?}`: `data` is the binding data the puller would
-write, `input` and `output` are the schemas it would write for the operation
-the binding realizes, each appearing where the puller would write it
-differently and at least one appearing, and `uses` names the additions the
-proposal needs. The operation's `description`, `preference` and `idempotent`
-are the author's and are never in a proposal, so applying one cannot touch
-them. For a schema the proposal is the schema the puller would write. For the
-source it is `{data}`, and only a kind whose definition lets it refresh its own
+`{data?, input?, output?, remove?, uses?}`: `data` is the binding data the
+puller would write, `input` and `output` are the schemas it would write for the
+operation the binding realizes, each appearing where the puller would write it
+differently, `remove` names what it would no longer write (`data`, `input` or
+`output`, each at most once and never also carried), at least one of the four
+appears, and `uses` names the additions the proposal needs. The operation's
+`description`, and the binding's `preference` and `idempotent` (core §5.3), are
+the author's and are never in a proposal, so applying one cannot touch them.
+For a schema the proposal is `{schema, uses?}`: the schema the puller would
+write and the additions it needs. For the source it is `{data}` or
+`{remove: ["data"]}`, and only a kind whose definition lets it refresh its own
 source data ever proposes one; the interface takes no stance on what a kind's
 data means.
 
@@ -165,24 +183,40 @@ classify a change says `dangerous`. The label lets an agent or a policy decide
 without diffing schemas itself; it is not an instruction to apply.
 
 A caller applies a proposal by copying what it carries onto the existing
-entry and inserting the additions its `uses` names.
+entry, removing what its `remove` names, and inserting the additions its `uses`
+names. An endpoint that stops returning a body is a stale binding whose
+proposal is `{"remove": ["output"]}`, a `breaking` change.
 
 ### Omitted
 
 `omitted` reports what the source offers that the pull did not represent. Each
-entry is `{status, reasonCode, message, rule?, details?}`:
+entry is `{status, reasonCode, message, rule?, item?, existing?, offered?,
+through?, details?}`:
 
 | Status | Meaning |
 | --- | --- |
 | `excluded` | Left out under a kind-defined rule, identified by `rule`. |
 | `invalid` | A malformed or contradictory part of the source. |
 | `implementation-unsupported` | Something the kind admits that this implementation did not represent. |
-| `conflict` | The item would add an operation under a key the document already has whose input or output differ from the item's. The author decides. |
+| `conflict` | The item needs something the document already holds with another shape: an operation under a key or alias the document has whose input or output differ from the item's, a `schemas` entry under the key the item refers to, or another operation's input or output the item refers to. The author decides. |
+
+- `item` labels the item left out as `<map>/<key>`, the way `uses` labels an
+  addition: `operations/<key>` with the key the source offers, or
+  `schemas/<key>`. It is present whenever the omitted part has a key.
+- `existing`, on a conflict and required there, labels what the document
+  holds that differs: `operations/<key>` by the operation's own key, even when
+  the item offers it under an alias, or `schemas/<key>`.
+- `offered`, on a conflict and required there, is the item's version of what
+  `existing` labels: for an operation, an object carrying the offered `input`
+  and `output`, each absent where the item offers none; for a `schemas` entry,
+  the schema the item needs under that key.
+- `through`, on a conflict, names the schemas through which `existing` and
+  `offered` differ when the two read the same, as `schemas/<key>` labels.
 
 An implementation gap is not a kind exclusion: an implementation's restriction
 of a kind defined elsewhere is `implementation-unsupported`. `details`
-describes the omitted item but is not an address; no request names an item by
-it.
+describes the omitted item further but is not an address; no request names an
+item by it.
 
 These meanings constrain the claim, not how it is computed. Consumers choose
 how to assess evidence or handle inconsistent results. Comparing details across
@@ -191,9 +225,10 @@ producers is meaningful only where the kind defines it.
 ## Complete pull
 
 A complete pull is a condition on the report, not a separate operation or
-field. A result meets it when `exhaustive` is true and no `omitted` entry is
-`implementation-unsupported`. The pulled document then binds everything the
-kind admits from the source, apart from what the author has to decide.
+field. A result meets it when `exhaustive` is true, no `omitted` entry is
+`implementation-unsupported` and no `existing` entry is `unassessed`. The
+pulled document then binds everything the kind admits from the source, apart
+from what the author has to decide.
 
 Kind-defined exclusions, invalid parts, conflicts and lossy additions do not
 prevent a complete pull. The kind's own rule leaves an excluded item out, an
@@ -223,6 +258,8 @@ from `existing` and `added`:
   puller would write it now and the class of the change.
 - An `unmatched` entry is a binding that binds nothing the source offers now,
   such as a removed or renamed target.
+- An `unassessed` entry is one the puller could not judge; the source still
+  offers what it corresponds to, so it is no reason to remove the entry.
 - An added binding is something the source offers that the document does not
   yet bind.
 
@@ -447,7 +484,9 @@ the change:
 
 The binding data is unchanged, so the proposal has no `data`, and it needs no
 additions, so it has no `uses`. Nothing is added for `echo`. To apply, the
-caller copies the proposed output onto `repeat`. The complete response, with
+caller copies the proposed output onto `repeat`. Had the document declared an
+output the kind would no longer declare, the proposal would instead be
+`{"remove": ["output"]}`, and the caller would delete `repeat`'s output. The complete response, with
 `countText` current beside it, appears in `pullSource.examples.staleTextTools`.
 
 ### A reused operation

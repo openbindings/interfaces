@@ -216,7 +216,7 @@ Field semantics:
 
 - `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, core §5.1), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
 - `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
-- Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified, and the slot's comparison is skipped (the profile's suppression rule).
+- Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified: in `subsume` mode the slot's comparison is skipped (the profile's suppression rule), and in `identical` mode an absent slot is identical only to an absent one.
 - `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).
 - `findings`: informative labels for the deciding rule families (`type`, `enum`, `outside-profile`, ...); harnesses assert verdicts, not findings.
 

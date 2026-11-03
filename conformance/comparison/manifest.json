@@ -118,6 +118,22 @@
       "findings": []
     },
     {
+      "path": "structural/identical-absent-slot-difference-incompatible.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "unspecified"
+      ]
+    },
+    {
+      "path": "structural/identical-absent-slots-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
       "path": "structural/identical-detects-difference-incompatible.json",
       "mode": "identical",
       "direction": "input",
@@ -178,13 +194,6 @@
       "findings": []
     },
     {
-      "path": "structural/normalize-nullable-identical.json",
-      "mode": "identical",
-      "direction": "input",
-      "verdict": "compatible",
-      "findings": []
-    },
-    {
       "path": "structural/normalize-ref-inline-identical.json",
       "mode": "identical",
       "direction": "input",
@@ -207,6 +216,22 @@
     },
     {
       "path": "structural/normalize-union-ordering-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "structural/nullable-outside-profile-difference-incompatible.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "identity"
+      ]
+    },
+    {
+      "path": "structural/nullable-outside-profile-identical.json",
       "mode": "identical",
       "direction": "input",
       "verdict": "compatible",

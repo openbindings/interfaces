@@ -46,7 +46,6 @@ const annotations = new Set([
   "$schema",
   "format",
   "discriminator",
-  "nullable",
 ]);
 
 function visitSchema(schema, path) {

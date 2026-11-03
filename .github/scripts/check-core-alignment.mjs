@@ -284,10 +284,11 @@ function checkCheckedEntry(input, output, label) {
 const reportSchema = compile(puller, puller.schemas.PullReport);
 const additionsSchema = compile(puller, puller.schemas.PullAdditions);
 // The guide's complete-pull condition: an exhaustive report with no
-// implementation gap. Exclusions, invalid parts, conflicts and lossy additions
-// still meet it.
+// implementation gap and no entry the puller could not judge. Exclusions,
+// invalid parts, conflicts and lossy additions still meet it.
 const completePull = (report) => report.exhaustive === true
-  && (report.omitted ?? []).every(entry => entry.status !== 'implementation-unsupported');
+  && (report.omitted ?? []).every(entry => entry.status !== 'implementation-unsupported')
+  && (report.existing ?? []).every(entry => entry.status !== 'unassessed');
 // Insert additions as the interface describes them: each added key is new to
 // its map, added operation keys are new to the identifier namespace, and added
 // bindings name the pulled source.
@@ -384,8 +385,22 @@ function checkAttribution(document, source, additions, report, label) {
     } else if (name === 'schema') {
       assert(has(document.schemas, key), `${label}: existing names an input schema, ${key}`);
       assert(!has(additions.schemas, key), `${label}: schema ${key} is not also added`);
+      if (entry.proposal) checkUses(document, additions, { input: entry.proposal.schema }, entry.proposal.uses, `${label}: ${key}`);
     } else {
       assert.equal(key, source, `${label}: the source entry names the pulled source`);
+    }
+  }
+  // A conflict's existing names what the document holds, an operation by its
+  // own key; an item offered under an alias of it names that alias.
+  for (const entry of report.omitted ?? []) {
+    if (entry.status !== 'conflict') continue;
+    const slash = entry.existing.indexOf('/');
+    const map = entry.existing.slice(0, slash), key = entry.existing.slice(slash + 1);
+    assert(map === 'operations' || map === 'schemas', `${label}: existing ${entry.existing} labels an operation or a schema`);
+    assert(has(document[map], key), `${label}: existing ${entry.existing} names an entry of the input document`);
+    if (map === 'operations' && entry.item?.startsWith('operations/')) {
+      const offeredKey = entry.item.slice('operations/'.length);
+      assert(offeredKey === key || (document.operations[key].aliases ?? []).includes(offeredKey), `${label}: ${entry.item} identifies ${entry.existing}`);
     }
   }
 }
@@ -503,11 +518,18 @@ for (const entry of [
   { ...unmatched, reasonCode: 'example.removed', message: 'The source no longer offers it.', details: { path: '/legacy' } },
   { ...current, 'x-note': 'an implementation extension' },
   { schema: 'S', status: 'current' },
-  { schema: 'S', status: 'stale', change: 'non-breaking', proposal: { type: 'object' } },
-  { schema: 'S', status: 'stale', change: 'breaking', proposal: false },
+  { schema: 'S', status: 'stale', change: 'non-breaking', proposal: { schema: { type: 'object' } } },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: { schema: false } },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: { schema: { $ref: '#/schemas/T' }, uses: ['schemas/T'] } },
+  { ...stale, change: 'breaking', proposal: { remove: ['output'] } },
+  { ...stale, change: 'breaking', proposal: { data: 'echo', remove: ['input', 'output'] } },
+  { ...stale, change: 'breaking', proposal: { remove: ['data'] } },
+  { binding: 'b', status: 'unassessed', reasonCode: 'example.unrepresented', message: 'This puller does not represent the item.' },
+  { binding: 'b', status: 'unassessed', reasonCode: 'example.unrepresented', message: 'm', details: { path: '/stream' } },
   { source: 'api', status: 'current' },
   { source: 'api', status: 'stale', change: 'non-breaking', proposal: { data: { location: 'https://example.com/openapi.json' } } },
   { source: 'api', status: 'stale', change: 'non-breaking', proposal: { data: null } },
+  { source: 'api', status: 'stale', change: 'breaking', proposal: { remove: ['data'] } },
 ]) accepts(existing, entry);
 for (const entry of [
   { status: 'current' },
@@ -537,6 +559,18 @@ for (const entry of [
   { source: 'api', status: 'stale', change: 'non-breaking', proposal: {} },
   { source: 'api', status: 'stale', change: 'non-breaking', proposal: true },
   { source: 'api', status: 'unmatched', proposal: { data: null } },
+  { schema: 'S', status: 'stale', change: 'non-breaking', proposal: { type: 'object' } },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: false },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: { uses: ['schemas/T'] } },
+  { ...stale, proposal: { remove: [] } },
+  { ...stale, proposal: { remove: ['description'] } },
+  { ...stale, proposal: { remove: 'output' } },
+  { binding: 'b', status: 'unassessed' },
+  { binding: 'b', status: 'unassessed', reasonCode: 'example.unrepresented' },
+  { binding: 'b', status: 'unassessed', reasonCode: 'r', message: 'm', proposal: { data: 'echo' } },
+  { binding: 'b', status: 'unassessed', reasonCode: 'r', message: 'm', change: 'breaking' },
+  { source: 'api', status: 'stale', change: 'breaking', proposal: { data: null, remove: ['data'] } },
+  { source: 'api', status: 'stale', change: 'breaking', proposal: { remove: ['input'] } },
 ]) accepts(existing, entry, false);
 const omitted = compile(puller, puller.schemas.PullOmittedEntry);
 const omission = { reasonCode: 'example.reason', message: 'Not represented.' };
@@ -544,7 +578,10 @@ for (const entry of [
   { status: 'excluded', ...omission, rule: 'example.kind@1 section 4' },
   { status: 'invalid', ...omission },
   { status: 'implementation-unsupported', ...omission, details: { path: '/users' } },
-  { status: 'conflict', ...omission, details: { operation: 'getUser' } },
+  { status: 'conflict', ...omission, item: 'operations/getUser', existing: 'operations/getUser', offered: { input: { type: 'integer' } } },
+  { status: 'conflict', ...omission, item: 'operations/getUser', existing: 'schemas/Error', offered: { type: 'object' } },
+  { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, through: ['schemas/User'] },
+  { status: 'implementation-unsupported', ...omission, item: 'schemas/Stream' },
   { status: 'invalid', ...omission, 'x-note': 'an implementation extension' },
 ]) accepts(omitted, entry);
 for (const entry of [
@@ -557,5 +594,11 @@ for (const entry of [
   { ...omission },
   { status: 'lossy', ...omission },
   { status: 'stale', ...omission },
+  { status: 'conflict', ...omission, details: { operation: 'getUser' } },
+  { status: 'conflict', ...omission, existing: 'operations/getUser' },
+  { status: 'conflict', ...omission, offered: { input: {} } },
+  { status: 'invalid', ...omission, item: '' },
+  { status: 'invalid', ...omission, existing: 'operations/getUser' },
+  { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, through: [] },
 ]) accepts(omitted, entry, false);
 console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, frame shape, challenge, kind description, pull and report controls pass`);

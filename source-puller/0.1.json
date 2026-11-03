@@ -333,7 +333,7 @@
                         "type": "string",
                         "minLength": 1
                     },
-                    "description": "Only on a binding's entry: what its data refers to in the input document, as labels, schemas/<key>, or operations/<key>/input or /output, the list closed, absent when it refers to nothing there. A reader sees nothing inside binding data, so this is how it learns what the binding depends on."
+                    "description": "Only on a binding's entry: what its data refers to in the input document, as labels, schemas/<key>, or operations/<key>/input or /output, the list closed, absent when it refers to nothing there. A reader sees nothing inside binding data, so this is how it learns what the binding depends on. A label names the whole entry or input or output, so a change anywhere in it reaches the binding."
                 },
                 "reasonCode": {
                     "type": "string",
@@ -483,7 +483,7 @@
                 "existing": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Only on a conflict, and required there: what the document holds that differs, as a label, operations/<key> by the operation's own key even when the item offers it under an alias, or schemas/<key>; for a conflict over an identifier, the place that declares it, schemas/<key>, operations/<key>/input or operations/<key>/output. When the item's identifiers identify several operations, the first of them in the order of the identifiers, the item's key and then its aliases."
+                    "description": "Required on a conflict: what the document holds that differs, as a label, operations/<key> by the operation's own key even when the item offers it under an alias, or schemas/<key>; for a conflict over an identifier, the place that declares it, schemas/<key>, operations/<key>/input or operations/<key>/output. When the item's identifiers identify several operations, the first of them in the order of the identifiers, the item's key and then its aliases. On any other status of an operation item, present exactly when the item's identifiers identify an operation of the document: that operation, as operations/<key>, so a reader can tell what the omission touches."
                 },
                 "alsoIdentifies": {
                     "type": "array",
@@ -492,7 +492,7 @@
                         "type": "string",
                         "minLength": 1
                     },
-                    "description": "Only on a conflict whose identifiers identify several operations of the document, and present exactly then: each operation beyond existing, as operations/<key> by its own key, in the order of the item's identifiers."
+                    "description": "Present exactly when an operation item's identifiers identify several operations of the document: each operation beyond existing, as operations/<key> by its own key, in the order of the item's identifiers."
                 },
                 "offered": {
                     "type": [
@@ -532,11 +532,9 @@
                         "status": {
                             "const": "excluded"
                         },
-                        "existing": false,
                         "offered": false,
                         "through": false,
-                        "identifier": false,
-                        "alsoIdentifies": false
+                        "identifier": false
                     },
                     "required": [
                         "rule"
@@ -550,11 +548,9 @@
                                 "implementation-unsupported"
                             ]
                         },
-                        "existing": false,
                         "offered": false,
                         "through": false,
-                        "identifier": false,
-                        "alsoIdentifies": false
+                        "identifier": false
                     }
                 },
                 {

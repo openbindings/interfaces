@@ -1397,6 +1397,45 @@
       "completePull": true
     },
     {
+      "description": "An operation left out as unsupported names the document's operation its alias identifies",
+      "interface": {
+        "openbindings": "0.2.0",
+        "operations": {
+          "local": {
+            "input": {
+              "type": "string"
+            }
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {},
+      "report": {
+        "exhaustive": true,
+        "added": [],
+        "existing": [],
+        "omitted": [
+          {
+            "status": "implementation-unsupported",
+            "reasonCode": "example.cycle",
+            "message": "The operation's schemas refer to themselves.",
+            "item": "operations/remote",
+            "existing": "operations/local"
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": false
+    },
+    {
       "description": "A report without added does not match the report shape",
       "interface": {
         "openbindings": "0.2.0",

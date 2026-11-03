@@ -96,7 +96,8 @@ An addition never claims the author's shape: an item that needs a `schemas`
 entry, or another operation's `input` or `output`, that the document holds
 with another shape than the source's is `omitted` as a `conflict` too, and so
 is an item whose additions would declare again an identifier the document
-declares, a `$id` or a plain name (core §7.2).
+declares, a `$id` or a plain name (core §7.2). An addition may exist only for a
+proposal's `uses`, realized by no added binding.
 
 Added bindings claim faithful invocation paths under their source's kind in
 the observed source state. Runtime context, configuration and host
@@ -185,7 +186,8 @@ document, as labels, `schemas/<key>`, or `operations/<key>/input` or `/output`,
 the list closed, and is absent when it refers to nothing there. Only the kind
 can see inside binding data, so this is how a reader learns that a change to
 such an entry reaches the binding, though the binding itself still reads
-`current`.
+`current`. A label names the whole entry or `input` or `output`, so a change
+anywhere in it reaches the binding, whatever part its data uses.
 
 A proposal carries only what the kind owns. For a binding it is
 `{data?, input?, output?, remove?, uses?}`: `data` is the binding data the
@@ -248,6 +250,9 @@ identifier?, through?, details?}`:
 - `alsoIdentifies`, on such a conflict and present exactly then, lists each
   operation beyond `existing`, as `operations/<key>` by its own key, in that
   order, so a reader need not resolve the identifiers again.
+- On any other status, an operation item whose identifiers identify an
+  operation of the document carries `existing`, and `alsoIdentifies` when they
+  identify several, so a reader can tell what the omission touches.
 - `offered`, on a conflict and required there, is the item's version of what
   `existing` labels: for an operation, an object carrying the offered `input`
   and `output`, each absent where the item offers none, and the offered

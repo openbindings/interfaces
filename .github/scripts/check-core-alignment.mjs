@@ -400,7 +400,13 @@ function checkAttribution(document, source, additions, report, label) {
   // A conflict's existing names what the document holds, an operation by its
   // own key; an item offered under an alias of it names that alias.
   for (const entry of report.omitted ?? []) {
-    if (entry.status !== 'conflict') continue;
+    if (entry.status !== 'conflict') {
+      // Any other status names only operations, by their own keys.
+      for (const label of [...(Object.hasOwn(entry, 'existing') ? [entry.existing] : []), ...(entry.alsoIdentifies ?? [])]) {
+        assert(label.startsWith('operations/') && has(document.operations, label.slice('operations/'.length)), `${label}: names an operation of the input document`);
+      }
+      continue;
+    }
     // existing is <map>/<key>, or, for a conflict over an identifier,
     // operations/<key>/input or operations/<key>/output.
     const parts = entry.existing.split('/');
@@ -627,8 +633,6 @@ for (const entry of [
   { status: 'conflict', ...omission, existing: 'operations/getUser' },
   { status: 'conflict', ...omission, offered: { input: {} } },
   { status: 'invalid', ...omission, item: '' },
-  { status: 'invalid', ...omission, existing: 'operations/getUser' },
-  { status: 'invalid', ...omission, alsoIdentifies: ['operations/getUser'] },
   { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, alsoIdentifies: [] },
   { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, through: [] },
 ]) accepts(omitted, entry, false);

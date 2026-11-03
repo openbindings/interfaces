@@ -179,7 +179,7 @@ The profile deliberately reports **no finding** in these situations:
 
 Consumer-level *finding suppression* — downgrading a reported finding by rule, with an audit trail — is a consumer policy on top of the report and is outside this profile.
 
-**Identical mode.** Whole-document identity (the corpus's `identical` mode) compares normalized schemas structurally, outside-profile keywords included: identical documents are compatible and differing documents are incompatible, with the first differing keyword as the finding. Identity never yields indeterminate, because sameness is decidable for any keyword. An absent slot is identical only to an absent slot: a pair where one side states a schema and the other states none differs, with the finding `unspecified`, since core §5.1 distinguishes a stated schema, even `{}`, from none.
+**Identical mode.** Whole-document identity (the corpus's `identical` mode) compares normalized schemas structurally, outside-profile keywords included: identical documents are compatible and differing documents are incompatible, with the first differing keyword as the finding. Identity never yields indeterminate, because sameness is decidable for any keyword once both sides normalize (a reference cycle or an unsatisfiable merge fails normalization, the third outcome, as an error and not a verdict). An absent slot is identical only to an absent slot: a pair where one side states a schema and the other states none differs, with the finding `unspecified`, since core §5.1 distinguishes a stated schema, even `{}`, from none.
 
 ## Conformance corpus
 

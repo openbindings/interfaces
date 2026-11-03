@@ -209,7 +209,7 @@ proposal is `{"remove": ["output"]}`, a `breaking` change.
 
 `omitted` reports what the source offers that the pull did not represent. Each
 entry is `{status, reasonCode, message, rule?, item?, existing?, offered?,
-through?, details?}`:
+identifier?, through?, details?}`:
 
 | Status | Meaning |
 | --- | --- |

@@ -218,7 +218,7 @@
             }
         },
         "openbindings.kind-descriptor.describeKind": {
-            "description": "Describe one kind this implementation reads: its description, the operations this implementation performs under it, what its check does, and the schemas of its source data and binding data. The schemas are the two shapes the kind reads and are written to be filled: an application renders them as prompts, an agent fills them as it fills any schema. An absent sourceData means sources of the kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check entries of the kind. A kind this implementation does not read completes unsuccessfully. Kind equality is the core's exact string equality. This is a capability query and performs no operation under the kind.",
+            "description": "Describe one kind this implementation reads: its description, the operations this implementation performs under it, what its check and its pull do, and the schemas of its source data and binding data. The schemas are the two shapes the kind reads and are written to be filled: an application renders them as prompts, an agent fills them as it fills any schema. An absent sourceData means sources of the kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check entries of the kind. A kind this implementation does not read completes unsuccessfully. Kind equality is the core's exact string equality. This is a capability query and performs no operation under the kind.",
             "input": {
                 "type": "object",
                 "properties": {
@@ -275,7 +275,7 @@
                     },
                     "output": {
                         "kind": "example.openapi@1",
-                        "description": "An OpenAPI 3.1 document and the HTTP API it describes. Each operation in the document becomes an operation; its parameters and request body become the input, its success response the output; a binding's data points at the path item and method. An embedded document is the source; nothing is re-fetched for it.",
+                        "description": "An OpenAPI 3.1 document and the HTTP API it describes. Each operation in the document becomes an operation; its parameters and request body become the input, a lone path parameter as its bare value, its success response the output; a binding's data points at the path item and method. An embedded document is the source; nothing is re-fetched for it.",
                         "supports": [
                             "openbindings.binding-invoker.invokeBinding",
                             "openbindings.source-puller.pullSource",

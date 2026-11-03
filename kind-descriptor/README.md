@@ -28,8 +28,8 @@ convenience it buys is one question, which kind to use, answered by
 
 `listKinds` returns the kinds this implementation reads, each with the
 operations it performs under the kind. `describeKind` returns one kind's
-description, those operations, what its check does, and the schemas of its
-source data and binding data. `checkSource` takes a proposed source entry and
+description, those operations, what its check and its pull do, and the
+schemas of its source data and binding data. `checkSource` takes a proposed source entry and
 returns the entry the kind stands behind. The first two are capability queries
 and perform nothing under any kind; the third reads what the kind needs to
 read and is disclosed by `describeKind`.

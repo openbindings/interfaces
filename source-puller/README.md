@@ -218,7 +218,7 @@ proposal is `{"remove": ["output"]}`, a `breaking` change.
 ### Omitted
 
 `omitted` reports what the source offers that the pull did not represent. Each
-entry is `{status, reasonCode, message, rule?, item?, existing?, offered?,
+entry is `{status, reasonCode, message, rule?, item?, existing?, alsoIdentifies?, offered?,
 identifier?, through?, details?}`:
 
 | Status | Meaning |
@@ -235,7 +235,12 @@ identifier?, through?, details?}`:
   holds that differs: `operations/<key>` by the operation's own key, even when
   the item offers it under an alias, or `schemas/<key>`. For a conflict over an
   identifier it labels the place that declares it: `schemas/<key>`,
-  `operations/<key>/input` or `operations/<key>/output`.
+  `operations/<key>/input` or `operations/<key>/output`. When the item's
+  identifiers identify several operations it labels the first of them, in the
+  order of the identifiers, the item's key and then its aliases.
+- `alsoIdentifies`, on such a conflict and present exactly then, lists each
+  operation beyond `existing`, as `operations/<key>` by its own key, in that
+  order, so a reader need not resolve the identifiers again.
 - `offered`, on a conflict and required there, is the item's version of what
   `existing` labels: for an operation, an object carrying the offered `input`
   and `output`, each absent where the item offers none, and the offered

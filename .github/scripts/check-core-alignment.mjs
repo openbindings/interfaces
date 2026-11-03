@@ -412,6 +412,16 @@ function checkAttribution(document, source, additions, report, label) {
       const identifiers = [entry.item.slice('operations/'.length), ...(entry.offered?.aliases ?? [])];
       const held = [key, ...(document.operations[key].aliases ?? [])];
       assert(identifiers.some(id => held.includes(id)), `${label}: ${entry.item} identifies ${entry.existing} by one of its identifiers`);
+      // Several operations identified: existing is the first in the order of
+      // the identifiers, alsoIdentifies the rest, and it is absent otherwise.
+      const identified = [];
+      for (const id of identifiers) {
+        const found = Object.keys(document.operations).find(name => name === id || (document.operations[name].aliases ?? []).includes(id));
+        if (found !== undefined && !identified.includes(found)) identified.push(found);
+      }
+      assert.equal(key, identified[0], `${label}: existing is the first operation ${entry.item} identifies`);
+      if (identified.length > 1) assert.deepEqual(entry.alsoIdentifies, identified.slice(1).map(name => `operations/${name}`), `${label}: alsoIdentifies lists the rest`);
+      else assert(!Object.hasOwn(entry, 'alsoIdentifies'), `${label}: alsoIdentifies is only for several operations`);
     }
   }
 }
@@ -612,6 +622,8 @@ for (const entry of [
   { status: 'conflict', ...omission, offered: { input: {} } },
   { status: 'invalid', ...omission, item: '' },
   { status: 'invalid', ...omission, existing: 'operations/getUser' },
+  { status: 'invalid', ...omission, alsoIdentifies: ['operations/getUser'] },
+  { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, alsoIdentifies: [] },
   { status: 'conflict', ...omission, existing: 'operations/getUser', offered: {}, through: [] },
 ]) accepts(omitted, entry, false);
 console.log(`core-alignment: ${contracts.size} structurally conformant documents, ${compiled} contracts compile; invocation request, presence, frame shape, challenge, kind description, pull and report controls pass`);

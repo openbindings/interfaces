@@ -1331,6 +1331,72 @@
       "completePull": true
     },
     {
+      "description": "A binding whose data refers to a schema says so, and the schema is stale in its own entry",
+      "interface": {
+        "openbindings": "0.2.0",
+        "schemas": {
+          "Wire": {
+            "type": "object"
+          }
+        },
+        "operations": {
+          "getUser": {
+            "output": {
+              "type": "object"
+            }
+          }
+        },
+        "sources": {
+          "api": {
+            "kind": "example.report@1",
+            "data": {
+              "location": "https://example.com/openapi.json"
+            }
+          }
+        },
+        "bindings": {
+          "getUser.api": {
+            "operation": "getUser",
+            "source": "api",
+            "data": {
+              "selector": "#/paths/~1users/get",
+              "codec": "#/schemas/Wire"
+            }
+          }
+        }
+      },
+      "source": "api",
+      "additions": {},
+      "report": {
+        "exhaustive": true,
+        "added": [],
+        "existing": [
+          {
+            "binding": "getUser.api",
+            "status": "current",
+            "references": [
+              "schemas/Wire"
+            ]
+          },
+          {
+            "schema": "Wire",
+            "status": "stale",
+            "change": "breaking",
+            "proposal": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "schemaValid": true,
+      "completePull": true
+    },
+    {
       "description": "A report without added does not match the report shape",
       "interface": {
         "openbindings": "0.2.0",

@@ -383,6 +383,12 @@ function checkAttribution(document, source, additions, report, label) {
       assert(has(document.bindings, key), `${label}: existing names an input binding, ${key}`);
       assert.equal(document.bindings[key].source, source, `${label}: ${key} names the pulled source`);
       if (entry.proposal) checkUses(document, additions, { input: entry.proposal.input, output: entry.proposal.output }, entry.proposal.uses, `${label}: ${key}`);
+      // references names what the binding's data refers to in the input document.
+      for (const reference of entry.references ?? []) {
+        const [map, name, part] = reference.split('/');
+        if (map === 'schemas') assert(has(document.schemas, name) && part === undefined, `${label}: ${key} refers to a schema of the input document`);
+        else assert(map === 'operations' && has(document.operations, name) && (part === 'input' || part === 'output'), `${label}: ${key} refers to an operation's input or output`);
+      }
     } else if (name === 'schema') {
       assert(has(document.schemas, key), `${label}: existing names an input schema, ${key}`);
       assert(!has(additions.schemas, key), `${label}: schema ${key} is not also added`);

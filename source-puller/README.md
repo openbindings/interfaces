@@ -180,6 +180,13 @@ is `unassessed`, since nothing the puller would write at the entry carries the
 change. Binding data and source
 data compare as JSON values.
 
+`references`, on a binding's entry, lists what its data refers to in the input
+document, as labels, `schemas/<key>`, or `operations/<key>/input` or `/output`,
+the list closed, and is absent when it refers to nothing there. Only the kind
+can see inside binding data, so this is how a reader learns that a change to
+such an entry reaches the binding, though the binding itself still reads
+`current`.
+
 A proposal carries only what the kind owns. For a binding it is
 `{data?, input?, output?, remove?, uses?}`: `data` is the binding data the
 puller would write, `input` and `output` are the schemas it would write for the

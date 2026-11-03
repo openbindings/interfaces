@@ -175,6 +175,22 @@
       ]
     },
     {
+      "path": "structural/normalize-allof-union-retained-identical.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "compatible",
+      "findings": []
+    },
+    {
+      "path": "structural/normalize-allof-union-retained-incompatible.json",
+      "mode": "identical",
+      "direction": "input",
+      "verdict": "incompatible",
+      "findings": [
+        "identity"
+      ]
+    },
+    {
       "path": "structural/normalize-allof-flatten-identical.json",
       "mode": "identical",
       "direction": "input",

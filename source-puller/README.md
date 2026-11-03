@@ -63,9 +63,10 @@ is also new to its operation identifier namespace, which holds operation keys
 and aliases. Every added binding names the pulled source. Inserting the
 additions into the input document gives the pulled document.
 
-A pull adds bindings for what the source offers that no `current` or `stale`
-binding of that source already binds. It never adds a second binding for
-something already bound: a stale binding gets a proposal, not a duplicate.
+A pull adds bindings for what the source offers that no `current`, `stale`
+or `unassessed` binding of that source already binds. It never adds a second
+binding for something already bound: a stale binding gets a proposal, and an
+unassessed one is left as it is, never duplicated.
 
 An added binding realizes an added operation, with one exception. When the
 source offers an operation whose key already identifies an operation of the
@@ -85,7 +86,9 @@ Added schemas and binding data may refer to entries already in the input
 document and to other additions. Each kind defines how its data refers to them.
 An addition never claims the author's shape: an item that needs a `schemas`
 entry, or another operation's `input` or `output`, that the document holds
-with another shape than the source's is `omitted` as a `conflict` too.
+with another shape than the source's is `omitted` as a `conflict` too, and so
+is an item whose additions would declare again an identifier the document
+declares, a `$id` or a plain name (core §7.2).
 
 Added bindings claim faithful invocation paths under their source's kind in
 the observed source state. Runtime context, configuration and host
@@ -198,14 +201,15 @@ through?, details?}`:
 | `excluded` | Left out under a kind-defined rule, identified by `rule`. |
 | `invalid` | A malformed or contradictory part of the source. |
 | `implementation-unsupported` | Something the kind admits that this implementation did not represent. |
-| `conflict` | The item needs something the document already holds with another shape: an operation under a key or alias the document has whose input or output differ from the item's, a `schemas` entry under the key the item refers to, or another operation's input or output the item refers to. The author decides. |
+| `conflict` | The item needs something the document already holds with another shape: an operation under a key or alias the document has whose input or output differ from the item's, a `schemas` entry under the key the item refers to, another operation's input or output the item refers to, or an identifier, a `$id` or a plain name, that its additions would declare again. The author decides. |
 
 - `item` labels the item left out as `<map>/<key>`, the way `uses` labels an
   addition: `operations/<key>` with the key the source offers, or
   `schemas/<key>`. It is present whenever the omitted part has a key.
 - `existing`, on a conflict and required there, labels what the document
   holds that differs: `operations/<key>` by the operation's own key, even when
-  the item offers it under an alias, or `schemas/<key>`.
+  the item offers it under an alias, or `schemas/<key>`, the entry that
+  declares the identifier when that is what clashes.
 - `offered`, on a conflict and required there, is the item's version of what
   `existing` labels: for an operation, an object carrying the offered `input`
   and `output`, each absent where the item offers none; for a `schemas` entry,

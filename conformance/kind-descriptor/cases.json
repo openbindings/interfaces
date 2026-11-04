@@ -67,6 +67,10 @@
           "description": "Reads the embedded OpenAPI document, or fetches the one the data names. Sends no other request.",
           "executes": false
         },
+        "invoke": {
+          "description": "Calls the binding as the kind defines it.",
+          "executes": false
+        },
         "sourceData": {
           "oneOf": [
             {
@@ -148,6 +152,10 @@
         "pull": {
           "description": "Starts the server the data names and lists its tools.",
           "executes": true
+        },
+        "invoke": {
+          "description": "Calls the binding as the kind defines it.",
+          "executes": false
         },
         "sourceData": {
           "type": "object",

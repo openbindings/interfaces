@@ -24,8 +24,8 @@ It is not a general-purpose subschema checker: it is scoped to a keyword subset 
 Schemas at operation `input`/`output` positions take JSON Schema 2020-12's two forms:
 
 - **Object form** — compared as described below.
-- **Boolean form** — mapped to its equivalent object spelling before comparison: `true` becomes `{}` and `false` becomes `{"not": {}}`. `true` therefore behaves exactly like the empty schema (Top). `false` is **discriminating**: `{"not": {}}` uses the `not` keyword, which is outside the profile, so a `false` schema yields an *indeterminate* outcome rather than silently collapsing into Top.
-- **Absent** — an operation that omits a schema leaves that contract **unspecified**. Unspecified is not Top: comparison of that slot is *skipped entirely* and reports no finding (see Suppression). Only a *present* schema — including the empty `{}` — is compared.
+- **Boolean form** — mapped to its equivalent object spelling before comparison: `true` becomes `{}` and `false` becomes `{"not": {}}`. `true` therefore behaves exactly like the empty schema (Top). `false` is **discriminating**: `{"not": {}}` uses the `not` keyword, which is outside the profile, so in a directional comparison a `false` schema against anything not identical to it yields an *indeterminate* outcome rather than silently collapsing into Top. Identity still holds: `false` is identical to `false`, and to `{"not": {}}`, in both modes (rule 0).
+- **Absent** — an operation that omits a schema leaves that contract **unspecified**. Unspecified is not Top: directional comparison of that slot is *skipped entirely* and reports no finding (see Suppression). Only a *present* schema — including the empty `{}` — is compared. Identical mode is the exception: an absent slot is identical only to an absent slot (see Identical mode, under Suppression), as core §5.1 tells a stated schema from none.
 
 The empty schema `{}` is **Top** ("admits anything"):
 
@@ -50,10 +50,12 @@ These keywords are **annotations**: they never affect a verdict and are stripped
 
 ```
 title  description  examples  default  deprecated  readOnly  writeOnly
-$schema  format  discriminator  nullable*
+$schema  format  discriminator
 ```
 
-(`format` is treated as an annotation, not a structural constraint. `nullable` is the OpenAPI 3.0 spelling and is handled *structurally* first — converted to a `type` union, below — the annotation listing only catches stray occurrences without a `type`. `$schema` is stripped unconditionally; at the document layer the OBI meta-schema already pins it to 2020-12.)
+(`format` is treated as an annotation, not a structural constraint. `$schema` is stripped unconditionally; at the document layer the OBI meta-schema already pins it to 2020-12.)
+
+`nullable` is OpenAPI 3.0's spelling, not a JSON Schema 2020-12 keyword: core §5.5 reads it as an unknown keyword, so `{"type": "string", "nullable": true}` admits no `null`. The profile gives it no meaning of its own. It is a keyword outside the profile like any other, so a schema carrying it is identical only to one carrying the same `nullable`, and a directional comparison at a differing position is indeterminate. A kind that reads OpenAPI 3.0 converts `nullable: true` to a `type` union with `"null"` when it projects a schema, so the schemas it writes are 2020-12 schemas.
 
 Keys prefixed `x-` are extensions and are stripped.
 
@@ -65,15 +67,14 @@ Keys prefixed `x-` are extensions and are stripped.
 
 Comparison operates on **normalized** schemas. Two normalized schemas are structurally identical when their values are equal under the exact value rules below, except that arrays at schema `oneOf`/`anyOf` keyword positions compare as multisets of structurally identical normalized variants: order is irrelevant, multiplicity is retained. This exception applies only at schema keyword positions, never inside `const` or `enum` instance data. It does not identify a `oneOf` schema with an `anyOf` schema. No canonical byte serialization is required, and structural identity is not general schema equivalence. Steps, in order:
 
-1. **`nullable` conversion** (OpenAPI 3.0 interop). `{"type": "string", "nullable": true}` becomes `{"type": ["null", "string"]}` before anything else — it is structural, so it must survive annotation stripping. A `type` array already containing `"null"` is left as is; `nullable: false` (or `nullable` without a `type`) is stripped.
-2. **Profile keyword marking.** Any key that is not in scope, not an annotation, and not `x-`-prefixed is retained verbatim and marks the schema as outside the profile at that position. The refusal is deferred to comparison, where the identity rule runs first (see The profile boundary). An `allOf` whose sibling keywords or any branch carry an outside-profile keyword is not merged: the branches are normalized individually and the `allOf` array is retained in authored order, so identity remains decidable and any non-identical comparison at that position fails closed.
-3. **`$ref` inlining.** A `$ref` is resolved and replaced by its (normalized) target, equivalent to inlining. Fragment-only refs (`#/schemas/Foo`) resolve against the containing document root the caller supplies (in OpenBindings use, the interface document — named schemas live in the document's top-level `schemas` map). External refs resolve only if the caller supplies a fetcher, relative refs only against a caller-supplied base; otherwise resolution fails. Reference **cycles** are detected and fail — the profile does not compare recursive schemas.
-4. **Stripping.** Annotations, `$defs` (dead weight once refs are inlined), and `x-` extensions are removed.
-5. **`allOf` flattening.** Each branch is first normalized in full — these steps apply recursively, so a `$ref` branch is resolved and profile-checked exactly as step 3 requires, and a nested `allOf` inside a branch flattens before its parent merges. The schema's own sibling keywords (everything beside `allOf` that survives stripping) form one additional branch. All normalized branches then merge into a single schema (rules below): the sibling branch first, then the declared branches in order. The order is observable: `enum` intersection preserves the first branch's value order in the normalized form. `oneOf`/`anyOf` in a normalized branch fails closed, whether written inline, carried by a resolved `$ref`, or among the sibling keywords. The merged result is normalized again.
-6. **Canonical `type`.** A scalar `type` becomes a one-element array; arrays are deduplicated and sorted.
-7. **Canonical `required`.** Deduplicated and sorted.
-8. **Recursion.** `properties` values, `additionalProperties` (schema form), and `items` are normalized recursively.
-9. **Union variants.** Normalize `oneOf`/`anyOf` variants recursively. Retain their authored order for traversal and diagnostic indexes; structural comparison ignores variant order as described above. Sorting by serialization is not an equality test.
+1. **Profile keyword marking.** Any key that is not in scope, not an annotation, and not `x-`-prefixed is retained verbatim and marks the schema as outside the profile at that position. The refusal is deferred to comparison, where the identity rule runs first (see The profile boundary). An `allOf` whose sibling keywords or any branch carry an outside-profile keyword is not merged: the branches are normalized individually and the `allOf` array is retained in authored order, so identity remains decidable and any non-identical comparison at that position fails closed. The same holds for an `allOf` in which a branch, or the sibling keywords, sets `additionalProperties` to `false` or a schema while another branch, or the siblings, declares a property that branch does not: merging would let the other branch's property past the closed branch, which the original forbids, so the branches are retained as authored. It holds too for an `allOf` with `oneOf` or `anyOf` in a branch or among its sibling keywords, written inline or carried by a resolved `$ref`: no merge rule covers a union.
+2. **`$ref` inlining.** A `$ref` is resolved and its (normalized) target conjoined with the referencing schema's other keywords, as JSON Schema 2020-12 applies `$ref` beside its siblings: a schema carrying `$ref` and other keywords normalizes as an `allOf` of the target and those keywords, merged under the `allOf` rules (step 4), and a `$ref` alone is equivalent to inlining its target. A reference resolves as core §7 resolves it: against the base of the schema resource that contains it, so a fragment-only reference inside a schema that declares `$id` resolves within that resource, and one in a schema without `$id` (`#/schemas/Foo`) against the document root the caller supplies (in OpenBindings use, the interface document — named schemas live in the document's top-level `schemas` map). External refs resolve only if the caller supplies a fetcher, relative refs only against a caller-supplied base; otherwise resolution fails. Reference **cycles** are detected and fail — the profile does not compare recursive schemas.
+3. **Stripping.** Annotations, `$defs` (dead weight once refs are inlined), and `x-` extensions are removed. `$defs` is kept where a keyword retained outside the profile in the same schema resource (`$dynamicRef`, `$anchor`, `$dynamicAnchor` and any other) could refer into it, so identity still compares what such a keyword depends on.
+4. **`allOf` flattening.** Each branch is first normalized in full — these steps apply recursively, so a `$ref` branch is resolved and profile-checked exactly as step 2 requires, and a nested `allOf` inside a branch flattens before its parent merges. The schema's own sibling keywords (everything beside `allOf` that survives stripping) form one additional branch. All normalized branches then merge into a single schema (rules below): the sibling branch first, then the declared branches in order. The order is observable: `enum` intersection preserves the first branch's value order in the normalized form. An `allOf` step 1 retains is not merged. The merged result is normalized again.
+5. **Canonical `type`.** A scalar `type` becomes a one-element array; arrays are deduplicated and sorted.
+6. **Canonical `required`.** Deduplicated and sorted.
+7. **Recursion.** `properties` values, `additionalProperties` (schema form), and `items` are normalized recursively.
+8. **Union variants.** Normalize `oneOf`/`anyOf` variants recursively. Retain their authored order for traversal and diagnostic indexes; structural comparison ignores variant order as described above. Sorting by serialization is not an equality test.
 
 ### Exact values, ordering and capability failures
 
@@ -92,7 +93,7 @@ A processor unable to retain or compare an input exactly must report an explicit
 | `type` | intersection; `integer` is a subtype of `number` (`number` ∩ `integer` = `integer`); an empty intersection is a schema error |
 | `properties` | union of keys; overlapping keys merge recursively |
 | `required` | union |
-| `additionalProperties` | any branch `false` wins; schema forms merge recursively; schema overrides `true` |
+| `additionalProperties` | any branch `false` wins; schema forms merge recursively; schema overrides `true`; applied only where every branch that constrains it declares the same property names as the merged result (otherwise the `allOf` is retained, step 1) |
 | `enum` | intersection (by exact instance equality); an empty intersection is a schema error |
 | `const` | equal values merge; conflicting values are a schema error |
 | `items` | recursive merge |
@@ -171,14 +172,14 @@ indeterminate  >  incompatible  >  compatible
 
 The profile deliberately reports **no finding** in these situations:
 
-- **Unspecified schemas.** When either side of a pair leaves a slot's schema absent, that slot's comparison is skipped entirely. Unspecified is a statement of "no contract declared", not an empty contract.
+- **Unspecified schemas.** In directional comparison, when either side of a pair leaves a slot's schema absent, that slot's comparison is skipped entirely. Unspecified is a statement of "no contract declared", not an empty contract. Identical mode does not skip it (below).
 - **`additionalProperties` on inputs.** In v0.1 the input direction does not fault `additionalProperties` at all — a candidate that closes its input object (`additionalProperties: false`) against an open target produces no finding.
 - **Undeclared candidate properties (input).** A candidate that declares no schema for a property the target declares treats it as unconstrained; no finding.
 - **Annotations and extensions.** Differences confined to annotation keywords or `x-` extensions never produce findings (they are stripped before comparison).
 
 Consumer-level *finding suppression* — downgrading a reported finding by rule, with an audit trail — is a consumer policy on top of the report and is outside this profile.
 
-**Identical mode.** Whole-document identity (the corpus's `identical` mode) compares normalized schemas structurally, outside-profile keywords included: identical documents are compatible and differing documents are incompatible, with the first differing keyword as the finding. Identity never yields indeterminate, because sameness is decidable for any keyword.
+**Identical mode.** Whole-document identity (the corpus's `identical` mode) compares normalized schemas structurally, outside-profile keywords included: identical documents are compatible and differing documents are incompatible, with the first differing keyword as the finding. Identity never yields indeterminate, because sameness is decidable for any keyword once both sides normalize (a reference cycle or an unsatisfiable merge fails normalization, the third outcome, as an error and not a verdict). An absent slot is identical only to an absent slot: a pair where one side states a schema and the other states none differs, with the finding `unspecified`, since core §5.1 distinguishes a stated schema, even `{}`, from none.
 
 ## Conformance corpus
 
@@ -192,4 +193,4 @@ The shared corpus lives at [`../conformance/comparison/`](../conformance/compari
 
 ## Versioning
 
-This is profile version **0.1**, written against OpenBindings spec **0.2.0**. The identity rule (rule 0) and comparison-time fail-closed were added in place on 2026-09-22 under the pre-launch convention; they widen what the profile decides without changing any verdict the earlier text produced for non-identical positions. Pre-launch it is a working draft amendable in place, per this repository's convention; after launch, semantic changes ship as a new profile version. The keyword subset is intentionally conservative — widening the profile (e.g., deciding `pattern` containment) is a version bump, never a silent extension.
+This is profile version **0.1**, written against OpenBindings spec **0.2.0**. The identity rule (rule 0) and comparison-time fail-closed were added in place on 2026-09-22 under the pre-launch convention; they widen what the profile decides without changing any verdict the earlier text produced for non-identical positions. The OpenAPI 3.0 `nullable` conversion was removed, `nullable` becoming a keyword outside the profile as core §5.5 reads it, and identical mode's absent-slot rule was added, in place on 2026-11-03 under the same convention. The same day, three normalization defects were corrected in place: a `$ref`'s siblings are conjoined with its target, as 2020-12 applies them, rather than dropped; references resolve against their schema resource, as core §7 does; and an `allOf` whose merge would loosen a closed branch's `additionalProperties` is retained rather than merged; and `$defs` is kept where a retained outside-profile keyword could depend on it. Each corrects a verdict the earlier text could reach unsoundly. Pre-launch it is a working draft amendable in place, per this repository's convention; after launch, semantic changes ship as a new profile version. The keyword subset is intentionally conservative — widening the profile (e.g., deciding `pattern` containment) is a version bump, never a silent extension.

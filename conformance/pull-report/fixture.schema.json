@@ -53,7 +53,7 @@
           },
           "completePull": {
             "type": "boolean",
-            "description": "Whether a schema-valid report meets the guide's complete-pull condition: exhaustive is true and no omitted entry is implementation-unsupported. Absent when schemaValid is false."
+            "description": "Whether a schema-valid report meets the guide's complete-pull condition: exhaustive is true, no omitted entry is implementation-unsupported and no existing entry is unassessed. Absent when schemaValid is false."
           }
         },
         "if": {

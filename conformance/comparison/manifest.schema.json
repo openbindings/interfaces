@@ -57,6 +57,7 @@
                 "items",
                 "union",
                 "identity",
+                "unspecified",
                 "numeric-bounds",
                 "length-bounds",
                 "outside-profile"

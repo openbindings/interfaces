@@ -97,7 +97,7 @@ entry, or another operation's `input` or `output`, that the document holds
 with another shape than the source's is `omitted` as a `conflict` too, and so
 is an item whose additions would declare again an identifier the document
 declares, a `$id` or a plain name (core §7.2). An addition may exist only for a
-proposal's `uses`, realized by no added binding.
+proposal, realized by no added binding.
 
 Added bindings claim faithful invocation paths under their source's kind in
 the observed source state. Runtime context, configuration and host
@@ -128,7 +128,7 @@ why; an exhaustive report carries none.
 `added` has one entry for each added binding, and each appears exactly once:
 
 ```json
-{"binding": "getUser.api", "operation": "getUser", "uses": ["schemas/User", "schemas/Address"]}
+{"binding": "getUser.api", "operation": "getUser", "uses": ["schemas/ApiError"]}
 ```
 
 - `binding` is the key of the added binding.
@@ -137,12 +137,13 @@ why; an exhaustive report carries none.
 - `reused`, when present, is `true`: the operation already existed and the
   puller bound the source to it because the offered input and output equal the
   existing ones.
-- `uses` names every other addition the entry needs, directly or through
-  another addition, as `<map>/<key>` labels: `schemas/User`,
-  `operations/getUser`, `bindings/getUser.api`. The list is closed: here `User`
-  refers to `Address`, so both are listed. A caller keeps an entry by inserting
-  it, its operation when that operation is added, and everything the list
-  names.
+- `uses` names each other addition the binding's data needs, as `<map>/<key>`
+  labels: `schemas/ApiError`, `operations/getUser`, `bindings/getUser.api`. Only
+  the kind can read binding data, so a need held there is one a reader could
+  not find. A schema reference shows its own target, so `uses` leaves it out:
+  here the data names `ApiError`, and if `getUser`'s output refers to `User` and
+  `User` to `Address`, neither is listed.
+  [Using the result](#using-the-result) says how a caller keeps an entry.
 - `lossy` (`[{reasonCode, message, details?}]`) discloses each loss of
   fidelity, such as an approximated schema; an addition that lost fidelity
   twice lists both. The addition is still an added path; the losses mark what
@@ -183,11 +184,13 @@ data compare as JSON values.
 
 `references`, on a binding's entry, lists what its data refers to in the input
 document, as labels, `schemas/<key>`, or `operations/<key>/input` or `/output`,
-the list closed, and is absent when it refers to nothing there. Only the kind
-can see inside binding data, so this is how a reader learns that a change to
-such an entry reaches the binding, though the binding itself still reads
-`current`. A label names the whole entry or `input` or `output`, so a change
-anywhere in it reaches the binding, whatever part its data uses.
+and is absent when it refers to nothing there. Only the kind can see inside
+binding data, so this is how a reader learns that a change to such an entry
+reaches the binding, though the binding itself still reads `current`. A label
+names the whole entry or `input` or `output`, so a change anywhere in it reaches
+the binding, whatever part its data uses. What those entries refer to in turn
+shows in the document, so a reader follows their schema references and the list
+leaves them out.
 
 A proposal carries only what the kind owns. For a binding it is
 `{data?, input?, output?, remove?, uses?}`: `data` is the binding data the
@@ -195,14 +198,13 @@ puller would write, `input` and `output` are the schemas it would write for the
 operation the binding realizes, each appearing where the puller would write it
 differently, `remove` names what it would no longer write (`data`, `input` or
 `output`, each at most once and never also carried), at least one of the four
-appears, and `uses` names the additions the proposal needs. The operation's
-`description`, and the binding's `preference` and `idempotent` (core §5.3), are
-the author's and are never in a proposal, so applying one cannot touch them.
-For a schema the proposal is `{schema, uses?}`: the schema the puller would
-write and the additions it needs. For the source it is `{data}` or
-`{remove: ["data"]}`, and only a kind whose definition lets it refresh its own
-source data ever proposes one; the interface takes no stance on what a kind's
-data means.
+appears, and `uses` names the additions the proposed `data` needs. The
+operation's `description`, and the binding's `preference` and `idempotent`
+(core §5.3), are the author's and are never in a proposal, so applying one
+cannot touch them. For a schema the proposal is `{schema}`: the schema the
+puller would write. For the source it is `{data}` or `{remove: ["data"]}`, and
+only a kind whose definition lets it refresh its own source data ever proposes
+one; the interface takes no stance on what a kind's data means.
 
 `change` is the kind's judgment of the proposal's effect on a caller of the
 affected operation: `breaking` (a caller that satisfied the old input or relied
@@ -220,9 +222,10 @@ across them. The label lets an agent or a policy decide without diffing
 schemas itself; it is not an instruction to apply.
 
 A caller applies a proposal by copying what it carries onto the existing
-entry, removing what its `remove` names, and inserting the additions its `uses`
-names. An endpoint that stops returning a body is a stale binding whose
-proposal is `{"remove": ["output"]}`, a `breaking` change.
+entry, removing what its `remove` names, and inserting the additions it needs:
+what its `uses` names and what its schemas reach, followed as
+[Using the result](#using-the-result) describes. An endpoint that stops
+returning a body is a stale binding whose proposal is `{"remove": ["output"]}`, a `breaking` change.
 
 ### Omitted
 
@@ -299,9 +302,12 @@ still a pull result with explicit gaps, which another caller may use.
 Inspection is a pull whose result is read and discarded. A caller that only
 wants to know what a source offers reads the report and inserts nothing.
 
-To bind only some of the result, a caller keeps the chosen `added` entries: it
-inserts each one, its operation when that operation is added, and what its
-`uses` names, and discards the rest.
+To bind only some of the result, a caller keeps the chosen `added` entries and
+discards the rest. Keeping an entry inserts its binding, its operation when that
+operation is added, and what its `uses` names. Whatever is inserted brings in
+what it needs in turn: each addition a schema reference reaches and, for an
+added binding, its own operation and `uses`. The caller repeats this until
+nothing new comes in.
 
 Pulling into a document that already names the source reads as a drift report,
 from `existing` and `added`:
@@ -379,9 +385,9 @@ A puller that represents both targets returns:
 ```
 
 The report is exhaustive and omits nothing, so the result is a complete pull.
-Neither entry has `uses`, because each operation declares its own schemas. The
-added keys are example choices, not a naming algorithm required by this
-interface. Inserting the additions gives the pulled document:
+Neither entry has `uses`, because neither binding's data needs another
+addition. The added keys are example choices, not a naming algorithm required
+by this interface. Inserting the additions gives the pulled document:
 
 ```json
 {
@@ -536,8 +542,8 @@ the change:
 }
 ```
 
-The binding data is unchanged, so the proposal has no `data`, and it needs no
-additions, so it has no `uses`. Nothing is added for `echo`. To apply, the
+The binding data is unchanged, so the proposal has no `data`, and no data needs
+an addition, so it has no `uses`. Nothing is added for `echo`. To apply, the
 caller copies the proposed output onto `repeat`. Had the document declared an
 output the kind would no longer declare, the proposal would instead be
 `{"remove": ["output"]}`, and the caller would delete `repeat`'s output. The complete response, with

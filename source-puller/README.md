@@ -184,11 +184,13 @@ data compare as JSON values.
 
 `references`, on a binding's entry, lists what its data refers to in the input
 document, as labels, `schemas/<key>`, or `operations/<key>/input` or `/output`,
-the list closed, and is absent when it refers to nothing there. Only the kind
-can see inside binding data, so this is how a reader learns that a change to
-such an entry reaches the binding, though the binding itself still reads
-`current`. A label names the whole entry or `input` or `output`, so a change
-anywhere in it reaches the binding, whatever part its data uses.
+and is absent when it refers to nothing there. Only the kind can see inside
+binding data, so this is how a reader learns that a change to such an entry
+reaches the binding, though the binding itself still reads `current`. A label
+names the whole entry or `input` or `output`, so a change anywhere in it reaches
+the binding, whatever part its data uses. What those entries refer to in turn
+shows in the document, so a reader follows their schema references and the list
+leaves them out.
 
 A proposal carries only what the kind owns. For a binding it is
 `{data?, input?, output?, remove?, uses?}`: `data` is the binding data the

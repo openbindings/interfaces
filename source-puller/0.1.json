@@ -330,7 +330,7 @@
                         "type": "string",
                         "minLength": 1
                     },
-                    "description": "Only on a binding's entry: what its data refers to in the input document, as labels, schemas/<key>, or operations/<key>/input or /output, the list closed, absent when it refers to nothing there. A reader sees nothing inside binding data, so this is how it learns what the binding depends on. A label names the whole entry or input or output, so a change anywhere in it reaches the binding."
+                    "description": "Only on a binding's entry: what its data refers to in the input document, as labels, schemas/<key>, or operations/<key>/input or /output, absent when it refers to nothing there. A reader sees nothing inside binding data, so this is how it learns what the binding depends on. A label names the whole entry or input or output, so a change anywhere in it reaches the binding. What those entries refer to in turn shows in the document and is left out."
                 },
                 "reasonCode": {
                     "type": "string",

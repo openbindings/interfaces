@@ -101,7 +101,7 @@ Resolution is deterministic without imposing a preference policy: explicit calle
 The `openbindings.source-pull-report-cases@1` examples carry the input
 `interface`, the pulled `source` key, the result's `additions`, its `report`
 and the report's `schemaValid` result. They cover a minimal result, added
-bindings with the additions they use, a binding that reuses an existing
+bindings with the additions their data needs, a binding that reuses an existing
 operation, lossy additions, each existing-entry status (`current`, `stale`,
 `unmatched`) for bindings, schemas and the source entry, the change class on
 stale entries, each omission status including a conflict, a non-exhaustive
@@ -115,9 +115,9 @@ new, added bindings name the pulled source, the pulled document passes the core
 schema, every added binding appears exactly once in the report with its
 operation (added, or existing when `reused`), `uses` labels and existing-entry
 keys name real entries, and every same-document schema reference in an added
-operation or a proposal resolves within the input document or the entry's
-`uses`. It does not emulate a pull provider or require a consumer to reject
-any schema failure.
+operation or a proposal, followed through the additions, resolves within the
+input document or the additions. It does not emulate a pull provider or require
+a consumer to reject any schema failure.
 
 Each schema-valid example also carries `completePull`: whether the report
 meets the guide's [complete pull](../source-puller/#complete-pull) condition,

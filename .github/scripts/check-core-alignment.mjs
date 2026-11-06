@@ -330,8 +330,8 @@ function schemaReferences(value, found = new Set()) {
   return found;
 }
 // uses labels are <map>/<key> and name additions; a kept entry is
-// self-sufficient: every schema its operation refers to, directly or through a
-// used schema, is in the input document or among the used schemas.
+// self-sufficient: every schema reference reached from its operation or from
+// the schemas uses names resolves in the input document or the additions.
 function parseUses(uses, label) {
   const used = { operations: new Set(), schemas: new Set(), bindings: new Set() };
   for (const entry of uses ?? []) {
@@ -349,9 +349,14 @@ function checkUses(document, additions, operation, uses, label) {
   for (const map of MAPS) {
     for (const key of used[map]) assert(has(additions[map], key), `${label}: ${map}/${key} names an addition`);
   }
-  for (const value of [operation?.input, operation?.output, ...[...used.schemas].map(key => additions.schemas[key])]) {
-    for (const key of schemaReferences(value)) {
-      assert(has(document.schemas, key) || used.schemas.has(key), `${label}: #/schemas/${key} is in the input document or in uses`);
+  const pending = [operation?.input, operation?.output, ...[...used.schemas].map(key => additions.schemas[key])];
+  const reached = new Set();
+  while (pending.length > 0) {
+    for (const key of schemaReferences(pending.pop())) {
+      if (reached.has(key)) continue;
+      reached.add(key);
+      assert(has(document.schemas, key) || has(additions.schemas, key), `${label}: #/schemas/${key} is in the input document or the additions`);
+      if (has(additions.schemas, key)) pending.push(additions.schemas[key]);
     }
   }
 }
@@ -393,7 +398,7 @@ function checkAttribution(document, source, additions, report, label) {
     } else if (name === 'schema') {
       assert(has(document.schemas, key), `${label}: existing names an input schema, ${key}`);
       assert(!has(additions.schemas, key), `${label}: schema ${key} is not also added`);
-      if (entry.proposal) checkUses(document, additions, { input: entry.proposal.schema }, entry.proposal.uses, `${label}: ${key}`);
+      if (entry.proposal) checkUses(document, additions, { input: entry.proposal.schema }, undefined, `${label}: ${key}`);
     } else {
       assert.equal(key, source, `${label}: the source entry names the pulled source`);
     }
@@ -556,7 +561,7 @@ for (const entry of [
   { schema: 'S', status: 'current' },
   { schema: 'S', status: 'stale', change: 'non-breaking', proposal: { schema: { type: 'object' } } },
   { schema: 'S', status: 'stale', change: 'breaking', proposal: { schema: false } },
-  { schema: 'S', status: 'stale', change: 'breaking', proposal: { schema: { $ref: '#/schemas/T' }, uses: ['schemas/T'] } },
+  { schema: 'S', status: 'stale', change: 'breaking', proposal: { schema: { $ref: '#/schemas/T' } } },
   { ...stale, change: 'breaking', proposal: { remove: ['output'] } },
   { ...stale, change: 'breaking', proposal: { data: 'echo', remove: ['input', 'output'] } },
   { ...stale, change: 'breaking', proposal: { remove: ['data'] } },

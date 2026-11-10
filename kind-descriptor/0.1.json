@@ -100,7 +100,7 @@
         },
         "KindDescription": {
             "type": "object",
-            "description": "Everything an application needs to add a source of this kind and to bind to it: the kind's description, the operations this implementation performs under it, what its check, its pull and a call do, and the two shapes the kind reads. An absent sourceData means sources of this kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check source entries of this kind, and an absent pull that it does not pull sources of this kind; pull is present exactly when supports names openbindings.source-puller.pullSource, and invoke exactly when it names openbindings.binding-invoker.invokeBinding.",
+            "description": "Everything an application needs to add a source of this kind and to bind to it: the kind's description, the operations this implementation performs under it, what its check, its pull and a call do, and the two shapes the kind reads. An absent sourceData means sources of this kind carry no data; an absent bindingData means its bindings carry none; an absent check means this implementation does not check source entries of this kind, and an absent pull that it does not pull sources of this kind; check is present exactly when supports names openbindings.kind-descriptor.checkSource, pull exactly when it names openbindings.source-puller.pullSource, and invoke exactly when it names openbindings.binding-invoker.invokeBinding.",
             "properties": {
                 "kind": {
                     "type": "string",

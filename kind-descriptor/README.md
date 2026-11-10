@@ -83,8 +83,9 @@ or both, and the interface takes no stance.
 one sentence a person reads and one boolean an application acts on:
 `executes` is true when the check runs something the source data names, such
 as starting a command, and false when it only reads. An application asks
-before running a check that executes, showing the sentence. An absent `check`
-means this implementation does not check entries of the kind.
+before running a check that executes, showing the sentence. `check` is present
+exactly when `supports` names `openbindings.kind-descriptor.checkSource`; an
+absent `check` means this implementation does not check entries of the kind.
 
 `pull` says the same of this implementation's `pullSource` for the kind: one
 sentence and `executes`, true when the pull runs something the source data

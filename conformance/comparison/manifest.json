@@ -645,6 +645,7 @@
       "direction": "input",
       "verdict": "incompatible",
       "findings": [
+        "length-bounds",
         "union"
       ]
     },
@@ -661,6 +662,7 @@
       "direction": "output",
       "verdict": "incompatible",
       "findings": [
+        "length-bounds",
         "union"
       ]
     },

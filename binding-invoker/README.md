@@ -149,7 +149,9 @@ complete unsuccessfully.
   completion. A rule defining `code` may define its structure and semantics;
   otherwise the source's kind may use it to preserve an
   opaque application-authored failure value. `CONTEXT_REQUIRED` uses it for a
-  `ContextRequiredDetails` object. Presence is significant: an absent member
+  `ContextRequiredDetails` object. For `ERR_REFUSED`, it may carry a reason for
+  refusal whose shape and meaning the source's kind defines; it does not repeat
+  document values. Presence is significant: an absent member
   means no portable associated value, while `"data": null` is a present JSON
   null. Statuses, headers, trailers, envelopes, raw debugging bytes, exception
   prose, stacks, and implementation evidence do not belong here unless an

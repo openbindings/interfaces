@@ -77,7 +77,8 @@ identifies an operation of the document, as its key or one of its aliases (an
 alias identifies an operation exactly as its key does, core §5.1), the puller
 compares the offered `input`
 and `output` with the existing operation's. Equal under the
-[schema-comparison profile's](../schema-comparison/) identical mode, the added
+[schema-comparison profile's](../schema-comparison/) identical mode with the
+[reference rule below](#schema-comparisons), the added
 binding realizes the existing operation, naming its own key, and its report
 entry says `reused`: one operation, several bindings, arrived at by pulling
 several sources. Different, the item is `omitted` as a `conflict` and the
@@ -123,6 +124,23 @@ evidence offered by the producer, not verification of its claim.
 `limitation` (`{code, message, details?}`) explains what may be missing and
 why; an exhaustive report carries none.
 
+### Schema comparisons
+
+The comparisons for reuse and for existing entries use the same reference
+rule. A reference spelled the same on both sides counts as the same when its
+target is something the source offers that the offered item's own additions
+or this report account for: a `schemas` entry in those additions or listed in
+`existing`, or the whole `input` or `output` of an operation in those additions
+or realized by a binding listed in `added` or `existing`. A target inside an
+entry or slot does not count merely because the containing entry or slot is
+accounted for. A change behind such a reference is reported once, at its
+target's own entry. The comparison keeps each such reference as a leaf, equal to one
+spelled the same, and applies every other normalization of the profile; the
+reference's siblings, and an `allOf` that holds it, are kept unmerged, as the
+profile keeps a merge it cannot make. Any other reference is followed. The
+conflict rule for an item that needs an existing entry with another shape
+still applies when that entry is accounted for.
+
 ### Added
 
 `added` has one entry for each added binding, and each appears exactly once:
@@ -166,21 +184,12 @@ to report about it, the source entry itself. Exactly one of `binding`,
 | `unassessed` | The entry corresponds to something the source offers, but the puller could not judge it, as when it cannot represent that item. `reasonCode` and `message` say why. |
 
 "Unchanged" is judged as the [schema-comparison profile's](../schema-comparison/)
-identical mode compares schemas, so a difference only in what the profile
-strips as annotations (a description, a default, a format) never makes an
-entry stale: annotations are the author's. A reference spelled the same in the
-entry and in what the puller would write counts as the same when its target is
-something the source offers that this report accounts for, a `schemas` entry
-the report lists or the `input` or `output` of an operation a binding the
-report lists realizes, so a change behind it is reported once, at its target's
-own entry. The comparison keeps each such reference as a leaf, equal to one
-spelled the same, and applies every other normalization of the profile; the
-reference's siblings, and an `allOf` that holds it, are kept unmerged, as the
-profile keeps a merge it cannot make. Any other reference is followed, and an
-entry that then differs only through a target the report does not account for
+identical mode compares schemas, with the [reference rule above](#schema-comparisons),
+so a difference only in what the profile strips as annotations (a description,
+a default, a format) never makes an entry stale: annotations are the author's.
+An entry that differs only through a target the report does not account for
 is `unassessed`, since nothing the puller would write at the entry carries the
-change. Binding data and source
-data compare as JSON values.
+change. Binding data and source data compare as JSON values.
 
 `references`, on a binding's entry, lists what its data refers to in the input
 document, as labels, `schemas/<key>`, or `operations/<key>/input` or `/output`,

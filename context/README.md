@@ -158,6 +158,11 @@ challenge, define context member names, or move acquisition into the contract.
 - A `writeOnly` value is a secret. Applications mask it, never log it, and keep
   it with care; they avoid disclosing context through diagnostics and storage
   keys.
+- An application that keeps context for reuse keys each value by the exact
+  source entry it was acquired for: the source's key, its kind and its data,
+  preserving absent data as distinct from JSON null. If any of these changes,
+  the changed entry starts with no kept context, and the application acquires
+  what the producer asks for again.
 - Secrets never go in documents. Facts a producer needs to reach a target that
   are not secret may be source data, as its kind defines.
 - A `message` and a `schema` come from the producer's side of the seam. An

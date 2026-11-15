@@ -18,7 +18,7 @@
     },
     "mode": {
       "enum": ["subsume", "identical"],
-      "description": "Comparison mode. 'subsume': pair operations and run directional compatibility, collapsing by indeterminate > incompatible > compatible. 'identical': compare normalized schema structure under exact instance equality and the profile's union-permutation rule, never lossy canonical strings."
+      "description": "Comparison mode. 'subsume': pair operations and run directional compatibility, collapsing by incompatible > indeterminate > compatible. 'identical': compare normalized schema structure under exact instance equality and the profile's union-permutation rule, never lossy canonical strings."
     },
     "options": {
       "type": "object",

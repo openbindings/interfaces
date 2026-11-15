@@ -145,8 +145,8 @@ realization stage; unavailable cases pin ordered stable assessment codes.
 
 A name or alias correspondence is the provider's compatibility claim (core
 §5.1 calls it the correspondence claim). The policy sets a candidate aside only
-when the comparison profile proves a contradiction of that claim
-(`contract_incompatible`); a differing keyword the profile cannot read leaves
+when the comparison profile returns incompatible under its stated vacuity
+exception (`contract_incompatible`); an indeterminate comparison result leaves
 the claim standing, so there is no indeterminate composition state and the
 profile's evidence rides the resolved route for inspection.
 
@@ -214,7 +214,7 @@ Each fixture file embeds a **left** (target/contract) and **right** (candidate) 
 
 Field semantics:
 
-- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, core §5.1), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`indeterminate` > `incompatible` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
+- `mode`: `subsume` pairs operations across the two documents (by key, then across the flat key+aliases namespace, core §5.1), runs the profile's directional check on each pair's `direction` schemas, and collapses per-operation verdicts by dominance (`incompatible` > `indeterminate` > `compatible`; a left operation with no pair is incompatible, a right-only operation is compatible). `identical` compares normalized structure using exact instance equality and the profile's schema-union permutation rule (`compatible` asserts identity, `incompatible` asserts difference); no JCS prerequisite applies.
 - `direction`: which operation schema slot (`input` or `output`) the fixture compares, carried in the manifest entry.
 - Operation schemas may use the **object form**, the **boolean form** (`true`/`false`, compared via their object spellings per the profile), or be **absent** — absent means unspecified: in `subsume` mode the slot's comparison is skipped (the profile's suppression rule), and in `identical` mode an absent slot is identical only to an absent one.
 - `verdict` / `expected.summary.verdict`: the outcome a conforming implementation must reach; the two must agree (harnesses check this).
@@ -225,6 +225,8 @@ Fixture categories, one directory per family: `profile/` (the profile boundary: 
 Two schemas validate the corpus in CI: [`comparison/manifest.schema.json`](comparison/manifest.schema.json) and [`comparison/fixture.schema.json`](comparison/fixture.schema.json); embedded documents are additionally validated against the OBI meta-schema, and manifest/fixture verdict agreement plus path completeness are checked.
 
 One known format limit: fixture format 1.0 expresses exactly three verdicts (`compatible`, `incompatible`, `indeterminate`), so the profile's **schema error** outcome — an unsatisfiable `allOf` merge, which per the profile is neither a compatible nor an incompatible verdict — is not corpus-expressible. That lane is pinned by mirrored unit tests in the two reference SDK suites; a fixture-format bump adding an error verdict is deferred until a second error-semantics rule needs it.
+
+Supplemental [external-resource cases](comparison/external-resources.md) record externally supplied schema resources. The manifest fixture format has no supplied-resource carrier; these prose cases are not manifest entries.
 
 Like selection, every fixture has exactly one correct outcome: the profile is pure and deterministic.
 

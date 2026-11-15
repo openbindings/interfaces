@@ -195,8 +195,9 @@ JSON Schema should be limited to that subset. It makes the advertised workflow
 — `ob compat <candidate> <contract>` — useful for the contracts this project
 publishes instead of predictably returning `indeterminate`.
 
-The profile includes structural unions, so conditional contract shapes are
-written as `oneOf` alternatives when that preserves the requirement exactly.
+Conditional contract shapes are written as `oneOf` alternatives when that
+preserves the requirement exactly; the profile answers indeterminate at a
+non-identical position carrying `oneOf` on either side.
 Constraints whose containment the profile cannot soundly decide, such as
 regular-expression `pattern` or `uniqueItems`, are not added merely as validation
 decoration. A checker limitation is not a reason to move an implementation policy

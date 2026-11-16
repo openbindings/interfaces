@@ -83,8 +83,8 @@ binding realizes the existing operation, naming its own key, and its report
 entry says `reused`: one operation, several bindings, arrived at by pulling
 several sources. Different, the item is `omitted` as a `conflict` and the
 author decides, and so it is when the offered operation's identifiers identify
-two different operations of the document. A comparison that cannot finish (a reference cycle, a reference
-it cannot resolve, an unsatisfiable merge) decides neither: the item is
+two different operations of the document. A comparison that cannot finish (a reference cycle or a reference
+it cannot resolve) decides neither: the item is
 `omitted` as `implementation-unsupported`, and an entry already there whose
 comparison cannot finish is `unassessed`. The author decides a conflict: bind the source to the existing operation by hand, adapting in
 binding data as the kind defines, or add it under another key. The comparison

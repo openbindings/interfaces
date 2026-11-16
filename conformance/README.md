@@ -180,8 +180,9 @@ whole-profile claim. Explicit refusals on required exact cases are unmet
 profile capability, not passing outside-keyword cases. Runtime gaps remain
 real test failures; do not skip or round fixtures to obtain a green gate.
 `reason` assertions are the official SDKs' extra diagnostic alignment bar;
-`leftUnionConstOrder` exercises the profile's authored traversal order. Schema
-merge errors are distinct from the three comparison verdicts.
+`leftUnionConstOrder` exercises the profile's authored traversal order.
+Normalization errors (reference cycles and resolution failures) are distinct
+from the three comparison verdicts; an unsatisfiable merge is not an error.
 
 Covers the [schema-comparison profile](../schema-comparison/) (identifier `OB-2020-12`, version 0.1): normalization, the profile boundary, directional subsumption, and suppression. Unlike `selection/`, this corpus is **manifest-indexed**: harnesses iterate [`comparison/manifest.json`](comparison/manifest.json), never the directory.
 
@@ -224,9 +225,9 @@ Fixture categories, one directory per family: `profile/` (the profile boundary: 
 
 Two schemas validate the corpus in CI: [`comparison/manifest.schema.json`](comparison/manifest.schema.json) and [`comparison/fixture.schema.json`](comparison/fixture.schema.json); embedded documents are additionally validated against the OBI meta-schema, and manifest/fixture verdict agreement plus path completeness are checked.
 
-One known format limit: fixture format 1.0 expresses exactly three verdicts (`compatible`, `incompatible`, `indeterminate`), so the profile's **schema error** outcome — an unsatisfiable `allOf` merge, which per the profile is neither a compatible nor an incompatible verdict — is not corpus-expressible. That lane is pinned by mirrored unit tests in the two reference SDK suites; a fixture-format bump adding an error verdict is deferred until a second error-semantics rule needs it.
+One known format limit: fixture format 1.0 expresses exactly three verdicts (`compatible`, `incompatible`, `indeterminate`), so the profile's **normalization error** outcome (a reference cycle or a resolution failure, which per the profile is neither a compatible nor an incompatible verdict) is not expressible in the manifest fixture format. That lane is pinned by mirrored unit tests in the two reference SDK suites; a fixture-format bump adding an error verdict is deferred until a second error-semantics rule needs it. An unsatisfiable `allOf` merge is not an error: it normalizes to `{"not": {}}` and has a verdict.
 
-Supplemental [external-resource cases](comparison/external-resources.md) record externally supplied schema resources. The manifest fixture format has no supplied-resource carrier; these prose cases are not manifest entries.
+Supplemental [external-resource cases](comparison/external-resources.md) record externally supplied schema resources and documents handed to comparison that are not OBI documents. The manifest fixture format has no supplied-resource carrier and embeds only OBI documents; these prose cases are not manifest entries.
 
 Like selection, every fixture has exactly one correct outcome: the profile is pure and deterministic.
 
